@@ -9,6 +9,7 @@ import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
 const TABS = [
   { href: "/", label: "Overview", icon: "⌂" },
   { href: "/cards", label: "Cards", icon: "card" },
+  { href: "/team", label: "Employees", icon: "people" },
   { href: "/payments", label: "Payments", icon: "$" },
   { href: "/approvals", label: "Approvals", icon: "✓" },
   { href: "/reconciliation", label: "Reconciliation", icon: "≡" },
@@ -59,7 +60,7 @@ export function AppNav() {
             href={tab.href}
             className={`nav-tab${pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? " is-active" : ""}`}
           >
-            {tab.icon === "card" ? <span className="nav-tab-card-chip" aria-hidden="true" /> : <span className="nav-tab-icon" aria-hidden="true">{tab.icon}</span>}
+            {tab.icon === "card" ? <span className="nav-tab-card-chip" aria-hidden="true" /> : <span className="nav-tab-icon" aria-hidden="true">{tab.icon === "people" ? "♙" : tab.icon}</span>}
             {tab.label}
           </Link>
         ))}
