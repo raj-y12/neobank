@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LithicTransaction } from "@/src/integrations/lithic/client";
+import { formatLithicDate, type LithicTransaction } from "@/src/integrations/lithic/client";
 
 type TransactionRow = LithicTransaction & { displayAmount: number | null; internalTransactionId?: string };
 
@@ -11,8 +11,7 @@ function usd(amount: number | null | undefined) {
 }
 
 function date(value: string | null | undefined) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return formatLithicDate(value);
 }
 
 function latestEvent(transaction: TransactionRow) {

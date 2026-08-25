@@ -105,6 +105,7 @@ export function getCardholderAmount(transaction: LithicTransaction) {
 export function formatLithicDate(value: string | null | undefined) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-US", {
-    month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+    dateStyle: "medium",
+    timeStyle: "medium",
   }).format(new Date(value));
 }
