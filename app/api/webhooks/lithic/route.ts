@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { verifyLithicWebhook } from "@/src/integrations/lithic/webhook-verification";
 import { projectLithicTransaction } from "@/src/domain/lithic-transaction-projection";
+import { authorizeHold, clearCardSettlement } from "@/src/domain/ledger";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
+import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { createSupabaseProviderEventRepository } from "@/src/repositories/supabase-provider-event-repository";
 
 export async function POST(request: Request) {
@@ -45,13 +47,26 @@ export async function POST(request: Request) {
 
     if (getEventType(event) === "card_transaction.updated") {
       const transactionRepository = createSupabaseCardTransactionRepository();
-      await transactionRepository.project(
-        projectLithicTransaction({
+      const projection = projectLithicTransaction({
           providerEventId: webhookId,
           payload: assertLithicTransactionPayload(event),
-        }),
-        event,
-      );
+        });
+      await transactionRepository.project(projection, event);
+
+      const valueDate = projection.event.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+      const ledgerRepository = createSupabaseLedgerRepository();
+      if (projection.event.eventType === "AUTHORIZATION" && projection.hold) {
+        await ledgerRepository.record(
+          authorizeHold(projection.hold.amountCents, projection.transaction.providerTransactionId, valueDate),
+          `lithic:${webhookId}:authorization`,
+        );
+      }
+      if (projection.event.eventType === "CLEARING" && projection.hold && projection.event.settlementAmountCents) {
+        await ledgerRepository.record(
+          clearCardSettlement(projection.hold.amountCents, projection.event.settlementAmountCents, projection.transaction.providerTransactionId, valueDate),
+          `lithic:${webhookId}:clearing`,
+        );
+      }
     }
 
     return NextResponse.json({ accepted: true, duplicate: !stored.inserted });
