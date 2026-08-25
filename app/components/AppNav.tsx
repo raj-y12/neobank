@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/", label: "Overview", icon: "⌂" },
+  { href: "/account", label: "Account", icon: "◉" },
+  { href: "/onboarding", label: "KYC / KYB", icon: "✓" },
+  { href: "/funding", label: "Linked bank", icon: "↓" },
   { href: "/cards", label: "Cards", icon: "card" },
   { href: "/payments", label: "Payments", icon: "$" },
   { href: "/approvals", label: "Approvals", icon: "✓" },
