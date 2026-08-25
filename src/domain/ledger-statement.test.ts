@@ -32,4 +32,12 @@ describe("projectStatement", () => {
     expect(projectStatement(entries, { asOfBookingTimestamp: "2026-08-28T00:00:00Z" }).map((row) => row.journalEntryId)).toEqual(["clearing"]);
     expect(projectStatement(entries).map((row) => row.journalEntryId)).toEqual(["clearing", "reversal"]);
   });
+
+  it("orders statement rows by persisted booking date before ingestion timestamp", () => {
+    const rows = projectStatement([
+      { id: "later-booking", entryType: "FUNDING_SETTLED", valueDate: "2026-08-27", bookingDate: "2026-08-29", bookingTimestamp: "2026-08-27T12:00:00Z", referenceId: null, reversalOfReferenceId: null, postings: [] },
+      { id: "earlier-booking", entryType: "FUNDING_SETTLED", valueDate: "2026-08-27", bookingDate: "2026-08-28", bookingTimestamp: "2026-08-29T12:00:00Z", referenceId: null, reversalOfReferenceId: null, postings: [] },
+    ]);
+    expect(rows.map((row) => row.journalEntryId)).toEqual(["earlier-booking", "later-booking"]);
+  });
 });

@@ -7,6 +7,7 @@ type JournalRow = {
   entry_type: string;
   value_date: string;
   created_at: string;
+  booking_date: string;
   reference_id: string | null;
   reversal_of_reference_id: string | null;
   journal_postings: Array<{ account_code: string; debit_cents: number; credit_cents: number }>;
@@ -67,7 +68,7 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
 
   let query = client
     .from("journal_entries")
-    .select("id,entry_type,value_date,created_at,reference_id,reversal_of_reference_id,journal_postings(account_code,debit_cents,credit_cents)");
+    .select("id,entry_type,value_date,booking_date,created_at,reference_id,reversal_of_reference_id,journal_postings(account_code,debit_cents,credit_cents)");
 
   if (referenceIds) {
     const filters = referenceIds.flatMap((referenceId) => [
@@ -88,6 +89,7 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
     entryType: row.entry_type,
     valueDate: row.value_date,
     bookingTimestamp: row.created_at,
+    bookingDate: row.booking_date,
     referenceId: row.reference_id,
     reversalOfReferenceId: resolveReversalReferenceId(row.reversal_of_reference_id, row.reference_id, transactionRelationships),
     postings: row.journal_postings.map((posting) => ({

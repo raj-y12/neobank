@@ -9,6 +9,7 @@ export type StatementJournalEntry = {
   entryType: string;
   valueDate: string;
   bookingTimestamp: string;
+  bookingDate?: string;
   referenceId: string | null;
   reversalOfReferenceId: string | null;
   postings: StatementPosting[];
@@ -19,6 +20,7 @@ export type LedgerStatementRow = {
   entryType: string;
   valueDate: string;
   bookingTimestamp: string;
+  bookingDate?: string;
   referenceId: string | null;
   reversalOfReferenceId: string | null;
   amountCents: number;
@@ -34,12 +36,13 @@ function accountNet(postings: StatementPosting[], accountCode: string) {
 export function projectStatement(entries: StatementJournalEntry[], options?: { asOfBookingTimestamp?: string }): LedgerStatementRow[] {
   return [...entries]
     .filter((entry) => !options?.asOfBookingTimestamp || entry.bookingTimestamp <= options.asOfBookingTimestamp)
-    .sort((a, b) => a.valueDate.localeCompare(b.valueDate) || a.bookingTimestamp.localeCompare(b.bookingTimestamp) || a.id.localeCompare(b.id))
+    .sort((a, b) => a.valueDate.localeCompare(b.valueDate) || (a.bookingDate ?? a.bookingTimestamp.slice(0, 10)).localeCompare(b.bookingDate ?? b.bookingTimestamp.slice(0, 10)) || a.bookingTimestamp.localeCompare(b.bookingTimestamp) || a.id.localeCompare(b.id))
     .map((entry) => ({
       journalEntryId: entry.id,
       entryType: entry.entryType,
       valueDate: entry.valueDate,
       bookingTimestamp: entry.bookingTimestamp,
+      bookingDate: entry.bookingDate,
       referenceId: entry.referenceId,
       reversalOfReferenceId: entry.reversalOfReferenceId,
       // Clearing releases the old hold and posts the final merchant amount

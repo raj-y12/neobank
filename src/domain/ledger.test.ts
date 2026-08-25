@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authorizeHold, clearCardSettlement, openingBalance, releaseAuthorizationHold, reverseCardSettlement } from "./ledger";
+import { authorizeHold, clearCardSettlement, openingBalance, releaseAuthorizationHold, reverseCardSettlement, settleInboundFunding, settleOutboundPayment, reverseInboundFunding, reverseOutboundPayment } from "./ledger";
 
 function totals(postings: Array<{ debitCents: number; creditCents: number }>) {
   return postings.reduce((sum, posting) => ({
@@ -74,5 +74,21 @@ describe("double-entry ledger", () => {
     expect(entry.referenceId).toBe("return_002");
     expect(entry.reversalOfReferenceId).toBeUndefined();
     expect(totals(entry.postings)).toEqual({ debitCents: 7_340, creditCents: 7_340 });
+  });
+
+  it("posts inbound funding and its immutable return", () => {
+    expect(settleInboundFunding(25_000, "fund_1", "2026-08-25").postings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ accountCode: "SAFEGUARDED_CASH", debitCents: 25_000 }),
+      expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", creditCents: 25_000 }),
+    ]));
+    expect(reverseInboundFunding(25_000, "fund_return_1", "fund_1", "2026-08-28").reversalOfReferenceId).toBe("fund_1");
+  });
+
+  it("posts outbound settlement and its immutable return", () => {
+    expect(settleOutboundPayment(12_000, "pay_1", "2026-08-25").postings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", debitCents: 12_000 }),
+      expect.objectContaining({ accountCode: "SAFEGUARDED_CASH", creditCents: 12_000 }),
+    ]));
+    expect(reverseOutboundPayment(12_000, "pay_return_1", "pay_1", "2026-08-28").reversalOfReferenceId).toBe("pay_1");
   });
 });
