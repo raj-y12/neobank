@@ -8,8 +8,6 @@ import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
 
 const TABS = [
   { href: "/", label: "Overview", icon: "⌂" },
-  { href: "/onboarding", label: "Onboarding", icon: "✓" },
-  { href: "/funding", label: "Funding", icon: "$" },
   { href: "/cards", label: "Cards", icon: "card" },
 ];
 
