@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authorizeHold, clearCardSettlement, openingBalance } from "./ledger";
+import { authorizeHold, clearCardSettlement, openingBalance, releaseAuthorizationHold, reverseCardSettlement } from "./ledger";
 
 function totals(postings: Array<{ debitCents: number; creditCents: number }>) {
   return postings.reduce((sum, posting) => ({
@@ -35,6 +35,28 @@ describe("double-entry ledger", () => {
       expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", creditCents: 5_000 }),
       expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", debitCents: 7_340 }),
       expect.objectContaining({ accountCode: "CARD_SETTLEMENT_PAYABLE", creditCents: 7_340 }),
+    ]));
+  });
+
+  it("releases an authorization hold without posting a settlement", () => {
+    const entry = releaseAuthorizationHold(5_000, "tx_001", "2026-08-27");
+    expect(entry.entryType).toBe("CARD_AUTHORIZATION_REVERSAL");
+    expect(totals(entry.postings)).toEqual({ debitCents: 5_000, creditCents: 5_000 });
+    expect(entry.postings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ accountCode: "CUSTOMER_CARD_HOLDS", debitCents: 5_000 }),
+      expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", creditCents: 5_000 }),
+    ]));
+  });
+
+  it("restores a settled amount when a merchant reverses the settlement", () => {
+    const entry = reverseCardSettlement(7_340, "return_001", "tx_001", "2026-08-28");
+    expect(entry.entryType).toBe("CARD_SETTLEMENT_REVERSAL");
+    expect(entry.referenceId).toBe("return_001");
+    expect(entry.reversalOfReferenceId).toBe("tx_001");
+    expect(totals(entry.postings)).toEqual({ debitCents: 7_340, creditCents: 7_340 });
+    expect(entry.postings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ accountCode: "CARD_SETTLEMENT_PAYABLE", debitCents: 7_340 }),
+      expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", creditCents: 7_340 }),
     ]));
   });
 });

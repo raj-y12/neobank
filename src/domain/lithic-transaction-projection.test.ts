@@ -47,4 +47,24 @@ describe("projectLithicTransaction", () => {
     expect(projection.event.eventType).toBe("CLEARING");
     expect(projection.event.settlementAmountCents).toBe(7340);
   });
+
+  it("releases an authorization hold when the provider reverses it", () => {
+    const projection = projectLithicTransaction({
+      providerEventId: "webhook_reversal_1",
+      payload: {
+        token: "lithic_tx_1",
+        card_token: "card_1",
+        status: "REVERSED",
+        authorization_amount: 5000,
+        settled_amount: 0,
+        events: [
+          { type: "AUTHORIZATION", created: "2026-08-25T12:00:00Z", amounts: { cardholder: { amount: 5000 }, hold: { amount: 5000 } } },
+          { type: "REVERSAL", created: "2026-08-26T12:00:00Z", amounts: { hold: { amount: 5000 } } },
+        ],
+      },
+    });
+
+    expect(projection.event.eventType).toBe("REVERSAL");
+    expect(projection.hold).toEqual({ amountCents: 5000, status: "RELEASED" });
+  });
 });

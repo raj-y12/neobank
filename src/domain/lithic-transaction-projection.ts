@@ -43,6 +43,7 @@ export function projectLithicTransaction({ providerEventId, payload }: { provide
   const settlementAmountCents = payload.settled_amount && payload.settled_amount !== 0
     ? Math.abs(payload.settled_amount)
     : latest?.amounts?.settlement?.amount ?? null;
+  const holdReleased = payload.status === "SETTLED" || latest?.type === "REVERSAL" || latest?.type === "AUTHORIZATION_REVERSAL";
 
   return {
     transaction: {
@@ -62,6 +63,6 @@ export function projectLithicTransaction({ providerEventId, payload }: { provide
     },
     hold: holdAmountCents === null || holdAmountCents === 0
       ? null
-      : { amountCents: holdAmountCents, status: payload.status === "SETTLED" ? "RELEASED" : "ACTIVE" },
+      : { amountCents: holdAmountCents, status: holdReleased ? "RELEASED" : "ACTIVE" },
   };
 }

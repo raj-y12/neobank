@@ -8,14 +8,15 @@ export type JournalEntry = {
   entryType: string;
   valueDate: string;
   referenceId?: string;
+  reversalOfReferenceId?: string;
   postings: LedgerPosting[];
 };
 
-function entry(entryType: string, valueDate: string, postings: LedgerPosting[], referenceId?: string): JournalEntry {
+function entry(entryType: string, valueDate: string, postings: LedgerPosting[], referenceId?: string, reversalOfReferenceId?: string): JournalEntry {
   const debitCents = postings.reduce((sum, posting) => sum + posting.debitCents, 0);
   const creditCents = postings.reduce((sum, posting) => sum + posting.creditCents, 0);
   if (debitCents !== creditCents) throw new Error("Journal entry is not balanced");
-  return { entryType, valueDate, referenceId, postings };
+  return { entryType, valueDate, referenceId, reversalOfReferenceId, postings };
 }
 
 export function openingBalance(amountCents: number, valueDate: string) {
@@ -43,4 +44,20 @@ export function clearCardSettlement(holdAmountCents: number, settlementAmountCen
     { accountCode: "CUSTOMER_AVAILABLE", debitCents: settlementAmountCents, creditCents: 0 },
     { accountCode: "CARD_SETTLEMENT_PAYABLE", debitCents: 0, creditCents: settlementAmountCents },
   ], transactionId);
+}
+
+export function releaseAuthorizationHold(amountCents: number, transactionId: string, valueDate: string) {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Hold amount must be positive cents");
+  return entry("CARD_AUTHORIZATION_REVERSAL", valueDate, [
+    { accountCode: "CUSTOMER_CARD_HOLDS", debitCents: amountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: amountCents },
+  ], transactionId, transactionId);
+}
+
+export function reverseCardSettlement(amountCents: number, reversalTransactionId: string, originalTransactionId: string, valueDate: string) {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Reversal amount must be positive cents");
+  return entry("CARD_SETTLEMENT_REVERSAL", valueDate, [
+    { accountCode: "CARD_SETTLEMENT_PAYABLE", debitCents: amountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: amountCents },
+  ], reversalTransactionId, originalTransactionId);
 }

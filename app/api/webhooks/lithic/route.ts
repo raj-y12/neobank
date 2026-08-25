@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyLithicWebhook } from "@/src/integrations/lithic/webhook-verification";
 import { projectLithicTransaction } from "@/src/domain/lithic-transaction-projection";
-import { authorizeHold, clearCardSettlement } from "@/src/domain/ledger";
+import { authorizeHold, clearCardSettlement, releaseAuthorizationHold } from "@/src/domain/ledger";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { createSupabaseProviderEventRepository } from "@/src/repositories/supabase-provider-event-repository";
@@ -65,6 +65,12 @@ export async function POST(request: Request) {
         await ledgerRepository.record(
           clearCardSettlement(projection.hold.amountCents, projection.event.settlementAmountCents, projection.transaction.providerTransactionId, valueDate),
           `lithic:${webhookId}:clearing`,
+        );
+      }
+      if ((projection.event.eventType === "REVERSAL" || projection.event.eventType === "AUTHORIZATION_REVERSAL") && projection.hold) {
+        await ledgerRepository.record(
+          releaseAuthorizationHold(projection.hold.amountCents, projection.transaction.providerTransactionId, valueDate),
+          `lithic:${webhookId}:authorization-reversal`,
         );
       }
     }

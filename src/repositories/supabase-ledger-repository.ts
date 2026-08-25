@@ -13,6 +13,7 @@ export class SupabaseLedgerRepository implements LedgerRepository {
         entry_type: entry.entryType,
         value_date: entry.valueDate,
         reference_id: entry.referenceId ?? null,
+        reversal_of_reference_id: entry.reversalOfReferenceId ?? null,
         idempotency_key: idempotencyKey,
       })
       .select("id")
