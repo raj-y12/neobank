@@ -55,7 +55,7 @@ h4 { margin-bottom: 8px; font-size: 16px; font-weight: 600; }
   padding: 20px 0 40px;
 }
 
-.topbar, .intro, .panel-heading, .footer {
+.topbar, .intro, .panel-heading, .footer, .nav-tabs {
   display: flex;
   align-items: center;
 }
@@ -201,9 +201,12 @@ h4 { margin-bottom: 8px; font-size: 16px; font-weight: 600; }
 .empty-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 18px; border-radius: 50%; background: var(--orange-soft); color: var(--orange-dark); font-size: 22px; }
 .empty-state p { max-width: 340px; margin-bottom: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
 
-.list-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); transition: transform .2s var(--ease-spring); }
+.list-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); transition: transform .2s var(--ease-spring), padding-left .2s var(--ease-spring); }
+.transaction-row { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.transaction-row:hover { background: var(--card-soft); }
+.transaction-title { display: block; }
 .list-row:last-child { border-bottom: 0; }
-.list-row:hover { transform: translateX(4px); }
+.list-row:hover { transform: translateX(4px); padding-left: 4px; }
 .list-icon { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; font-weight: 600; }
 .list-icon.is-blue { background: var(--blue-soft); color: var(--blue); }
 .list-icon.is-orange { background: var(--orange-soft); color: var(--orange-dark); }
@@ -242,6 +245,34 @@ h4 { margin-bottom: 8px; font-size: 16px; font-weight: 600; }
 .data-table tr:hover td { background: var(--card-soft); }
 
 .footer { justify-content: space-between; padding: 32px 2px 0; color: var(--muted); font-size: 12px; }
+
+/* ---- transaction detail modal ---- */
+.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(15, 15, 16, .48); backdrop-filter: blur(8px); }
+.transaction-modal { width: min(720px, 100%); max-height: min(760px, calc(100vh - 48px)); overflow: auto; border: 1px solid var(--line); border-radius: 24px; padding: 24px; background: var(--card); box-shadow: 0 24px 80px rgba(15, 15, 16, .28); }
+.modal-header, .modal-status, .related-row, .event-detail { display: flex; align-items: center; }
+.modal-header { justify-content: space-between; gap: 16px; }
+.modal-close { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--card-soft); color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer; }
+.modal-status { gap: 8px; margin-top: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.modal-status strong { margin-left: auto; font-size: 22px; }
+.detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 20px 0; }
+.detail-grid > div { display: grid; gap: 5px; min-width: 0; }
+.detail-label { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.detail-grid code { overflow: hidden; color: var(--body-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.modal-section { padding: 20px 0 0; border-top: 1px solid var(--line); }
+.event-detail { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.event-detail > div:first-child { display: flex; gap: 8px; }
+.event-detail > div:first-child span, .event-detail time, .event-amounts, .modal-note, .related-row small { color: var(--muted); font-size: 12px; }
+.event-amounts { grid-column: 1 / -1; display: flex; gap: 12px; flex-wrap: wrap; }
+.modal-note { margin: 10px 0 12px; line-height: 1.5; }
+.related-row { width: 100%; justify-content: space-between; gap: 16px; border: 0; border-bottom: 1px solid var(--line); padding: 12px 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.related-row span { display: grid; gap: 4px; }
+
+@media (max-width: 620px) {
+  .modal-backdrop { padding: 12px; }
+  .transaction-modal { max-height: calc(100vh - 24px); padding: 18px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .event-detail { grid-template-columns: 1fr; }
+}
 
 /* ---- entrance motion ---- */
 
