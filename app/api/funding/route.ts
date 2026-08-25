@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const linkedAccount = await createSupabaseFundingAccountRepository().get(scope.businessId);
     if (!linkedAccount) throw new Error("Link a bank account before adding money");
     const funding = createFundingTransfer({ businessId: scope.businessId, accountId: scope.accountId, linkedFundingAccountId: linkedAccount.id, amountCents: body.amountCents, rail: "ACH" });
-    const source = await createSupabaseFundingRepository().getSourceDetails(linkedAccount.id, scope.businessId);
+    const source = await createSupabaseFundingAccountRepository().getAchSource(scope.businessId);
     const transfer = await getPaymentRail().createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
     await createSupabaseFundingRepository().create(funding, transfer.providerTransferId, body.idempotencyKey);
     return NextResponse.json({ mode: getPaymentRail().mode, funding: { ...funding, providerTransferId: transfer.providerTransferId } }, { status: 201 });

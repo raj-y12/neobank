@@ -61,6 +61,7 @@ export function encryptPlaidAccessToken(value: string) {
 export function decryptPlaidAccessToken(value: string) {
   if (value.startsWith("SIMULATED:")) return Buffer.from(value.slice("SIMULATED:".length), "base64url").toString("utf8");
   const [ivEncoded, tagEncoded, ciphertextEncoded] = value.split(".");
+  if (!ivEncoded || !tagEncoded || !ciphertextEncoded) return value;
   const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivEncoded, "base64url"));
   decipher.setAuthTag(Buffer.from(tagEncoded, "base64url"));
   return Buffer.concat([decipher.update(Buffer.from(ciphertextEncoded, "base64url")), decipher.final()]).toString("utf8");

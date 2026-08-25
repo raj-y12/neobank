@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { FundingAccountRepository, LinkedFundingAccount } from "./funding-account-repository";
-import { decryptPlaidAccessToken, encryptPlaidAccessToken } from "../integrations/plaid/client";
+import { decryptPlaidAccessToken, encryptPlaidAccessToken, getPlaidAuthNumbers } from "../integrations/plaid/client";
 
 type FundingRow = {
   id: string; business_id: string; account_id: string; provider: string; provider_item_id: string;
@@ -32,9 +32,14 @@ export class SupabaseFundingAccountRepository implements FundingAccountRepositor
   }
 
   async getAchSource(businessId: string) {
-    const { data, error } = await this.client.from("linked_funding_accounts").select("encrypted_account_number,encrypted_routing_number").eq("business_id", businessId).single<{ encrypted_account_number: string | null; encrypted_routing_number: string | null }>();
+    const { data, error } = await this.client.from("linked_funding_accounts").select("id,provider_access_token,encrypted_account_number,encrypted_routing_number").eq("business_id", businessId).single<{ id: string; provider_access_token: string; encrypted_account_number: string | null; encrypted_routing_number: string | null }>();
     if (error) throw error;
-    if (!data.encrypted_account_number || !data.encrypted_routing_number) throw new Error("Linked bank has no ACH account details");
+    if (!data.encrypted_account_number || !data.encrypted_routing_number) {
+      const numbers = await getPlaidAuthNumbers(decryptPlaidAccessToken(data.provider_access_token));
+      const { error: updateError } = await this.client.from("linked_funding_accounts").update({ encrypted_account_number: encryptPlaidAccessToken(numbers.accountNumber), encrypted_routing_number: encryptPlaidAccessToken(numbers.routingNumber), account_name: numbers.accountName ?? null, account_mask: numbers.accountMask ?? null, updated_at: new Date().toISOString() }).eq("id", data.id);
+      if (updateError) throw updateError;
+      return numbers;
+    }
     return { accountNumber: decryptPlaidAccessToken(data.encrypted_account_number), routingNumber: decryptPlaidAccessToken(data.encrypted_routing_number) };
   }
 }
