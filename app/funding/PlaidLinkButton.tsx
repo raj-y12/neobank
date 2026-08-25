@@ -23,6 +23,7 @@ export function PlaidLinkButton() {
           const exchange = await fetch("/api/funding/exchange", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicToken, accountName: metadata.account?.name, accountMask: metadata.account?.mask }) });
           const result = await exchange.json() as { error?: string };
           if (!exchange.ok) throw new Error(result.error ?? "Unable to save linked bank");
+          window.dispatchEvent(new Event("corgi:setup-changed"));
           router.refresh();
         } catch (caught) {
           setError(caught instanceof Error ? caught.message : "Unable to save linked bank");
