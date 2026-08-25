@@ -20,7 +20,7 @@ export function AppNav() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`nav-tab${pathname === tab.href ? " is-active" : ""}`}
+            className={`nav-tab${pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? " is-active" : ""}`}
           >
             {tab.icon === "card" ? <span className="nav-tab-card-chip" aria-hidden="true" /> : <span className="nav-tab-icon" aria-hidden="true">{tab.icon}</span>}
             {tab.label}
