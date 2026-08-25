@@ -1,6 +1,17 @@
 import { CountUp } from "./components/CountUp";
+import { openingBalance } from "@/src/domain/ledger";
+import { formatUsdCents } from "@/src/integrations/lithic/client";
+import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const ledger = createSupabaseLedgerRepository();
+  const openingBalanceCents = Number(process.env.LEDGER_OPENING_BALANCE_CENTS ?? 100_000);
+  const valueDate = new Date().toISOString().slice(0, 10);
+  await ledger.record(openingBalance(openingBalanceCents, valueDate), "seed:opening-balance:v1");
+  const balances = await ledger.getBalances();
+
   return (
     <>
       <section className="intro">
@@ -14,14 +25,14 @@ export default function Home() {
       <section className="hero-card" aria-label="Available balance">
         <p className="hero-eyebrow">Available balance</p>
         <p className="hero-value">
-          <CountUp value={23940} prefix="$" />
+          <CountUp value={balances.availableBalanceCents / 100} prefix="$" />
         </p>
-        <p className="hero-meta">$740.00 held across 1 active authorization</p>
+        <p className="hero-meta">{formatUsdCents(balances.activeHoldsCents)} held across active authorizations</p>
         <div className="hero-foot">
           <div className="hero-foot-item">
             <p className="hero-foot-label">Ledger balance</p>
             <p className="hero-foot-value tabular">
-              <CountUp value={24680} prefix="$" durationMs={700} />
+              <CountUp value={balances.ledgerBalanceCents / 100} prefix="$" durationMs={700} />
             </p>
           </div>
           <div className="hero-foot-item">

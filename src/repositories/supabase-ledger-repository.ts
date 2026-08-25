@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { JournalEntry } from "@/src/domain/ledger";
+import { deriveLedgerBalances, type BalancePosting } from "@/src/domain/ledger-balance";
 import type { LedgerRepository } from "./ledger-repository";
 
 export class SupabaseLedgerRepository implements LedgerRepository {
@@ -30,6 +31,20 @@ export class SupabaseLedgerRepository implements LedgerRepository {
       })));
 
     if (postingError) throw postingError;
+  }
+
+  async getBalances() {
+    const { data, error } = await this.client
+      .from("journal_postings")
+      .select("account_code,debit_cents,credit_cents");
+
+    if (error) throw error;
+    const postings: BalancePosting[] = (data ?? []).map((posting) => ({
+      accountCode: posting.account_code,
+      debitCents: posting.debit_cents,
+      creditCents: posting.credit_cents,
+    }));
+    return deriveLedgerBalances(postings);
   }
 }
 
