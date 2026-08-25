@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCardholderAmount, getLithicCard } from "@/src/integrations/lithic/client";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
 import { listInternalCardTransactions } from "@/src/repositories/supabase-card-transaction-reader";
 import { CardTile } from "../CardTile";
 import { TransactionActivity } from "./TransactionActivity";
@@ -9,6 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function CardDetailPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const scope = await getAuthenticatedScope();
+  const assignment = await getBusinessCardAssignment(scope.businessId, token);
+  if (!assignment) notFound();
   let card;
   try { card = await getLithicCard(token); } catch { notFound(); }
   const transactions = await listInternalCardTransactions(token);
