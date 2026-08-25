@@ -103,6 +103,9 @@ h4 { margin-bottom: var(--space-3); font-size: var(--text-sm); font-weight: 600;
 .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: var(--orange); color: white; font-size: var(--text-md); font-weight: 600; flex-shrink: 0; }
 .topbar-spacer { flex: 1; }
 .avatar { display: grid; place-items: center; width: 34px; height: 34px; margin-left: var(--space-3); border-radius: 50%; background: var(--orange-soft); color: var(--orange-dark); font-size: var(--text-2xs); font-weight: 600; flex-shrink: 0; }
+.nav-user { display: inline-flex; align-items: center; border-radius: 999px; }
+.nav-user:focus-visible { outline: 2px solid var(--orange); outline-offset: 4px; }
+.account-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
 
 .nav-tabs {
   display: inline-flex;

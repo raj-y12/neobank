@@ -237,6 +237,23 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: This is intentionally not full account administration; invitations, password reset, MFA, and multi-business switching remain out of scope.
 - Consequence: Authenticated pages and funding/onboarding/card routes resolve the business scope from the membership instead of the hardcoded demo scope. Persona onboarding remains a separate KYC approval gate after login.
 
+### D-024 — Gate navigation through onboarding and funding
+
+- Timestamp: 2026-08-25T18:35:00Z
+- Status: accepted
+- Decision: After login, an unapproved user is restricted to the Persona onboarding screen until the single KYC check is approved. After approval, a user without a linked funding account is restricted to the Plaid funding screen until linking succeeds. The account/profile screen and sign-out remain available as escape hatches.
+- Positive: The demo follows the intended sequence and prevents users from reaching cards or money movement before the required prerequisites are complete.
+- Trade-off: This is deliberately strict and can feel restrictive if a provider is unavailable. The account screen provides a safe place to inspect status and sign out while blocked.
+- Consequence: The navigation gate runs at the request boundary, so typing a URL or clicking a stale link cannot bypass the onboarding/funding sequence.
+
+### D-025 — Use the profile avatar as the account entry point
+
+- Timestamp: 2026-08-25T18:35:00Z
+- Status: accepted
+- Decision: The top-right profile avatar opens `/account`, which shows signed-in user details, role, Persona/KYC status, funding-account status, and the sign-out action.
+- Positive: Account and connection details have one predictable home, and sign-out is available without exposing it on every navigation view.
+- Trade-off: Profile editing and switching between businesses are out of scope for this trial.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:
