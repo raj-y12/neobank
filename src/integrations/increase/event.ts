@@ -15,7 +15,9 @@ export function normalizeAchTransferEvent(event: IncreaseEvent, transfer: Increa
     ? "RETURNED" as const
     : transfer.settlement?.settled_at
       ? "SETTLED" as const
-      : null;
+      : transfer.status === "submitted"
+        ? "SUBMITTED" as const
+        : null;
   if (!status) return null;
   return {
     providerEventId: event.id,

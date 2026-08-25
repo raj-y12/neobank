@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (balances.availableBalanceCents < payment.amountCents) throw new Error("Insufficient available funds");
     await repository.addApproval(id, context.memberId, "APPROVED");
     const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
-    await repository.setStatus(id, context.businessId, "SUBMITTED");
+    await repository.setProviderTransfer(id, context.businessId, transfer.providerTransferId, "SUBMITTED");
     return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to approve payment" }, { status: 400 });

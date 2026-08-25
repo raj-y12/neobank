@@ -45,6 +45,11 @@ export class SupabasePaymentRepository {
     if (error) throw error;
   }
 
+  async setProviderTransfer(id: string, businessId: string, providerTransferId: string, status: Payment["status"]) {
+    const { error } = await this.client.from("payments").update({ provider_payment_id: providerTransferId, status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", businessId);
+    if (error) throw error;
+  }
+
   async addApproval(id: string, approverMemberId: string, decision: "APPROVED" | "REJECTED", note?: string) {
     const { error } = await this.client.from("payment_approvals").insert({ payment_id: id, approver_member_id: approverMemberId, decision, note: note ?? null });
     if (error) throw error;

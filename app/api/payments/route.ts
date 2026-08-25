@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     await repository.create(payment, body.idempotencyKey);
     if (payment.status === "APPROVED") {
       const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
-      await repository.setStatus(payment.id, context.businessId, "SUBMITTED");
+      await repository.setProviderTransfer(payment.id, context.businessId, transfer.providerTransferId, "SUBMITTED");
       return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });
     }
     return NextResponse.json({ payment, submitted: false, approvalRequired: true }, { status: 201 });

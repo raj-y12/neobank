@@ -20,4 +20,12 @@ describe("normalizeAchTransferEvent", () => {
     expect(normalizeAchTransferEvent({ id: "event_2", category: "ach_transfer.updated", associated_object_type: "ach_transfer", associated_object_id: "ach_transfer_2" }, { id: "ach_transfer_2", status: "returned" })?.status).toBe("RETURNED");
     expect(normalizeAchTransferEvent({ id: "event_3", category: "transaction.created", associated_object_type: "transaction", associated_object_id: "transaction_1" }, null)).toBeNull();
   });
+
+  it("reports submitted before settlement", () => {
+    expect(normalizeAchTransferEvent({ id: "event_4", category: "ach_transfer.updated", associated_object_type: "ach_transfer", associated_object_id: "ach_transfer_4" }, { id: "ach_transfer_4", status: "submitted" })).toEqual({
+      providerEventId: "event_4",
+      providerTransferId: "ach_transfer_4",
+      status: "SUBMITTED",
+    });
+  });
 });
