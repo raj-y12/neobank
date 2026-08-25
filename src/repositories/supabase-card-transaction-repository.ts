@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { InternalTransactionProjection } from "@/src/domain/lithic-transaction-projection";
-import { mergeHoldState } from "@/src/domain/card-holds";
+import type { InternalTransactionProjection } from "../domain/lithic-transaction-projection";
+import { mergeHoldState } from "../domain/card-holds";
 import type { CardTransactionRepository } from "./card-transaction-repository";
 
 type TransactionRow = { id: string };

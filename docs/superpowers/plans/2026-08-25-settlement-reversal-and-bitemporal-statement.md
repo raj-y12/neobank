@@ -16,7 +16,7 @@
 - Ledger rows are append-only and immutable; corrections are reversal entries plus a re-book, never edits.
 - Every provider event is signature-verified, idempotent, and safe to receive out of order.
 - Provider IDs are external references; internal transaction and reversal IDs are application-owned.
-- A standalone provider return without an internal link must remain visible but must not change customer balances.
+- A valid standalone provider return without an internal link remains visible as `UNMATCHED_RETURN` and immediately credits the customer balance. Later linking updates only the relationship and never creates a second credit (D-020).
 - `value_date` is the date the money applies to; `created_at`/booking timestamp is when the system recorded the truth.
 - Do not add approvals, ACH, reconciliation, or statements beyond this focused card statement until this lifecycle is correct.
 
@@ -43,7 +43,7 @@ This plan covers the remaining five deliverables:
 
 ### Proposed operator-link flow
 
-For the demo, the operator selects the original settled internal transaction, creates a reversal intent, then supplies the standalone Lithic return token after simulating the return in Lithic. The link operation validates card, currency, and expected amount before posting the reversal. A return with no intent remains `UNMATCHED_RETURN` and creates no balance movement.
+For the demo, the operator selects the original settled internal transaction, creates a reversal intent, then supplies the standalone Lithic return token after simulating the return in Lithic. The link operation validates card, currency, and expected amount. A valid return with no intent remains `UNMATCHED_RETURN` but its reversal is posted immediately; later linking changes only the relationship and creates no second credit (D-020).
 
 This is intentionally explicit: the existing decision log says same-card, same-merchant, or same-amount matching is not sufficient evidence of a reversal relationship.
 
@@ -144,7 +144,7 @@ export function validateReturnLink(input: {
 1. Create intent with `originalTransactionId`, `expectedAmountCents`, `cardToken`, and idempotency key.
 2. Link the provider return token after checking the return card and amount.
 3. Reject already-linked intents, wrong amounts, wrong cards, and duplicate provider return tokens.
-4. Do not post the journal entry until the webhook projection has been received and the intent is safely matched, unless the link route is explicitly responsible for posting it exactly once.
+4. The link route stores the relationship only. The webhook projection posts a valid return exactly once whether or not an intent exists.
 
 **Recommended sequencing:** The link route stores the relationship only. The webhook remains responsible for projecting the provider return and creating the journal entry, which preserves the normal provider-event path.
 
@@ -205,7 +205,7 @@ Credit CUSTOMER_AVAILABLE       $73.40
 - `reversal_of_reference_id` is the original transaction reference.
 - `value_date` is the return event date.
 - The idempotency key is based on provider event ID, so replaying the webhook cannot double-credit the customer.
-- An unmatched return is stored and visible but does not create this journal entry.
+- An unmatched return is stored and visible, and creates this journal entry immediately when its settlement amount is valid. The provider-event idempotency key prevents replay from creating a second entry; later linking is relational only (D-020).
 
 **TDD steps:**
 
@@ -339,5 +339,4 @@ The completion report should include:
 - Test/build results.
 - Supabase migration and verification evidence.
 - The exact live-fire transaction IDs used.
-- Any intentionally unimplemented behavior, especially provider-initiated returns without an internal intent.
-
+- Any intentionally unimplemented behavior, especially lifecycle permutations beyond the P0 return path.

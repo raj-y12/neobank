@@ -114,7 +114,7 @@ Exit condition: the full scenario works on the Vercel deployment, not only local
 - One seeded business, one user, one virtual card.
 - Our IDs are authoritative for internal relationships.
 - Lithic IDs are retained as external references.
-- A provider return without a reliable original reference is parked unless it matches an explicit reversal intent.
+- A valid provider return without a reliable original reference is posted immediately and shown as `UNMATCHED_RETURN`; it is not auto-linked. A later explicit link updates only the relationship and never posts a second credit (D-020).
 - No ASA enrollment or custom authorization decisioning in this slice unless Lithic Sandbox requires it for the account.
 
 ## Not in Slice 1

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { validateReturnLink, type CardReversalIntent } from "@/src/domain/card-reversal";
+import { validateReturnLink, type CardReversalIntent } from "../domain/card-reversal";
 import type { CardReversalRepository } from "./card-reversal-repository";
 
 type IntentRow = {
