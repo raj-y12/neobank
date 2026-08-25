@@ -4,28 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "Overview" },
-  { href: "/cards", label: "Cards" },
-  { href: "/approvals", label: "Approvals" },
-  { href: "/reconciliation", label: "Reconciliation" },
-  { href: "/statements", label: "Statements" },
+  { href: "/", label: "Overview", icon: "▦" },
+  { href: "/cards", label: "Cards", icon: "▢" },
+  { href: "/approvals", label: "Approvals", icon: "✓" },
+  { href: "/reconciliation", label: "Reconciliation", icon: "⇄" },
+  { href: "/statements", label: "Statements", icon: "☰" },
 ];
 
 export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <>
-      <header className="topbar">
-        <div className="brand-mark">c</div>
-        <div>
-          <p className="eyebrow">Corgi business banking</p>
-          <h1>Operating account</h1>
-        </div>
-        <div className="topbar-spacer" />
-        <span className="pill pill-orange">Sandbox</span>
-        <div className="avatar">JR</div>
-      </header>
+    <header className="topbar">
+      <div className="brand-mark">c</div>
+      <div>
+        <p className="eyebrow">Corgi business banking</p>
+        <h1>Operating account</h1>
+      </div>
+
       <nav className="nav-tabs" aria-label="Primary">
         {TABS.map((tab) => (
           <Link
@@ -33,10 +29,15 @@ export function AppNav() {
             href={tab.href}
             className={`nav-tab${pathname === tab.href ? " is-active" : ""}`}
           >
+            <span className="nav-tab-icon" aria-hidden="true">{tab.icon}</span>
             {tab.label}
           </Link>
         ))}
       </nav>
-    </>
+
+      <div className="topbar-spacer" />
+      <span className="pill pill-orange">Sandbox</span>
+      <div className="avatar">JR</div>
+    </header>
   );
 }
