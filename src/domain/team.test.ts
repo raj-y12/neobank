@@ -15,7 +15,12 @@ describe("team input validation", () => {
   });
 
   it("accepts only supported employee roles", () => {
-    expect(validateEmployeeInvite({ email: "employee@example.com", role: "MEMBER" })).toEqual({ email: "employee@example.com", role: "MEMBER" });
+    expect(validateEmployeeInvite({ email: "employee@example.com", role: "MEMBER", password: "employee123" })).toEqual({ email: "employee@example.com", role: "MEMBER", password: "employee123" });
     expect(() => validateEmployeeInvite({ email: "employee@example.com", role: "OWNER" })).toThrow("ADMIN or MEMBER");
+  });
+
+  it("requires an initial employee password for direct production provisioning", () => {
+    expect(validateEmployeeInvite({ email: "employee@example.com", role: "MEMBER", password: "employee123" })).toEqual({ email: "employee@example.com", role: "MEMBER", password: "employee123" });
+    expect(() => validateEmployeeInvite({ email: "employee@example.com", role: "MEMBER", password: "short" })).toThrow("Password");
   });
 });
