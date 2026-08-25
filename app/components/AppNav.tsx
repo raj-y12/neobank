@@ -9,6 +9,9 @@ import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
 const TABS = [
   { href: "/", label: "Overview", icon: "⌂" },
   { href: "/cards", label: "Cards", icon: "card" },
+  { href: "/payments", label: "Payments", icon: "$" },
+  { href: "/approvals", label: "Approvals", icon: "✓" },
+  { href: "/reconciliation", label: "Reconciliation", icon: "≡" },
 ];
 
 export function AppNav() {
