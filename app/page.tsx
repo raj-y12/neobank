@@ -1,4 +1,5 @@
 import { CountUp } from "./components/CountUp";
+import Link from "next/link";
 import { openingBalance } from "@/src/domain/ledger";
 import { formatLithicDate, formatUsdCents } from "@/src/integrations/lithic/client";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
@@ -35,7 +36,7 @@ export default async function Home() {
           <p className="eyebrow">Good morning, Raj</p>
           <h2>Keep the business moving.</h2>
         </div>
-        <button className="btn btn-primary">Send payment</button>
+        <Link className="btn btn-primary" href="/payments">Send payment</Link>
       </section>
 
       <section className="hero-card" aria-label="Available balance">
@@ -61,10 +62,10 @@ export default async function Home() {
           </div>
         </div>
         <div className="quick-actions">
-          <span className="quick-action">↑ Send</span>
-          <span className="quick-action">↓ Add money</span>
-          <span className="quick-action">＋ New card</span>
-          <span className="quick-action">≡ Statement</span>
+          <Link className="quick-action" href="/payments">↑ Send</Link>
+          <Link className="quick-action" href="/funding">↓ Add money</Link>
+          <Link className="quick-action" href="/cards">＋ New card</Link>
+          <Link className="quick-action" href="/statements/card/card-4821">≡ Statement</Link>
         </div>
       </section>
 
@@ -72,7 +73,7 @@ export default async function Home() {
         <article className="panel activity-panel">
           <div className="panel-heading">
             <div><p className="eyebrow">Account activity</p><h3>Recent transactions</h3></div>
-            <button className="btn-ghost">View statement</button>
+            <Link className="btn-ghost" href="/statements/card/card-4821">View statement</Link>
           </div>
           {activity.length === 0 ? <div className="empty-state">
             <div className="empty-icon">↗</div>
@@ -101,7 +102,7 @@ export default async function Home() {
           <div className="panel-heading"><div><p className="eyebrow">Maker-checker</p><h3>Approvals</h3></div><span className="chip chip-orange">2</span></div>
           <div className="list-row"><div className="list-icon is-blue">$</div><div><p className="list-title">Northstar Supplies</p><p className="list-meta">ACH payment · $1,240.00</p></div><span className="status-dot" /></div>
           <div className="list-row"><div className="list-icon is-blue">$</div><div><p className="list-title">Atlas Contractors</p><p className="list-meta">ACH payment · $2,800.00</p></div><span className="status-dot" /></div>
-          <button className="btn btn-outline btn-block">Open approval queue</button>
+          <Link className="btn btn-outline btn-block" href="/approvals">Open approval queue</Link>
         </aside>
       </section>
 
