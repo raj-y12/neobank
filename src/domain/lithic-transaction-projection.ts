@@ -39,7 +39,7 @@ export function projectLithicTransaction({ providerEventId, reversalOfTransactio
   const events = [...(payload.events ?? [])].sort((a, b) => new Date(b.created ?? 0).getTime() - new Date(a.created ?? 0).getTime());
   const latest = events[0];
   const authorization = events.find((event) => event.type === "AUTHORIZATION");
-  const authorizationAmountCents = payload.authorization_amount ?? authorization?.amounts?.cardholder?.amount ?? null;
+  const authorizationAmountCents = authorization?.amounts?.hold?.amount ?? authorization?.amounts?.cardholder?.amount ?? payload.authorization_amount ?? null;
   const holdAmountCents = authorization?.amounts?.hold?.amount ?? null;
   const settlementAmountCents = payload.settled_amount && payload.settled_amount !== 0
     ? Math.abs(payload.settled_amount)

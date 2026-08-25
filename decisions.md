@@ -183,6 +183,16 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: A manually created Lithic return requires an explicit operator action before it can affect the ledger. Unmatched returns remain visible as `UNMATCHED_RETURN` and do not change balances.
 - Consequence: The modal becomes the controlled entry point for reversal intents and links. The webhook remains responsible for projecting the provider return and posting the immutable reversal journal entry exactly once.
 
+### D-019 — Prefer event-level authorization hold amounts
+
+- Timestamp: 2026-08-25T15:24:00Z
+- Status: accepted
+- Decision: For an authorization, use the event-level hold amount in the customer/cardholder currency as our internal authorization amount. Lithic's top-level `authorization_amount` is a fallback only when the event-level hold/cardholder amount is absent.
+- Context: A Lithic sandbox test reported a top-level authorization amount of `10` while its authorization event held `1000` cents. Treating both as the same value made the UI and ledger disagree about whether the hold was `$0.10` or `$10.00`.
+- Positive: The internal hold, authorization display, and available-balance movement use the amount actually reserved for the customer account.
+- Trade-off: Provider conversion metadata must be preserved and inspected when the merchant and cardholder currencies differ. We must not infer dollars from a dashboard input label alone.
+- Consequence: Clean card smoke tests will use the webhook payload as the verification source: `$50.00` authorization (`5000` cents), `$73.40` clearing (`7340` cents), then a return for the exact settled amount. Any provider payload with a different event-level amount is treated as the provider's actual sandbox result and investigated separately.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:

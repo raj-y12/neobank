@@ -25,6 +25,27 @@ describe("projectLithicTransaction", () => {
     expect(projection.event.eventType).toBe("AUTHORIZATION");
   });
 
+  it("prefers the authorization event hold amount over Lithic's top-level authorization amount", () => {
+    const projection = projectLithicTransaction({
+      providerEventId: "webhook_auth_conversion_1",
+      payload: {
+        token: "lithic_tx_conversion_1",
+        card_token: "card_1",
+        status: "PENDING",
+        authorization_amount: 10,
+        settled_amount: 0,
+        events: [{
+          type: "AUTHORIZATION",
+          created: "2026-08-25T13:59:55Z",
+          amounts: { cardholder: { amount: 1000 }, hold: { amount: 1000 } },
+        }],
+      },
+    });
+
+    expect(projection.transaction.authorizationAmountCents).toBe(1000);
+    expect(projection.hold?.amountCents).toBe(1000);
+  });
+
   it("projects clearing on the same provider transaction and releases the hold", () => {
     const projection = projectLithicTransaction({
       providerEventId: "webhook_clear_1",
