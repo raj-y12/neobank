@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createBrowserSupabaseClient } from "@/src/lib/supabase/browser";
 
 const TABS = [
   { href: "/", label: "Overview", icon: "⌂" },
+  { href: "/onboarding", label: "Onboarding", icon: "✓" },
+  { href: "/funding", label: "Funding", icon: "$" },
   { href: "/cards", label: "Cards", icon: "card" },
 ];
 
 export function AppNav() {
   const pathname = usePathname();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const client = createBrowserSupabaseClient();
+    client.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data: listener } = client.auth.onAuthStateChange((_event, session) => setEmail(session?.user.email ?? null));
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="topbar">
@@ -29,7 +41,10 @@ export function AppNav() {
       </nav>
 
       <div className="topbar-spacer" />
-      <div className="avatar">JR</div>
+      <div className="nav-user">
+        <div className="avatar">{email?.slice(0, 2).toUpperCase() ?? "??"}</div>
+        {email && <form action="/auth/signout" method="post"><button className="btn-ghost" type="submit">Sign out</button></form>}
+      </div>
     </header>
   );
 }
