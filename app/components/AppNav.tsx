@@ -41,10 +41,9 @@ export function AppNav() {
       </nav>
 
       <div className="topbar-spacer" />
-      <div className="nav-user">
+      <Link className="nav-user" href="/account" aria-label="Open account profile">
         <div className="avatar">{email?.slice(0, 2).toUpperCase() ?? "??"}</div>
-        {email && <form action="/auth/signout" method="post"><button className="btn-ghost" type="submit">Sign out</button></form>}
-      </div>
+      </Link>
     </header>
   );
 }

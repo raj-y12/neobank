@@ -1,13 +1,21 @@
-"use client";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { createSupabaseFundingAccountRepository } from "@/src/repositories/supabase-funding-account-repository";
+import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-onboarding-repository";
 
-import { useEffect, useState } from "react";
-import { DemoSession, demoHeaders, type DemoMember } from "../components/DemoSession";
+export const dynamic = "force-dynamic";
 
-export default function AccountPage() {
-  const [member, setMember] = useState<DemoMember>("member-raj");
-  const [data, setData] = useState<any>();
-  const [message, setMessage] = useState("Loading account…");
-  async function load() { const response = await fetch("/api/account", { headers: demoHeaders(member) }); const body = await response.json(); setData(body); setMessage(response.ok ? "Account loaded from Supabase" : body.error); }
-  useEffect(() => { void load(); }, [member]);
-  return <main className="panel page-panel"><p className="eyebrow">Business current account</p><h1>{data?.business?.legal_name ?? "Account"}</h1><DemoSession onChange={setMember} /><div className="status-card"><div><strong>Account status</strong><p className="list-meta">{data?.business?.status ?? "—"} · {data?.accountId ?? "—"}</p></div><span className="chip chip-blue">USD</span></div><div className="status-card"><div><strong>Linked external bank</strong><p className="list-meta">{data?.linkedBank ? `${data.linkedBank.institution_name} ···· ${data.linkedBank.account_mask}` : "No bank linked"}</p></div><a className="btn btn-outline" href="/funding">Manage</a></div><div className="status-card"><div><strong>Ledger balance</strong><p className="list-meta">${((data?.balances?.ledgerBalanceCents ?? 0) / 100).toFixed(2)}</p></div><div><strong>Available</strong><p className="list-meta">${((data?.balances?.availableBalanceCents ?? 0) / 100).toFixed(2)}</p></div></div><p className="list-meta" role="status">{message}</p></main>;
+export default async function AccountPage() {
+  const scope = await getAuthenticatedScope();
+  const [onboarding, funding] = await Promise.all([
+    createSupabaseOnboardingRepository().get(scope.businessId),
+    createSupabaseFundingAccountRepository().get(scope.businessId),
+  ]);
+  return <>
+    <section className="intro"><div><p className="eyebrow">Account</p><h2>Business profile and connections.</h2><p className="intro-copy">Review the information used to operate this business account.</p></div><span className="pill pill-green">{scope.role}</span></section>
+    <section className="content-grid account-grid">
+      <article className="panel"><div className="panel-heading"><div><p className="eyebrow">Business details</p><h3>{onboarding?.businessName ?? "Not started"}</h3></div></div><div className="linked-account"><div><span className="detail-label">Signed in as</span><strong>{scope.email ?? "Demo user"}</strong></div><div><span className="detail-label">Owner / director</span><strong>{onboarding?.ownerName ?? "—"}</strong></div><div><span className="detail-label">KYC status</span><strong className={`status-text status-${(onboarding?.businessStatus ?? "PENDING").toLowerCase()}`}>{onboarding?.businessStatus ?? "PENDING"}</strong></div></div></article>
+      <article className="panel"><div className="panel-heading"><div><p className="eyebrow">Funding account</p><h3>{funding?.institutionName ?? "Not linked"}</h3></div></div><div className="linked-account"><div><span className="detail-label">Account</span><strong>{funding ? `${funding.accountName ?? "Checking"}${funding.accountMask ? ` ····${funding.accountMask}` : ""}` : "No external account linked"}</strong></div><div><span className="detail-label">Status</span><strong>{funding?.status ?? "NOT LINKED"}</strong></div></div></article>
+    </section>
+    <section className="panel account-actions"><p className="eyebrow">Session</p><form action="/auth/signout" method="post"><button className="btn btn-outline" type="submit">Sign out</button></form></section>
+  </>;
 }
