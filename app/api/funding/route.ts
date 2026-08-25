@@ -10,7 +10,8 @@ export async function POST(request: Request) {
     const body = await request.json() as { amountCents?: number; linkedFundingAccountId?: string; idempotencyKey?: string };
     if (!body.amountCents || !body.linkedFundingAccountId || !body.idempotencyKey) throw new Error("amountCents, linkedFundingAccountId, and idempotencyKey are required");
     const funding = createFundingTransfer({ businessId: context.businessId, accountId: context.accountId, linkedFundingAccountId: body.linkedFundingAccountId, amountCents: body.amountCents, rail: "ACH" });
-    const transfer = await getPaymentRail().createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey });
+    const source = await createSupabaseFundingRepository().getSourceDetails(body.linkedFundingAccountId, context.businessId);
+    const transfer = await getPaymentRail().createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
     await createSupabaseFundingRepository().create(funding, transfer.providerTransferId, body.idempotencyKey);
     return NextResponse.json({ mode: getPaymentRail().mode, funding: { ...funding, providerTransferId: transfer.providerTransferId } }, { status: 201 });
   } catch (error) {
