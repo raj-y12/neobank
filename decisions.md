@@ -173,6 +173,16 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: Available balance must be derived from settled postings and active holds. It must not be stored as an independently editable balance.
 - Consequence: A `$1,000` ledger balance with a `$50` active hold has `$950` available. Clearing releases the hold and posts the final settled amount; expiry or authorization reversal releases the hold without posting a settlement.
 
+### D-018 — Expose reversal linking in the transaction modal
+
+- Timestamp: 2026-08-25T14:04:50Z
+- Status: accepted
+- Decision: Provide an explicit `Link return` action from the card transaction modal. The operator selects the original settled transaction, enters the standalone Lithic return token, and our server validates the card and expected amount before creating the internal reversal relationship.
+- Context: Lithic can emit a standalone return without a shared original-transaction ID. Same-card, same-merchant, or same-amount matching is not sufficient evidence of a correction.
+- Positive: The live-fire demo can show the operator-owned relationship clearly, while keeping the browser flow aligned with the internal transaction model.
+- Trade-off: A manually created Lithic return requires an explicit operator action before it can affect the ledger. Unmatched returns remain visible as `UNMATCHED_RETURN` and do not change balances.
+- Consequence: The modal becomes the controlled entry point for reversal intents and links. The webhook remains responsible for projecting the provider return and posting the immutable reversal journal entry exactly once.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:

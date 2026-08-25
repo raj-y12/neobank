@@ -67,4 +67,39 @@ describe("projectLithicTransaction", () => {
     expect(projection.event.eventType).toBe("REVERSAL");
     expect(projection.hold).toEqual({ amountCents: 5000, status: "RELEASED" });
   });
+
+  it("marks a linked return as a reversal of the original internal transaction", () => {
+    const projection = projectLithicTransaction({
+      providerEventId: "webhook_return_1",
+      reversalOfTransactionId: "internal_tx_1",
+      payload: {
+        token: "lithic_return_1",
+        card_token: "card_1",
+        status: "SETTLED",
+        settled_amount: -7340,
+        events: [{ type: "RETURN", created: "2026-08-29T12:00:00Z", amounts: { settlement: { amount: 7340 } } }],
+      },
+    });
+
+    expect(projection.transaction.status).toBe("SETTLED");
+    expect(projection.transaction.reversalOfTransactionId).toBe("internal_tx_1");
+    expect(projection.event.eventType).toBe("RETURN");
+    expect(projection.event.settlementAmountCents).toBe(7340);
+  });
+
+  it("marks an unlinked return without creating a reversal relationship", () => {
+    const projection = projectLithicTransaction({
+      providerEventId: "webhook_return_2",
+      payload: {
+        token: "lithic_return_2",
+        card_token: "card_1",
+        status: "SETTLED",
+        settled_amount: -7340,
+        events: [{ type: "RETURN", created: "2026-08-29T12:00:00Z", amounts: { settlement: { amount: 7340 } } }],
+      },
+    });
+
+    expect(projection.transaction.status).toBe("UNMATCHED_RETURN");
+    expect(projection.transaction.reversalOfTransactionId).toBeUndefined();
+  });
 });

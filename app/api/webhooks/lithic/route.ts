@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyLithicWebhook } from "@/src/integrations/lithic/webhook-verification";
 import { projectLithicTransaction } from "@/src/domain/lithic-transaction-projection";
-import { authorizeHold, clearCardSettlement, releaseAuthorizationHold } from "@/src/domain/ledger";
+import { authorizeHold, clearCardSettlement, releaseAuthorizationHold, reverseCardSettlement } from "@/src/domain/ledger";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { createSupabaseProviderEventRepository } from "@/src/repositories/supabase-provider-event-repository";
+import { createSupabaseCardReversalRepository } from "@/src/repositories/supabase-card-reversal-repository";
 
 export async function POST(request: Request) {
   const secret = process.env.LITHIC_WEBHOOK_SECRET;
@@ -47,9 +48,13 @@ export async function POST(request: Request) {
 
     if (getEventType(event) === "card_transaction.updated") {
       const transactionRepository = createSupabaseCardTransactionRepository();
+      const reversalRepository = createSupabaseCardReversalRepository();
+      const payload = assertLithicTransactionPayload(event);
+      const linkedIntent = await reversalRepository.findByProviderReturnTransactionId(payload.token);
       const projection = projectLithicTransaction({
           providerEventId: webhookId,
-          payload: assertLithicTransactionPayload(event),
+          reversalOfTransactionId: linkedIntent?.originalTransactionId,
+          payload,
         });
       await transactionRepository.project(projection, event);
 
@@ -72,6 +77,19 @@ export async function POST(request: Request) {
           releaseAuthorizationHold(projection.hold.amountCents, projection.transaction.providerTransactionId, valueDate),
           `lithic:${webhookId}:authorization-reversal`,
         );
+      }
+      if (projection.event.eventType === "RETURN" && linkedIntent && projection.event.settlementAmountCents) {
+        const ledgerRepository = createSupabaseLedgerRepository();
+        await ledgerRepository.record(
+          reverseCardSettlement(
+            projection.event.settlementAmountCents,
+            projection.transaction.providerTransactionId,
+            linkedIntent.originalTransactionId,
+            valueDate,
+          ),
+          `lithic:${webhookId}:settlement-reversal`,
+        );
+        await reversalRepository.markPosted(linkedIntent.id);
       }
     }
 

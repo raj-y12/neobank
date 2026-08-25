@@ -19,6 +19,7 @@ export class SupabaseCardTransactionRepository implements CardTransactionReposit
         status: transaction.status,
         authorization_amount_cents: transaction.authorizationAmountCents,
         settled_amount_cents: transaction.settledAmountCents,
+        reversal_of_transaction_id: transaction.reversalOfTransactionId ?? null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "provider,provider_transaction_id" })
       .select("id")

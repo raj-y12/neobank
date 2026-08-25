@@ -23,6 +23,7 @@ export type InternalTransactionProjection = {
     status: string;
     authorizationAmountCents: number | null;
     settledAmountCents: number | null;
+    reversalOfTransactionId?: string;
   };
   event: {
     providerEventId: string;
@@ -34,7 +35,7 @@ export type InternalTransactionProjection = {
   hold: { amountCents: number; status: "ACTIVE" | "RELEASED" } | null;
 };
 
-export function projectLithicTransaction({ providerEventId, payload }: { providerEventId: string; payload: LithicPayload }): InternalTransactionProjection {
+export function projectLithicTransaction({ providerEventId, reversalOfTransactionId, payload }: { providerEventId: string; reversalOfTransactionId?: string; payload: LithicPayload }): InternalTransactionProjection {
   const events = [...(payload.events ?? [])].sort((a, b) => new Date(b.created ?? 0).getTime() - new Date(a.created ?? 0).getTime());
   const latest = events[0];
   const authorization = events.find((event) => event.type === "AUTHORIZATION");
@@ -44,15 +45,17 @@ export function projectLithicTransaction({ providerEventId, payload }: { provide
     ? Math.abs(payload.settled_amount)
     : latest?.amounts?.settlement?.amount ?? null;
   const holdReleased = payload.status === "SETTLED" || latest?.type === "REVERSAL" || latest?.type === "AUTHORIZATION_REVERSAL";
+  const isReturn = latest?.type === "RETURN";
 
   return {
     transaction: {
       provider: "lithic",
       providerTransactionId: payload.token,
       cardToken: payload.card_token,
-      status: payload.status,
+      status: isReturn && !reversalOfTransactionId ? "UNMATCHED_RETURN" : payload.status,
       authorizationAmountCents,
       settledAmountCents: settlementAmountCents,
+      reversalOfTransactionId,
     },
     event: {
       providerEventId,
