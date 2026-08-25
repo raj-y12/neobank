@@ -17,6 +17,7 @@ type TransactionRow = {
   updated_at: string;
   card_transaction_events: Array<{
     occurred_at: string | null;
+    created_at: string;
     payload: unknown;
   }>;
 };
@@ -29,7 +30,7 @@ export async function listInternalCardTransactions(cardToken: string): Promise<I
   const client = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data, error } = await client
     .from("card_transactions")
-    .select("id,provider_transaction_id,card_token,status,authorization_amount_cents,settled_amount_cents,reversal_of_transaction_id,updated_at,card_transaction_events(occurred_at,payload)")
+    .select("id,provider_transaction_id,card_token,status,authorization_amount_cents,settled_amount_cents,reversal_of_transaction_id,updated_at,card_transaction_events(occurred_at,created_at,payload)")
     .eq("card_token", cardToken)
     .order("updated_at", { ascending: false });
 
@@ -37,7 +38,7 @@ export async function listInternalCardTransactions(cardToken: string): Promise<I
 
   return ((data ?? []) as TransactionRow[]).map((row) => {
     const latestPayload = [...row.card_transaction_events]
-      .sort((a, b) => new Date(b.occurred_at ?? 0).getTime() - new Date(a.occurred_at ?? 0).getTime())
+      .sort((a, b) => new Date(b.occurred_at ?? 0).getTime() - new Date(a.occurred_at ?? 0).getTime() || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .map((event) => event.payload)
       .find((payload): payload is Record<string, unknown> => typeof payload === "object" && payload !== null);
     const payload = latestPayload ?? {};

@@ -25,7 +25,7 @@ function date(value: string | null | undefined) {
 }
 
 function latestEvent(transaction: TransactionRow) {
-  return transaction.events?.at(-1);
+  return [...(transaction.events ?? [])].sort((a, b) => new Date(b.created ?? 0).getTime() - new Date(a.created ?? 0).getTime())[0];
 }
 
 export function TransactionActivity({ transactions }: { transactions: TransactionRow[] }) {
