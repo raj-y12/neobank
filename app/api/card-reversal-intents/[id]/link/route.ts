@@ -5,6 +5,7 @@ import { reverseCardSettlement } from "@/src/domain/ledger";
 import { createSupabaseCardReversalRepository } from "@/src/repositories/supabase-card-reversal-repository";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
+import { settlementReversalIdempotencyKey } from "@/src/domain/card-return";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -66,7 +67,7 @@ async function replayStoredReturn(intent: { id: string; originalTransactionId: s
       intent.originalTransactionId,
       projection.event.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
     ),
-    `lithic:${stored.provider_event_id}:settlement-reversal`,
+    settlementReversalIdempotencyKey(stored.provider_event_id),
   );
   await createSupabaseCardReversalRepository().markPosted(intent.id);
 }

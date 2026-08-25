@@ -19,7 +19,10 @@ export default async function CardStatementPage({ params, searchParams }: { para
   const { transactionId } = await params;
   const { asOf } = await searchParams;
   const asOfBookingTimestamp = parseAsOf(asOf);
-  const rows = await getLedgerStatement(transactionId, asOfBookingTimestamp);
+  const rows = await getLedgerStatement(transactionId, asOfBookingTimestamp, {
+    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
+    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
+  });
 
   return (
     <>

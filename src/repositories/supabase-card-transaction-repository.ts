@@ -1,22 +1,39 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { InternalTransactionProjection } from "@/src/domain/lithic-transaction-projection";
+import { mergeHoldState } from "@/src/domain/card-holds";
 import type { CardTransactionRepository } from "./card-transaction-repository";
 
 type TransactionRow = { id: string };
 type EventRow = { id: string };
+
+function transactionStatusRank(status: string) {
+  if (status === "PENDING") return 1;
+  if (status === "UNMATCHED_RETURN") return 2;
+  return 3;
+}
 
 export class SupabaseCardTransactionRepository implements CardTransactionRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async project(projection: InternalTransactionProjection, payload: unknown) {
     const transaction = projection.transaction;
+    const { data: existingTransaction, error: existingTransactionError } = await this.client
+      .from("card_transactions")
+      .select("id,status")
+      .eq("provider", transaction.provider)
+      .eq("provider_transaction_id", transaction.providerTransactionId)
+      .maybeSingle<{ id: string; status: string }>();
+    if (existingTransactionError) throw existingTransactionError;
+    const mergedStatus = existingTransaction && transactionStatusRank(existingTransaction.status) > transactionStatusRank(transaction.status)
+      ? existingTransaction.status
+      : transaction.status;
     const { data: transactionRow, error: transactionError } = await this.client
       .from("card_transactions")
       .upsert({
         provider: transaction.provider,
         provider_transaction_id: transaction.providerTransactionId,
         card_token: transaction.cardToken,
-        status: transaction.status,
+        status: mergedStatus,
         authorization_amount_cents: transaction.authorizationAmountCents,
         settled_amount_cents: transaction.settledAmountCents,
         reversal_of_transaction_id: transaction.reversalOfTransactionId ?? null,
@@ -46,15 +63,25 @@ export class SupabaseCardTransactionRepository implements CardTransactionReposit
     if (eventError) throw eventError;
 
     if (projection.hold) {
-      const released = projection.hold.status === "RELEASED";
+      const { data: existingHold, error: existingHoldError } = await this.client
+        .from("card_holds")
+        .select("amount_cents,status,released_at,release_event_id")
+        .eq("transaction_id", transactionRow.id)
+        .maybeSingle<{ amount_cents: number; status: "ACTIVE" | "RELEASED"; released_at: string | null; release_event_id: string | null }>();
+      if (existingHoldError) throw existingHoldError;
+      const mergedHold = mergeHoldState(
+        existingHold ? { amountCents: existingHold.amount_cents, status: existingHold.status } : null,
+        { amountCents: projection.hold.amountCents, status: projection.hold.status },
+      );
+      const released = mergedHold.status === "RELEASED";
       const { error: holdError } = await this.client
         .from("card_holds")
         .upsert({
           transaction_id: transactionRow.id,
-          amount_cents: projection.hold.amountCents,
-          status: projection.hold.status,
-          released_at: released ? new Date().toISOString() : null,
-          release_event_id: released ? eventRow.id : null,
+          amount_cents: mergedHold.amountCents,
+          status: mergedHold.status,
+          released_at: released ? existingHold?.released_at ?? new Date().toISOString() : null,
+          release_event_id: released ? existingHold?.release_event_id ?? eventRow.id : null,
         }, { onConflict: "transaction_id" });
 
       if (holdError) throw holdError;

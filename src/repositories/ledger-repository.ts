@@ -1,7 +1,7 @@
-import type { JournalEntry } from "@/src/domain/ledger";
-import type { LedgerBalances } from "@/src/domain/ledger-balance";
+import type { JournalEntry } from "../domain/ledger";
+import type { LedgerBalances, LedgerScope } from "../domain/ledger-balance";
 
 export interface LedgerRepository {
   record(entry: JournalEntry, idempotencyKey: string): Promise<void>;
-  getBalances(): Promise<LedgerBalances>;
+  getBalances(scope?: LedgerScope): Promise<LedgerBalances>;
 }

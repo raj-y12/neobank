@@ -38,6 +38,14 @@ describe("double-entry ledger", () => {
     ]));
   });
 
+  it("force-posts a settlement when no authorization hold exists", () => {
+    const entry = clearCardSettlement(0, 7_340, "tx_force_post", "2026-08-27");
+    expect(entry.postings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", debitCents: 7_340 }),
+      expect.objectContaining({ accountCode: "CARD_SETTLEMENT_PAYABLE", creditCents: 7_340 }),
+    ]));
+  });
+
   it("releases an authorization hold without posting a settlement", () => {
     const entry = releaseAuthorizationHold(5_000, "tx_001", "2026-08-27");
     expect(entry.entryType).toBe("CARD_AUTHORIZATION_REVERSAL");

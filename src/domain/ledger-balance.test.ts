@@ -28,4 +28,13 @@ describe("deriveLedgerBalances", () => {
       activeHoldsCents: 5_000,
     });
   });
+
+  it("derives balances only for the requested business account scope", () => {
+    const postings: BalancePosting[] = [
+      { businessId: "business_1", accountId: "account_1", accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: 10_000 },
+      { businessId: "business_2", accountId: "account_2", accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: 99_000 },
+    ];
+
+    expect(deriveLedgerBalances(postings, { businessId: "business_1", accountId: "account_1" }).ledgerBalanceCents).toBe(10_000);
+  });
 });

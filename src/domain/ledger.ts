@@ -7,6 +7,8 @@ export type LedgerPosting = {
 export type JournalEntry = {
   entryType: string;
   valueDate: string;
+  businessId?: string;
+  accountId?: string;
   referenceId?: string;
   reversalOfReferenceId?: string;
   postings: LedgerPosting[];
@@ -36,14 +38,17 @@ export function authorizeHold(amountCents: number, transactionId: string, valueD
 }
 
 export function clearCardSettlement(holdAmountCents: number, settlementAmountCents: number, transactionId: string, valueDate: string) {
-  if (!Number.isSafeInteger(holdAmountCents) || holdAmountCents <= 0) throw new Error("Hold amount must be positive cents");
+  if (!Number.isSafeInteger(holdAmountCents) || holdAmountCents < 0) throw new Error("Hold amount must be non-negative cents");
   if (!Number.isSafeInteger(settlementAmountCents) || settlementAmountCents <= 0) throw new Error("Settlement amount must be positive cents");
-  return entry("CARD_CLEARING", valueDate, [
-    { accountCode: "CUSTOMER_CARD_HOLDS", debitCents: holdAmountCents, creditCents: 0 },
-    { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: holdAmountCents },
+  const postings: LedgerPosting[] = [
     { accountCode: "CUSTOMER_AVAILABLE", debitCents: settlementAmountCents, creditCents: 0 },
     { accountCode: "CARD_SETTLEMENT_PAYABLE", debitCents: 0, creditCents: settlementAmountCents },
-  ], transactionId);
+  ];
+  if (holdAmountCents > 0) postings.unshift(
+    { accountCode: "CUSTOMER_CARD_HOLDS", debitCents: holdAmountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: holdAmountCents },
+  );
+  return entry("CARD_CLEARING", valueDate, postings, transactionId);
 }
 
 export function releaseAuthorizationHold(amountCents: number, transactionId: string, valueDate: string) {

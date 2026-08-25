@@ -11,8 +11,14 @@ export default async function Home() {
   const openingBalanceCents = Number(process.env.LEDGER_OPENING_BALANCE_CENTS ?? 100_000);
   const valueDate = new Date().toISOString().slice(0, 10);
   await ledger.record(openingBalance(openingBalanceCents, valueDate), "seed:opening-balance:v1");
-  const balances = await ledger.getBalances();
-  const activity = await getLedgerActivity();
+  const balances = await ledger.getBalances({
+    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
+    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
+  });
+  const activity = await getLedgerActivity(8, {
+    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
+    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
+  });
 
   const entryLabels: Record<string, string> = {
     OPENING_BALANCE: "Opening balance",

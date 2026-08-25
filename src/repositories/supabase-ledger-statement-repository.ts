@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { projectStatement, type LedgerStatementRow, type StatementJournalEntry } from "../domain/ledger-statement";
+import type { LedgerScope } from "../domain/ledger-balance";
 
 type JournalRow = {
   id: string;
@@ -30,7 +31,7 @@ export function resolveReversalReferenceId(journalReversalOfReferenceId: string 
   return journalReversalOfReferenceId ?? (referenceId ? transactionRelationships.get(referenceId) ?? null : null);
 }
 
-export async function getLedgerStatement(transactionId?: string, asOfBookingTimestamp?: string): Promise<LedgerStatementRow[]> {
+export async function getLedgerStatement(transactionId?: string, asOfBookingTimestamp?: string, scope?: LedgerScope): Promise<LedgerStatementRow[]> {
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Supabase ledger storage is not configured");
@@ -77,6 +78,7 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
   }
 
   if (asOfBookingTimestamp) query = query.lte("created_at", asOfBookingTimestamp);
+  if (scope) query = query.eq("business_id", scope.businessId).eq("account_id", scope.accountId);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -98,8 +100,8 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
   return projectStatement(entries, { asOfBookingTimestamp });
 }
 
-export async function getLedgerActivity(limit = 8): Promise<LedgerStatementRow[]> {
-  const rows = await getLedgerStatement();
+export async function getLedgerActivity(limit = 8, scope?: LedgerScope): Promise<LedgerStatementRow[]> {
+  const rows = await getLedgerStatement(undefined, undefined, scope);
 
   return [...rows]
     .sort((a, b) =>
