@@ -31,8 +31,9 @@ function accountNet(postings: StatementPosting[], accountCode: string) {
     .reduce((amount, posting) => amount + posting.creditCents - posting.debitCents, 0);
 }
 
-export function projectStatement(entries: StatementJournalEntry[]): LedgerStatementRow[] {
+export function projectStatement(entries: StatementJournalEntry[], options?: { asOfBookingTimestamp?: string }): LedgerStatementRow[] {
   return [...entries]
+    .filter((entry) => !options?.asOfBookingTimestamp || entry.bookingTimestamp <= options.asOfBookingTimestamp)
     .sort((a, b) => a.valueDate.localeCompare(b.valueDate) || a.bookingTimestamp.localeCompare(b.bookingTimestamp) || a.id.localeCompare(b.id))
     .map((entry) => ({
       journalEntryId: entry.id,
