@@ -1,32 +1,37 @@
 import { CountUp } from "./components/CountUp";
 import { openingBalance } from "@/src/domain/ledger";
-import { formatLithicDate, formatUsdCents } from "@/src/integrations/lithic/client";
+import { formatUsdCents } from "@/src/integrations/lithic/client";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { getLedgerActivity } from "@/src/repositories/supabase-ledger-statement-repository";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const scope = await getAuthenticatedScope();
   const ledger = createSupabaseLedgerRepository();
   const openingBalanceCents = Number(process.env.LEDGER_OPENING_BALANCE_CENTS ?? 100_000);
   const valueDate = new Date().toISOString().slice(0, 10);
   await ledger.record(openingBalance(openingBalanceCents, valueDate), "seed:opening-balance:v1");
   const balances = await ledger.getBalances({
-    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
-    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
+    businessId: scope.businessId,
+    accountId: scope.accountId,
   });
   const activity = await getLedgerActivity(8, {
-    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
-    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
+    businessId: scope.businessId,
+    accountId: scope.accountId,
   });
 
-  const entryLabels: Record<string, string> = {
-    OPENING_BALANCE: "Opening balance",
-    CARD_AUTHORIZATION_HOLD: "Card authorization hold",
-    CARD_CLEARING: "Card settlement",
-    CARD_AUTHORIZATION_REVERSAL: "Hold released",
-    CARD_SETTLEMENT_REVERSAL: "Settlement reversed",
+  const entryMeta: Record<string, { label: string; icon: string; tone: string }> = {
+    OPENING_BALANCE: { label: "Opening balance", icon: "●", tone: "is-navy" },
+    CARD_AUTHORIZATION_HOLD: { label: "Card authorization hold", icon: "⏸", tone: "is-orange" },
+    CARD_CLEARING: { label: "Card settlement", icon: "↑", tone: "is-orange" },
+    CARD_AUTHORIZATION_REVERSAL: { label: "Hold released", icon: "↺", tone: "is-blue" },
+    CARD_SETTLEMENT_REVERSAL: { label: "Settlement reversed", icon: "↺", tone: "is-blue" },
   };
+
+  const formatActivityTime = (iso: string) =>
+    new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
   return (
     <>
@@ -82,11 +87,14 @@ export default async function Home() {
             {activity.map((row) => {
               const amount = row.availableBalanceImpactCents;
               const amountPrefix = amount > 0 ? "+" : amount < 0 ? "−" : "";
+              const meta = entryMeta[row.entryType];
+              const icon = meta?.icon ?? (amount >= 0 ? "↓" : "↑");
+              const tone = meta?.tone ?? (amount >= 0 ? "is-blue" : "is-orange");
               return <div className="list-row" key={row.journalEntryId}>
-                <div className={`list-icon ${amount >= 0 ? "is-blue" : "is-orange"}`}>{amount >= 0 ? "↓" : "↑"}</div>
+                <div className={`list-icon ${tone}`}>{icon}</div>
                 <div>
-                  <p className="list-title">{entryLabels[row.entryType] ?? row.entryType}</p>
-                  <p className="list-meta">{formatLithicDate(row.bookingTimestamp)}{row.referenceId ? ` · ${row.referenceId}` : ""}</p>
+                  <p className="list-title">{meta?.label ?? row.entryType}</p>
+                  <p className="list-meta">{formatActivityTime(row.bookingTimestamp)}</p>
                 </div>
                 <div className="list-value">
                   <span className={amount >= 0 ? "amount-positive" : "amount-negative"}>{amountPrefix}{formatUsdCents(Math.abs(amount))}</span>
