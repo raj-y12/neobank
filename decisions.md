@@ -203,6 +203,40 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: The first journal entry may have no `reversal_of_reference_id`. Statement queries must include a later-linked return transaction by its provider reference, and reconciliation must surface unmatched returns for review.
 - Consequence: Return webhook handling is idempotent and posts a `CARD_SETTLEMENT_REVERSAL` immediately. Linking an unmatched return later updates only the internal transaction relationship and never posts the credit again.
 
+### D-021 — P1 onboarding, funding, and payment controls
+
+- Timestamp: 2026-08-25T15:19:32Z
+- Status: accepted
+- Decision: Require Persona business and owner/director approval before any transactional account activity. Before approval, the user may submit onboarding information and view verification status, but cannot link a bank, fund the account, issue cards, or send payments.
+- Decision: Use one business verification and one owner/director verification for the demo. Normalize Persona's pending, approved, and rejected outcomes into our internal verification state.
+- Decision: Support one linked external checking account per business through Plaid. Plaid identifies the funding account but never becomes the source of ledger truth or directly increases the balance.
+- Decision: Pending ACH funds do not increase available balance. A settled inbound ACH event posts a new ledger credit; a later ACH return is a new reversal entry and never edits the original credit.
+- Decision: Use `$1,000.00` as the outbound payment approval threshold. Payments above the threshold require a different human approver; the initiator cannot approve their own payment.
+- Decision: Reject an outbound payment before provider submission when available funds are insufficient.
+- Decision: Keep agent writes in the same human approval flow. An agent may create a payment request but may not approve or execute it.
+- Provider plan: Persona and Lithic are the primary live sandbox integrations. Plaid and Column remain behind adapter boundaries and may initially be simulated if sandbox access becomes a time constraint.
+- Reason: This creates a narrow, explainable path from regulated onboarding to funding and controlled money-out while preserving the separation between identity, bank linking, payment rails, and our ledger.
+- Consequence: P1 implementation proceeds in this order: Persona approval gate, Plaid linking, Column funding, ACH settlement/return ledgering, then outbound payment approvals.
+
+### D-022 — Use one Persona KYC inquiry for the demo gate
+
+- Timestamp: 2026-08-25T17:10:00Z
+- Status: accepted
+- Decision: Use one Persona KYC inquiry for the demo. One approved inquiry satisfies the onboarding gate; the same inquiry ID is stored in both internal verification slots so the existing gate and Plaid flow remain consistent.
+- Context: A live KYB template/provider account is not available for this trial, while the supplied Persona KYC template is usable. The brief requires a verification gate, but does not require two separate Persona inquiries.
+- Positive: Smaller, clearer onboarding flow; one hosted verification link; no unsupported KYB field assumptions; approval state is easy to test end to end.
+- Trade-off: This is identity verification, not true legal-entity KYB. The submission must label it honestly as a KYC fallback and should not imply that the demo verifies the business registry.
+- Consequence: A single inquiry webhook advances both internal statuses only when both stored IDs are the same. Plaid remains blocked until that single inquiry is approved.
+
+### D-023 — Use Supabase Auth with one business membership per demo user
+
+- Timestamp: 2026-08-25T17:30:00Z
+- Status: accepted
+- Decision: Use Supabase email/password Auth for the demo. Each demo user maps to one row in `business_memberships` with the shared business/account scope and either `ADMIN` or `MEMBER` role.
+- Positive: Minimal login friction, persistent sessions, two credible demo roles, and no credentials or authorization decisions in application code.
+- Trade-off: This is intentionally not full account administration; invitations, password reset, MFA, and multi-business switching remain out of scope.
+- Consequence: Authenticated pages and funding/onboarding/card routes resolve the business scope from the membership instead of the hardcoded demo scope. Persona onboarding remains a separate KYC approval gate after login.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:

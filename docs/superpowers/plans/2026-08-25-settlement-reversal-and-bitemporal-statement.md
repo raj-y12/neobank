@@ -144,7 +144,7 @@ export function validateReturnLink(input: {
 1. Create intent with `originalTransactionId`, `expectedAmountCents`, `cardToken`, and idempotency key.
 2. Link the provider return token after checking the return card and amount.
 3. Reject already-linked intents, wrong amounts, wrong cards, and duplicate provider return tokens.
-4. The link route stores the relationship only. The webhook projection posts a valid return exactly once whether or not an intent exists.
+4. Do not post the journal entry until the webhook projection has been received and the intent is safely matched, unless the link route is explicitly responsible for posting it exactly once.
 
 **Recommended sequencing:** The link route stores the relationship only. The webhook remains responsible for projecting the provider return and creating the journal entry, which preserves the normal provider-event path.
 
@@ -339,4 +339,4 @@ The completion report should include:
 - Test/build results.
 - Supabase migration and verification evidence.
 - The exact live-fire transaction IDs used.
-- Any intentionally unimplemented behavior, especially lifecycle permutations beyond the P0 return path.
+- Any intentionally unimplemented behavior, especially provider-initiated returns without an internal intent.
