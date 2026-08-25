@@ -101,17 +101,10 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
             {canLinkReturn && !reversalIntentId && <button className="btn btn-outline" onClick={createReversalIntent} disabled={linking}>{linking ? "Preparing…" : "Link return"}</button>}
           </div>
 
-          <details className="modal-collapsible">
-            <summary>Technical details</summary>
-            <div className="detail-grid">
-              <div><span className="detail-label">Internal transaction ID</span><code>{selected.internalTransactionId ?? "—"}</code></div>
-              <div><span className="detail-label">Provider transaction token</span><code>{selected.token}</code></div>
-              <div><span className="detail-label">Card token</span><code>{selected.card_token ?? "—"}</code></div>
-              <div><span className="detail-label">Created</span><span>{date(selected.created)}</span></div>
-              <div><span className="detail-label">Updated</span><span>{date(selected.updated)}</span></div>
-              <div><span className="detail-label">Authorization amount</span><span>{usd(selected.authorization_amount)}</span></div>
-            </div>
-          </details>
+          <div className="detail-grid consumer-details">
+            <div><span className="detail-label">Transaction ID</span><code>{selected.internalTransactionId ?? "—"}</code></div>
+            <div><span className="detail-label">Created</span><span>{date(selected.created)}</span></div>
+          </div>
 
           <div className="modal-section"><div className="modal-section-heading"><div><p className="eyebrow">Event timeline</p></div><span className="chip chip-neutral">{selectedEvents.length}</span></div>{selectedEvents.map((event, index) => <div className="event-detail" key={`${event.type}-${event.created}-${index}`}><div className="event-title"><span className="event-marker" aria-hidden="true" /><div><strong>{event.type}</strong><span>{event.result ?? ""}</span></div></div><time>{date(event.created)}</time><div className="event-amounts"><span>Hold {usd(event.amounts?.hold?.amount)}</span><span>Cardholder {usd(event.amounts?.cardholder?.amount)}</span><span>Settlement {usd(event.amounts?.settlement?.amount)}</span></div></div>)}</div>
 
