@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { formatUsdCents, type LithicCard } from "@/src/integrations/lithic/client";
 
+const THEMES = ["theme-orange", "theme-violet", "theme-teal", "theme-rose", "theme-azure", "theme-olive"];
+
+function themeFor(token: string) {
+  let hash = 0;
+  for (let i = 0; i < token.length; i++) hash = (hash * 31 + token.charCodeAt(i)) >>> 0;
+  return THEMES[hash % THEMES.length];
+}
+
 export function CardTile({ card, href }: { card: LithicCard; href?: string }) {
   const isActive = card.state === "OPEN";
+  const theme = themeFor(card.token);
   const content = (
     <>
       <div className="card-tile-top">
@@ -23,7 +32,7 @@ export function CardTile({ card, href }: { card: LithicCard; href?: string }) {
     </>
   );
 
-  const className = `card-tile${isActive ? "" : " is-inactive"}`;
+  const className = `card-tile ${theme}${isActive ? "" : " is-inactive"}`;
   const ariaLabel = `${card.type} card ending ${card.last_four}, ${card.state.toLowerCase()}`;
   return href ? <Link className={className} href={href} aria-label={ariaLabel}>{content}</Link> : <article className={className} aria-label={ariaLabel}>{content}</article>;
 }
