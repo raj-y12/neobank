@@ -50,14 +50,18 @@ export type LithicTransactionEvent = {
   };
 };
 
-async function lithicFetch<T>(path: string): Promise<T> {
+async function lithicFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const apiKey = process.env.LITHIC_API_KEY;
   if (!apiKey) throw new Error("LITHIC_API_KEY is not configured");
   const response = await fetch(`${LITHIC_BASE_URL}${path}`, {
-    headers: { Authorization: apiKey },
+    ...init,
+    headers: { Authorization: apiKey, ...(init?.headers ?? {}) },
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Lithic request failed with ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Lithic request failed with ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   return response.json() as Promise<T>;
 }
 
@@ -68,6 +72,14 @@ export async function listLithicCards() {
 
 export async function getLithicCard(token: string) {
   return lithicFetch<LithicCard>(`/cards/${encodeURIComponent(token)}`);
+}
+
+export async function createLithicVirtualCard() {
+  return lithicFetch<LithicCard>("/cards", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "VIRTUAL", state: "OPEN", memo: "Team card" }),
+  });
 }
 
 export async function listLithicTransactions(cardToken: string) {

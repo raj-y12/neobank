@@ -1,7 +1,8 @@
 import { CountUp } from "./components/CountUp";
 import { openingBalance } from "@/src/domain/ledger";
-import { formatUsdCents } from "@/src/integrations/lithic/client";
+import { formatLithicDate, formatUsdCents } from "@/src/integrations/lithic/client";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
+import { getLedgerActivity } from "@/src/repositories/supabase-ledger-statement-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,15 @@ export default async function Home() {
   const valueDate = new Date().toISOString().slice(0, 10);
   await ledger.record(openingBalance(openingBalanceCents, valueDate), "seed:opening-balance:v1");
   const balances = await ledger.getBalances();
+  const activity = await getLedgerActivity();
+
+  const entryLabels: Record<string, string> = {
+    OPENING_BALANCE: "Opening balance",
+    CARD_AUTHORIZATION_HOLD: "Card authorization hold",
+    CARD_CLEARING: "Card settlement",
+    CARD_AUTHORIZATION_REVERSAL: "Hold released",
+    CARD_SETTLEMENT_REVERSAL: "Settlement reversed",
+  };
 
   return (
     <>
@@ -58,11 +68,27 @@ export default async function Home() {
             <div><p className="eyebrow">Account activity</p><h3>Recent transactions</h3></div>
             <button className="btn-ghost">View statement</button>
           </div>
-          <div className="empty-state">
+          {activity.length === 0 ? <div className="empty-state">
             <div className="empty-icon">↗</div>
             <h4>Your ledger will appear here</h4>
             <p>Once funding and card activity are connected, every movement will be shown from the immutable ledger.</p>
-          </div>
+          </div> : <div>
+            {activity.map((row) => {
+              const amount = row.availableBalanceImpactCents;
+              const amountPrefix = amount > 0 ? "+" : amount < 0 ? "−" : "";
+              return <div className="list-row" key={row.journalEntryId}>
+                <div className={`list-icon ${amount >= 0 ? "is-blue" : "is-orange"}`}>{amount >= 0 ? "↓" : "↑"}</div>
+                <div>
+                  <p className="list-title">{entryLabels[row.entryType] ?? row.entryType}</p>
+                  <p className="list-meta">{formatLithicDate(row.bookingTimestamp)}{row.referenceId ? ` · ${row.referenceId}` : ""}</p>
+                </div>
+                <div className="list-value">
+                  <span className={amount >= 0 ? "amount-positive" : "amount-negative"}>{amountPrefix}{formatUsdCents(Math.abs(amount))}</span>
+                  <p className="list-sub">Available balance</p>
+                </div>
+              </div>;
+            })}
+          </div>}
         </article>
 
         <aside className="panel approval-panel">
@@ -73,7 +99,7 @@ export default async function Home() {
         </aside>
       </section>
 
-      <footer className="footer"><span>USD · America/New_York</span><span>Ledger-first sandbox</span></footer>
+      <footer className="footer"><span>New York, USA</span><span>Business operating account</span></footer>
     </>
   );
 }

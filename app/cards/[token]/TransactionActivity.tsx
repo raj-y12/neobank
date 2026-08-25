@@ -20,6 +20,17 @@ function signedUsd(amount: number | null | undefined, incoming: boolean) {
   return `${incoming ? "+" : "−"}${usd(amount)}`;
 }
 
+function formatStatus(status: string | null | undefined) {
+  return (status ?? "Unknown status").toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function statusTone(status: string | null | undefined) {
+  if (status === "SETTLED") return "chip-green";
+  if (status === "PENDING") return "chip-orange";
+  if (status?.includes("UNMATCHED") || status === "DECLINED") return "chip-red";
+  return "chip-neutral";
+}
+
 function date(value: string | null | undefined) {
   return formatLithicDate(value);
 }
@@ -94,9 +105,9 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
     <>
       {transactions.length === 0 ? <div className="empty-state"><h4>No transactions recorded</h4><p>When Lithic receives an authorization or settlement for this card, it will appear here.</p></div> : transactions.map((transaction) => (
         <button className="list-row transaction-row" key={transaction.token} onClick={() => { setSelected(transaction); setReversalIntentId(null); setLinkError(null); }}>
-          <span className="list-icon is-blue">●</span>
-          <span><span className="list-title transaction-title">{transaction.merchant_descriptor ?? transaction.merchant?.descriptor ?? "Card transaction"}</span><span className="list-meta">{latestEvent(transaction)?.type ?? "TRANSACTION"} · {transaction.status ?? "Unknown status"} · {date(transaction.updated ?? transaction.created)}</span></span>
-          <span className={`list-value ${isIncoming(transaction) ? "amount-positive" : "amount-negative"}`}>{signedUsd(transaction.displayAmount, isIncoming(transaction))}</span>
+          <span className={`list-icon transaction-icon${isIncoming(transaction) ? " is-incoming" : ""}`} aria-hidden="true">{isIncoming(transaction) ? "↗" : "↘"}</span>
+          <span className="transaction-copy"><span className="transaction-primary"><span className="list-title transaction-title">{transaction.merchant_descriptor ?? transaction.merchant?.descriptor ?? "Card transaction"}</span><span className={`chip ${statusTone(transaction.status)}`}>{formatStatus(transaction.status)}</span></span><span className="transaction-meta"><span>{latestEvent(transaction)?.type ?? "TRANSACTION"}</span><span aria-hidden="true">·</span><span>{date(transaction.updated ?? transaction.created)}</span></span></span>
+          <span className={`transaction-amount ${isIncoming(transaction) ? "amount-positive" : "amount-negative"}`}>{signedUsd(transaction.displayAmount, isIncoming(transaction))}</span>
         </button>
       ))}
 

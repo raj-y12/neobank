@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "Overview", icon: "▦" },
-  { href: "/cards", label: "Cards", icon: "▢" },
+  { href: "/", label: "Overview", icon: "⌂" },
+  { href: "/cards", label: "Cards", icon: "card" },
 ];
 
 export function AppNav() {
@@ -13,11 +13,7 @@ export function AppNav() {
 
   return (
     <header className="topbar">
-      <div className="brand-mark">c</div>
-      <div>
-        <p className="eyebrow">Corgi business banking</p>
-        <h1>Operating account</h1>
-      </div>
+      <div className="brand-mark" aria-label="Corgi home">c</div>
 
       <nav className="nav-tabs" aria-label="Primary">
         {TABS.map((tab) => (
@@ -26,14 +22,13 @@ export function AppNav() {
             href={tab.href}
             className={`nav-tab${pathname === tab.href ? " is-active" : ""}`}
           >
-            <span className="nav-tab-icon" aria-hidden="true">{tab.icon}</span>
+            {tab.icon === "card" ? <span className="nav-tab-card-chip" aria-hidden="true" /> : <span className="nav-tab-icon" aria-hidden="true">{tab.icon}</span>}
             {tab.label}
           </Link>
         ))}
       </nav>
 
       <div className="topbar-spacer" />
-      <span className="pill pill-orange">Sandbox</span>
       <div className="avatar">JR</div>
     </header>
   );
