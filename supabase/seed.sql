@@ -4,8 +4,8 @@ insert into public.onboarding_verifications (business_id, provider, provider_ref
   ('demo-business', 'persona', 'inq_demo_business', 'BUSINESS', 'APPROVED'),
   ('demo-business', 'persona', 'inq_demo_owner', 'OWNER', 'APPROVED')
 on conflict (business_id, subject_type) do update set status = excluded.status;
-insert into public.linked_funding_accounts (id, business_id, account_id, provider, provider_item_id, encrypted_access_token, institution_name, account_mask)
-values ('00000000-0000-0000-0000-000000000001', 'demo-business', 'demo-account', 'plaid-simulated', 'item-demo', 'SIMULATED_TOKEN_NOT_A_PLAID_CREDENTIAL', 'Chase', '4821')
+insert into public.linked_funding_accounts (id, business_id, account_id, provider, provider_item_id, provider_access_token, encrypted_account_number, encrypted_routing_number, institution_name, account_name, account_mask)
+values ('00000000-0000-0000-0000-000000000001', 'demo-business', 'demo-account', 'PLAID', 'item-demo', 'SIMULATED:c2VlZC1wbGFpZC1pdGVt', 'SIMULATED:MTIzNDU2Nzg5', 'SIMULATED:MTAxMDUwMDAx', 'Chase Sandbox', 'Business Checking', '4821')
 on conflict (id) do nothing;
 insert into public.reconciliation_files (business_id, provider, file_reference) values ('demo-business', 'column-simulated', 'file-demo-2026-08-25') on conflict do nothing;
 
