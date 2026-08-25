@@ -9,6 +9,44 @@ export type ReconciliationBreak = {
   actualAmountCents?: number;
 };
 
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') { value += '"'; index += 1; }
+      else quoted = !quoted;
+    } else if (character === "," && !quoted) {
+      values.push(value.trim()); value = "";
+    } else value += character;
+  }
+  if (quoted) throw new Error("CSV contains an unterminated quote");
+  values.push(value.trim());
+  return values;
+}
+
+export function parseReconciliationCsv(csv: string): ReconciliationProviderRow[] {
+  const lines = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) throw new Error("Reconciliation CSV requires a header and at least one row");
+  const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+  const referenceIndex = headers.indexOf("provider_reference");
+  const amountIndex = headers.indexOf("amount_cents");
+  if (referenceIndex < 0) throw new Error("CSV requires provider_reference column");
+  if (amountIndex < 0) throw new Error("CSV requires amount_cents column");
+  const references = new Set<string>();
+  return lines.slice(1).map((line, rowIndex) => {
+    const values = parseCsvLine(line);
+    const referenceId = values[referenceIndex];
+    const amountCents = Number(values[amountIndex]);
+    if (!referenceId || references.has(referenceId)) throw new Error(`Invalid or duplicate provider_reference on row ${rowIndex + 2}`);
+    if (!Number.isSafeInteger(amountCents)) throw new Error(`Invalid amount_cents on row ${rowIndex + 2}`);
+    references.add(referenceId);
+    return { referenceId, amountCents };
+  });
+}
+
 export function diffReconciliation(
   providerRows: ReconciliationProviderRow[],
   ledgerRows: ReconciliationLedgerRow[],

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { diffReconciliation, type ReconciliationLedgerRow, type ReconciliationProviderRow } from "@/src/domain/reconciliation";
+import { diffReconciliation, parseReconciliationCsv, type ReconciliationLedgerRow, type ReconciliationProviderRow } from "@/src/domain/reconciliation";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createClient } from "@supabase/supabase-js";
 
@@ -7,20 +7,39 @@ export async function POST(request: Request) {
   try {
     const context = await getAuthenticatedScope();
     if (context.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
-    const body = await request.json() as { fileReference?: string; providerRows?: ReconciliationProviderRow[]; ledgerRows?: ReconciliationLedgerRow[] };
-    if (!body.fileReference || !body.providerRows || !body.ledgerRows) throw new Error("fileReference, providerRows, and ledgerRows are required");
+    const isCsv = request.headers.get("content-type")?.includes("text/csv");
+    const fileReference = request.headers.get("x-file-reference") ?? undefined;
+    const body = isCsv ? null : await request.json() as { fileReference?: string; providerRows?: ReconciliationProviderRow[]; ledgerRows?: ReconciliationLedgerRow[] };
+    const reference = fileReference ?? body?.fileReference;
+    if (!reference) throw new Error("fileReference is required");
+    const providerRows = isCsv ? parseReconciliationCsv(await request.text()) : body?.providerRows;
+    if (!providerRows) throw new Error("providerRows are required");
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) throw new Error("Supabase reconciliation storage is not configured");
     const client = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: file, error: fileError } = await client.from("reconciliation_files").upsert({ business_id: context.businessId, provider: "INCREASE", file_reference: body.fileReference }, { onConflict: "provider,file_reference" }).select("id").single();
+    const { data: file, error: fileError } = await client.from("reconciliation_files").upsert({ business_id: context.businessId, provider: "INCREASE", file_reference: reference }, { onConflict: "provider,file_reference" }).select("id").single();
     if (fileError) throw fileError;
-    const breaks = diffReconciliation(body.providerRows, body.ledgerRows);
+    const [{ data: fundingRows, error: fundingError }, { data: paymentRows, error: paymentError }] = await Promise.all([
+      client.from("funding_transfers").select("provider_transfer_id,amount_cents,status").eq("business_id", context.businessId).eq("status", "SETTLED"),
+      client.from("payments").select("provider_payment_id,amount_cents,status").eq("business_id", context.businessId).eq("status", "SETTLED"),
+    ]);
+    if (fundingError) throw fundingError;
+    if (paymentError) throw paymentError;
+    const ledgerRows: ReconciliationLedgerRow[] = [
+      ...(fundingRows ?? []).filter((row) => row.provider_transfer_id).map((row) => ({ referenceId: row.provider_transfer_id as string, amountCents: row.amount_cents })),
+      ...(paymentRows ?? []).filter((row) => row.provider_payment_id).map((row) => ({ referenceId: row.provider_payment_id as string, amountCents: -Math.abs(row.amount_cents) })),
+    ];
+    const breaks = diffReconciliation(providerRows, ledgerRows);
     if (breaks.length) {
-      const { error } = await client.from("reconciliation_breaks").insert(breaks.map((item) => ({ business_id: context.businessId, file_id: file.id, break_type: item.breakType, provider_reference: item.providerReference, ledger_reference: item.ledgerReference ?? null, expected_amount_cents: item.expectedAmountCents ?? null, actual_amount_cents: item.actualAmountCents ?? null })));
+      const { data: existing, error: existingError } = await client.from("reconciliation_breaks").select("break_type,provider_reference").eq("file_id", file.id);
+      if (existingError) throw existingError;
+      const existingKeys = new Set((existing ?? []).map((item) => `${item.break_type}:${item.provider_reference}`));
+      const newBreaks = breaks.filter((item) => !existingKeys.has(`${item.breakType}:${item.providerReference}`));
+      const { error } = newBreaks.length ? await client.from("reconciliation_breaks").insert(newBreaks.map((item) => ({ business_id: context.businessId, file_id: file.id, break_type: item.breakType, provider_reference: item.providerReference, ledger_reference: item.ledgerReference ?? null, expected_amount_cents: item.expectedAmountCents ?? null, actual_amount_cents: item.actualAmountCents ?? null }))) : { error: null };
       if (error) throw error;
     }
-    return NextResponse.json({ fileId: file.id, breakCount: breaks.length, breaks }, { status: 201 });
+    return NextResponse.json({ fileId: file.id, breakCount: breaks.length, breaks, source: isCsv ? "increase_csv" : "normalized_rows" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to reconcile file" }, { status: 400 });
   }
