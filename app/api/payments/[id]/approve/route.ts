@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { contextFromHeaders } from "@/src/auth/authorization";
 import { approvePayment } from "@/src/domain/payment-lifecycle";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const context = contextFromHeaders(request.headers);
+    const context = await getAuthenticatedScope();
     const { id } = await params;
     const repository = createSupabasePaymentRepository();
     if (!await repository.memberBelongsToBusiness(context.memberId, context.businessId)) throw new Error("Approver is not a member of this business");

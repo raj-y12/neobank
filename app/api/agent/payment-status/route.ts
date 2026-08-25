@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { contextFromHeaders } from "@/src/auth/authorization";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 
 export async function GET(request: Request) {
   try {
-    const context = contextFromHeaders(request.headers);
+    const context = await getAuthenticatedScope();
     const paymentId = new URL(request.url).searchParams.get("paymentId");
     if (!paymentId) return NextResponse.json({ error: "paymentId is required" }, { status: 400 });
     const payment = await createSupabasePaymentRepository().get(paymentId, context.businessId);

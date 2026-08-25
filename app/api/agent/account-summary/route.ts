@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { contextFromHeaders } from "@/src/auth/authorization";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const context = contextFromHeaders(request.headers);
+    const context = await getAuthenticatedScope();
     const balances = await createSupabaseLedgerRepository().getBalances({ businessId: context.businessId, accountId: context.accountId });
     return NextResponse.json({ businessId: context.businessId, accountId: context.accountId, currency: "USD", source: "ledger", ...balances });
   } catch (error) {

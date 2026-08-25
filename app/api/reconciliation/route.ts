@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { contextFromHeaders } from "@/src/auth/authorization";
 import { diffReconciliation, type ReconciliationLedgerRow, type ReconciliationProviderRow } from "@/src/domain/reconciliation";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
-    const context = contextFromHeaders(request.headers);
+    const context = await getAuthenticatedScope();
     const body = await request.json() as { fileReference?: string; providerRows?: ReconciliationProviderRow[]; ledgerRows?: ReconciliationLedgerRow[] };
     if (!body.fileReference || !body.providerRows || !body.ledgerRows) throw new Error("fileReference, providerRows, and ledgerRows are required");
     const url = process.env.SUPABASE_URL;
