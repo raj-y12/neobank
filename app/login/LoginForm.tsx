@@ -13,17 +13,51 @@ export function LoginForm() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     const { error: signInError } = await createBrowserSupabaseClient().auth.signInWithPassword({ email, password });
-    if (signInError) { setError(signInError.message); setLoading(false); return; }
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
     router.push("/");
     router.refresh();
   }
 
-  return <form className="auth-form" onSubmit={submit}>
-    <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
-    <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" /></label>
-    <button className="btn btn-primary" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
-    {error && <p className="form-error" role="alert">{error}</p>}
-  </form>;
+  return (
+    <form className="auth-form" onSubmit={submit} noValidate>
+      <div className="auth-field">
+        <label className="field-label" htmlFor="email">Email</label>
+        <input
+          id="email"
+          className="input"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          autoComplete="email"
+          autoFocus
+          placeholder="you@business.com"
+        />
+      </div>
+      <div className="auth-field">
+        <label className="field-label" htmlFor="password">Password</label>
+        <input
+          id="password"
+          className="input"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
+      </div>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <button className="btn btn-primary btn-block" disabled={loading}>
+        {loading ? "Signing in…" : "Sign in"}
+      </button>
+    </form>
+  );
 }
