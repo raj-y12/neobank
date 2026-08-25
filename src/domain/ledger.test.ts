@@ -59,4 +59,12 @@ describe("double-entry ledger", () => {
       expect.objectContaining({ accountCode: "CUSTOMER_AVAILABLE", creditCents: 7_340 }),
     ]));
   });
+
+  it("posts an unmatched settlement return without an original linkage", () => {
+    const entry = reverseCardSettlement(7_340, "return_002", undefined, "2026-08-28");
+    expect(entry.entryType).toBe("CARD_SETTLEMENT_REVERSAL");
+    expect(entry.referenceId).toBe("return_002");
+    expect(entry.reversalOfReferenceId).toBeUndefined();
+    expect(totals(entry.postings)).toEqual({ debitCents: 7_340, creditCents: 7_340 });
+  });
 });

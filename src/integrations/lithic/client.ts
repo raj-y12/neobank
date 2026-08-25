@@ -100,8 +100,8 @@ export function getCardholderAmount(transaction: LithicTransaction) {
   );
   const authorizationEvent = events.find((event) => event.type === "AUTHORIZATION");
   const latestEvent = transaction.status === "PENDING" ? authorizationEvent : events[0];
-  if (transaction.status === "SETTLED" && transaction.settled_amount) {
-    return transaction.settled_amount;
+  if ((transaction.status === "SETTLED" || latestEvent?.type === "RETURN") && transaction.settled_amount) {
+    return Math.abs(transaction.settled_amount);
   }
   return (
     latestEvent?.amounts?.hold?.amount ??

@@ -54,7 +54,7 @@ export function releaseAuthorizationHold(amountCents: number, transactionId: str
   ], transactionId, transactionId);
 }
 
-export function reverseCardSettlement(amountCents: number, reversalTransactionId: string, originalTransactionId: string, valueDate: string) {
+export function reverseCardSettlement(amountCents: number, reversalTransactionId: string, originalTransactionId: string | undefined, valueDate: string) {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Reversal amount must be positive cents");
   return entry("CARD_SETTLEMENT_REVERSAL", valueDate, [
     { accountCode: "CARD_SETTLEMENT_PAYABLE", debitCents: amountCents, creditCents: 0 },

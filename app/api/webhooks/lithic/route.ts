@@ -79,7 +79,6 @@ export async function POST(request: Request) {
         );
       }
       if (projection.event.eventType === "RETURN" && linkedIntent && projection.event.settlementAmountCents) {
-        const ledgerRepository = createSupabaseLedgerRepository();
         await ledgerRepository.record(
           reverseCardSettlement(
             projection.event.settlementAmountCents,
@@ -90,6 +89,17 @@ export async function POST(request: Request) {
           `lithic:${webhookId}:settlement-reversal`,
         );
         await reversalRepository.markPosted(linkedIntent.id);
+      }
+      if (projection.event.eventType === "RETURN" && !linkedIntent && projection.event.settlementAmountCents) {
+        await ledgerRepository.record(
+          reverseCardSettlement(
+            projection.event.settlementAmountCents,
+            projection.transaction.providerTransactionId,
+            undefined,
+            valueDate,
+          ),
+          `lithic:${webhookId}:settlement-reversal`,
+        );
       }
     }
 

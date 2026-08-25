@@ -26,7 +26,16 @@ export async function getLedgerStatement(transactionId?: string): Promise<Ledger
       .eq("id", transactionId)
       .single<{ id: string; provider_transaction_id: string }>();
     if (transactionError) throw transactionError;
-    referenceIds = [transaction.id, transaction.provider_transaction_id];
+    const { data: relatedTransactions, error: relatedTransactionsError } = await client
+      .from("card_transactions")
+      .select("id,provider_transaction_id")
+      .eq("reversal_of_transaction_id", transaction.id);
+    if (relatedTransactionsError) throw relatedTransactionsError;
+    referenceIds = [
+      transaction.id,
+      transaction.provider_transaction_id,
+      ...(relatedTransactions ?? []).flatMap((related) => [related.id, related.provider_transaction_id]),
+    ];
   }
 
   let query = client

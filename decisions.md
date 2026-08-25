@@ -193,6 +193,16 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: Provider conversion metadata must be preserved and inspected when the merchant and cardholder currencies differ. We must not infer dollars from a dashboard input label alone.
 - Consequence: Clean card smoke tests will use the webhook payload as the verification source: `$50.00` authorization (`5000` cents), `$73.40` clearing (`7340` cents), then a return for the exact settled amount. Any provider payload with a different event-level amount is treated as the provider's actual sandbox result and investigated separately.
 
+### D-020 — Post unmatched returns before relationship resolution
+
+- Timestamp: 2026-08-25T15:58:00Z
+- Status: accepted
+- Decision: A valid card settlement return credits `CUSTOMER_AVAILABLE` immediately, even when the original settlement cannot yet be identified. The return is recorded using its own provider transaction reference; later linkage adds the relationship without creating a second ledger posting.
+- Context: Transaction `3597a205-2563-4d35-91b0-7402cc74ffbe` returned `$73.40` but remained unmatched, so the customer's main balance did not reflect money that had already come back.
+- Positive: The customer's balance reflects provider truth as soon as the return is received, and unmatched returns remain visible for operational resolution.
+- Trade-off: The first journal entry may have no `reversal_of_reference_id`. Statement queries must include a later-linked return transaction by its provider reference, and reconciliation must surface unmatched returns for review.
+- Consequence: Return webhook handling is idempotent and posts a `CARD_SETTLEMENT_REVERSAL` immediately. Linking an unmatched return later updates only the internal transaction relationship and never posts the credit again.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:
