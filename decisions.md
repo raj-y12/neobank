@@ -246,6 +246,15 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: This is deliberately strict and can feel restrictive if a provider is unavailable. The account screen provides a safe place to inspect status and sign out while blocked.
 - Consequence: The navigation gate runs at the request boundary, so typing a URL or clicking a stale link cannot bypass the onboarding/funding sequence.
 
+### D-026 — Hide the primary navigation until setup is complete
+
+- Timestamp: 2026-08-25T18:40:00Z
+- Status: accepted
+- Decision: Do not render the primary navigation bar for unauthenticated users or users still gated in onboarding/funding. It appears only after login, Persona approval, and Plaid linking are complete.
+- Positive: The setup flow is visually focused and users cannot mistake gated destinations for available product areas.
+- Trade-off: The onboarding and funding screens have no primary navigation while incomplete; the user completes the required step or signs out through the direct account flow.
+- Consequence: Server-side route enforcement remains authoritative; the client only controls whether the completed-app navigation is shown.
+
 ### D-025 — Use the profile avatar as the account entry point
 
 - Timestamp: 2026-08-25T18:35:00Z
