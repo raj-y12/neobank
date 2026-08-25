@@ -1,297 +1,115 @@
 # Decision Log
 
-This is a timestamped, append-only log of decisions, assumptions, questions, and cuts made during the Track 3 work trial.
-
-## How to use this file
-
-- Add entries as decisions are made; do not rewrite earlier entries.
-- Use UTC timestamps in ISO 8601 format.
-- Record assumptions when an answer is unavailable instead of waiting.
-- Record what changed, why it changed, and the consequence.
-- Keep implementation-specific decisions here once they begin.
-
-## Decision status
-
-- `proposed` — under consideration.
-- `accepted` — current working decision.
-- `superseded` — retained for history but no longer current.
-- `rejected` — considered and intentionally not chosen.
-
-## Initial agreed direction
-
-### D-001 — Center the build on the ledger
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Treat the append-only, double-entry, bitemporal ledger as the product core; providers are adapters around it.
-- Reason: This directly addresses the track’s hardest grading areas: holds, corrections, statements, and reconciliation.
-- Consequence: Provider balances are never treated as our source of truth.
-
-### D-002 — Own three end-to-end use cases
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Prioritize onboarding/funding, card authorization/settlement, and controlled outbound payments.
-- Reason: Together they cover the required core loop and the main live-fire scenarios.
-- Consequence: Broader neobank functionality remains secondary or cut.
-
-### D-003 — Use USD cents only
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Store and calculate money as integer USD minor units.
-- Reason: The brief explicitly requires US dollars and forbids float-based money handling.
-- Consequence: Rounding and pro-rata allocation rules must be documented before those calculations are implemented.
-
-### D-004 — Separate value date from booking date
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Every financial event carries both its economic value date and the date the system booked or learned it.
-- Reason: This is required for the reversal and bitemporal correction test.
-- Consequence: Statements must support both historical economic position and historical knowledge state.
-
-### D-005 — Build narrow UI surfaces
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Build the account dashboard, card detail, approval queue, reconciliation breaks, and historical statement views first.
-- Reason: These surfaces expose the behaviors the reviewer will attack.
-- Consequence: Native mobile breadth, advanced analytics, and broad administration are cut from the core path.
-
-### D-006 — Use Column for payment rails and reconciliation
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Use Column's sandbox as the payment-rail integration for ACH credits/debits, delayed settlement, returns, reversals, webhooks, and settlement-report reconciliation. Keep an internal simulator only as a fallback for scenarios Column cannot conveniently trigger.
-- Positive: Column gives us a realistic ACH-shaped sandbox with stateful transfers, simulated settlement and return behavior, webhook events, idempotency support, and settlement reports. This is stronger evidence than presenting an entirely internal payment simulator.
-- Trade-off: Column introduces its own entity, bank-account, transfer, event, and reporting model that must be normalized into our domain. Its provider balance and reports remain external truth for reconciliation, not our product ledger.
-- Consequence: The outbound-payment flow will be built behind a payment-rail adapter so Column can be live without coupling the rest of the system to Column's schema.
-- Evidence: Column sandbox, ACH, webhook, idempotency, and reporting documentation reviewed before this decision.
-
-### D-007 — Use Lithic for card issuing
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Use Lithic's sandbox as the initial card-issuing provider for card creation, authorization, capture/settlement, and reversal behavior. A Lithic account has been set up. Stripe Issuing remains the fallback if Lithic cannot support the required trial flow quickly enough.
-- Positive: This keeps the card path focused on the Track 3 centerpiece: authorization holds, different-amount settlement, delayed events, and reversals.
-- Trade-off: We must learn and normalize Lithic's event model, verify its webhook behavior, and ensure the exact authorization/capture scenario is available in the sandbox before depending on it.
-- Consequence: The card adapter must isolate Lithic-specific identifiers, statuses, and webhook payloads from the ledger and card-transaction model.
-- Evidence: Lithic sandbox account established; exact scenario support to be verified during provider smoke testing.
-
-### D-008 — Use Plaid for external-bank linking
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Use Plaid Sandbox as the initial external-bank-linking provider for connecting a business's funding account. A Plaid account has been set up. If linking setup becomes a time risk, retain the same adapter boundary and use a clearly labelled funding simulator.
-- Positive: Plaid gives the onboarding and funding flow a recognizable external-bank-linking surface without building bank aggregation ourselves.
-- Trade-off: Plaid linking and the actual movement of funds are separate concerns; Plaid should not be treated as the ACH settlement provider or as the ledger source of truth.
-- Consequence: Plaid will produce a linked funding source, while Column or the payment-rail adapter will represent the actual inbound ACH movement and resulting ledger event.
-- Evidence: Plaid Sandbox account established; exact funding flow to be verified during provider smoke testing.
-
-### D-009 — Model reversals as linked immutable transactions
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: A reversal is always a new immutable transaction with its own journal entry, linked explicitly to the original payment or settlement through `reverses_payment_id` and `reverses_journal_entry_id`. The original financial record is never edited or deleted.
-- Positive: The transaction history clearly explains what happened, statements can show both the original settlement and its reversal, and the correction remains auditable.
-- Trade-off: The UI and queries must combine the original transaction with its lifecycle events to display the current state. A simple mutable status column is not sufficient as the source of truth.
-- Lifecycle: Authorization received → capture received → settled → reversal received. The displayed status is derived from the append-only lifecycle history.
-- Consequence: A reversal can be idempotently replayed, partial reversals can be represented, and multiple captures can each be reversed precisely. A reversal references the specific capture or settlement it corrects, not only the broader authorization.
-
-### D-010 — Use Persona for KYB/KYC
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Use Persona Sandbox as the initial KYB/KYC provider for business onboarding, owner checks, pending/approved/declined outcomes, and signed status webhooks. A Persona sandbox account has been set up using an authorized Aethria company email.
-- Positive: Persona provides a direct sandbox API and webhook flow that maps cleanly to the account activation gate, while allowing mocked verification outcomes without real identity documents.
-- Trade-off: Persona requires sandbox configuration such as transaction types/templates and may require eligibility review before all features are available. The integration must remain behind an adapter in case configuration or access becomes a blocker.
-- Consequence: An account cannot activate or transact until our system receives an approved Persona outcome. Persona identifiers and statuses will be normalized into our own onboarding model.
-- Safety: Use sandbox credentials and mocked test data only; never submit real identity documents or production keys.
-- Evidence: Persona sandbox account established; configuration and webhook smoke test still pending.
-
-### D-011 — Build a web app and deploy on Vercel
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Build Track 3 as a browser-based web application using Next.js and deploy it on Vercel from the beginning.
-- Positive: This gives us the required public URL early, supports server-side webhook endpoints, and keeps the demo, account views, approval queue, statements, and reconciliation screens in one deployable application.
-- Trade-off: The application must be designed around Vercel's deployment and environment-variable model, and long-running/background work will need a suitable scheduled or event-driven approach rather than an always-on server process.
-- Consequence: Local development and preview deployments will use the same route boundaries and environment configuration as production. Secrets will remain in Vercel environment variables and `.env.example`, never in the repository.
-
-### D-012 — Own internal transaction identity and reversal relationships
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Our system will generate and own internal transaction IDs, ledger-entry IDs, and reversal relationships. Lithic provider transaction tokens and event IDs will be stored as external references. Column will not participate in the card lifecycle; it remains the ACH/payment-rail provider for later slices.
-- Positive: The product can maintain a stable transaction history even when a provider return or reversal arrives as a standalone event without a reliable original-transaction reference.
-- Trade-off: A provider return does not automatically prove which original transaction it reverses. For reversals initiated by our app, we will create a reversal intent linked to our original transaction before invoking the provider, then correlate the resulting provider event to that intent.
-- Consequence: The card detail view will show both our internal relationship and the underlying Lithic references. Unexpected or ambiguous provider returns will be parked for review rather than auto-linked incorrectly.
-
-### D-013 — Keep the database provider-agnostic
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Use Supabase Postgres for durable webhook receipts, ledger state, holds, card transactions, and event history. Access will be isolated behind application-owned repository interfaces so the database can be replaced later without changing domain logic.
-- Positive: Supabase gives the Vercel deployment durable relational storage while keeping the ledger and webhook state consistent across instances and restarts.
-- Trade-off: We must define repository interfaces and migrations, and we will carry a small database adapter layer. Switching databases later will require a new adapter rather than domain changes.
-- Consequence: Supabase will persist our application model, not replace it with provider-specific tables or balances. Lithic, Persona, Plaid, and Column integrations may remain provider-specific where that makes their APIs clearer.
-- Boundary: `domain` and application services depend on repository contracts; `adapters/supabase` implements those contracts. Provider integrations remain separate from the database choice.
-
-### D-014 — Own transaction linkage before presenting related activity
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: The application will create immutable internal card-transaction records and own the relationship between an authorization, captures/settlements, and reversals. Lithic transaction tokens and event IDs are external references only.
-- Positive: A transaction detail view can show the real lifecycle and link a reversal to the exact settlement it corrects, even when Lithic emits a standalone return.
-- Trade-off: We need a transaction projection and explicit reversal-intent flow before the UI can claim that two provider records are related. Same-card or same-merchant matching is not sufficient.
-- Consequence: The modal will eventually read related transactions through our internal `reverses_transaction_id` relationship. Ambiguous provider returns remain unlinked and visible for review until a human or explicit intent resolves them.
-
-### D-015 — Derive available balance from settled ledger and active holds
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: Available balance is derived as settled ledger balance minus active card holds. Pending inbound credits do not increase available balance until they settle.
-- Positive: The customer-facing balance is provable from immutable entries and hold records, and authorization does not incorrectly change the settled ledger balance.
-- Trade-off: The system must maintain accurate hold lifecycle state and calculate the balance from events rather than storing a separately editable available-balance number.
-
-### D-016 — Link provider returns through an internal reversal intent
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: When our system initiates a reversal, it first creates an internal reversal intent containing `original_transaction_id`, expected amount, card, and an idempotency key. After Lithic creates the return, we store the returned Lithic transaction token against that intent. The resulting webhook is then projected into a new immutable internal reversal transaction linked to the original.
-- Positive: The linkage remains ours even though Lithic creates the return as a separate provider transaction with no shared original-transaction ID.
-- Trade-off: A manually-created or externally-created Lithic return cannot be safely auto-linked. It must be parked as `UNMATCHED_RETURN` or explicitly matched by an authorized operator.
-- Consequence: The UI and ledger use our internal `reverses_transaction_id`; Lithic tokens and event IDs remain audit references. Out-of-order delivery is handled by storing the provider token and resolving the pending intent when the webhook arrives.
-
-### D-017 — Customer funds remain owned by the team while holds reduce availability
-
-- Timestamp: 2026-08-25
-- Status: accepted
-- Decision: The business team owns the funds economically. A card authorization does not reduce the total customer ledger balance; it reserves money by moving it from the team's available-funds bucket into its card-holds bucket.
-- Positive: Ledger balance remains a complete view of the team's money, while available balance accurately reflects what can be spent immediately.
-- Trade-off: Available balance must be derived from settled postings and active holds. It must not be stored as an independently editable balance.
-- Consequence: A `$1,000` ledger balance with a `$50` active hold has `$950` available. Clearing releases the hold and posts the final settled amount; expiry or authorization reversal releases the hold without posting a settlement.
-
-### D-018 — Expose reversal linking in the transaction modal
-
-- Timestamp: 2026-08-25T14:04:50Z
-- Status: accepted
-- Decision: Provide an explicit `Link return` action from the card transaction modal. The operator selects the original settled transaction, enters the standalone Lithic return token, and our server validates the card and expected amount before creating the internal reversal relationship.
-- Context: Lithic can emit a standalone return without a shared original-transaction ID. Same-card, same-merchant, or same-amount matching is not sufficient evidence of a correction.
-- Positive: The live-fire demo can show the operator-owned relationship clearly, while keeping the browser flow aligned with the internal transaction model.
-- Trade-off: A manually created Lithic return requires an explicit operator action before it can affect the ledger. Unmatched returns remain visible as `UNMATCHED_RETURN` and do not change balances.
-- Consequence: The modal becomes the controlled entry point for reversal intents and links. The webhook remains responsible for projecting the provider return and posting the immutable reversal journal entry exactly once.
-
-### D-019 — Prefer event-level authorization hold amounts
-
-- Timestamp: 2026-08-25T15:24:00Z
-- Status: accepted
-- Decision: For an authorization, use the event-level hold amount in the customer/cardholder currency as our internal authorization amount. Lithic's top-level `authorization_amount` is a fallback only when the event-level hold/cardholder amount is absent.
-- Context: A Lithic sandbox test reported a top-level authorization amount of `10` while its authorization event held `1000` cents. Treating both as the same value made the UI and ledger disagree about whether the hold was `$0.10` or `$10.00`.
-- Positive: The internal hold, authorization display, and available-balance movement use the amount actually reserved for the customer account.
-- Trade-off: Provider conversion metadata must be preserved and inspected when the merchant and cardholder currencies differ. We must not infer dollars from a dashboard input label alone.
-- Consequence: Clean card smoke tests will use the webhook payload as the verification source: `$50.00` authorization (`5000` cents), `$73.40` clearing (`7340` cents), then a return for the exact settled amount. Any provider payload with a different event-level amount is treated as the provider's actual sandbox result and investigated separately.
-
-### D-020 — Post unmatched returns before relationship resolution
-
-- Timestamp: 2026-08-25T15:58:00Z
-- Status: accepted
-- Decision: A valid card settlement return credits `CUSTOMER_AVAILABLE` immediately, even when the original settlement cannot yet be identified. The return is recorded using its own provider transaction reference; later linkage adds the relationship without creating a second ledger posting.
-- Context: Transaction `3597a205-2563-4d35-91b0-7402cc74ffbe` returned `$73.40` but remained unmatched, so the customer's main balance did not reflect money that had already come back.
-- Positive: The customer's balance reflects provider truth as soon as the return is received, and unmatched returns remain visible for operational resolution.
-- Trade-off: The first journal entry may have no `reversal_of_reference_id`. Statement queries must include a later-linked return transaction by its provider reference, and reconciliation must surface unmatched returns for review.
-- Consequence: Return webhook handling is idempotent and posts a `CARD_SETTLEMENT_REVERSAL` immediately. Linking an unmatched return later updates only the internal transaction relationship and never posts the credit again.
-
-### D-021 — P1 onboarding, funding, and payment controls
-
-- Timestamp: 2026-08-25T15:19:32Z
-- Status: accepted
-- Decision: Require Persona business and owner/director approval before any transactional account activity. Before approval, the user may submit onboarding information and view verification status, but cannot link a bank, fund the account, issue cards, or send payments.
-- Decision: Use one business verification and one owner/director verification for the demo. Normalize Persona's pending, approved, and rejected outcomes into our internal verification state.
-- Decision: Support one linked external checking account per business through Plaid. Plaid identifies the funding account but never becomes the source of ledger truth or directly increases the balance.
-- Decision: Pending ACH funds do not increase available balance. A settled inbound ACH event posts a new ledger credit; a later ACH return is a new reversal entry and never edits the original credit.
-- Decision: Use `$1,000.00` as the outbound payment approval threshold. Payments above the threshold require a different human approver; the initiator cannot approve their own payment.
-- Decision: Reject an outbound payment before provider submission when available funds are insufficient.
-- Decision: Keep agent writes in the same human approval flow. An agent may create a payment request but may not approve or execute it.
-- Provider plan: Persona and Lithic are the primary live sandbox integrations. Plaid and Column remain behind adapter boundaries and may initially be simulated if sandbox access becomes a time constraint.
-- Reason: This creates a narrow, explainable path from regulated onboarding to funding and controlled money-out while preserving the separation between identity, bank linking, payment rails, and our ledger.
-- Consequence: P1 implementation proceeds in this order: Persona approval gate, Plaid linking, Column funding, ACH settlement/return ledgering, then outbound payment approvals.
-
-### D-022 — Use one Persona KYC inquiry for the demo gate
-
-- Timestamp: 2026-08-25T17:10:00Z
-- Status: accepted
-- Decision: Use one Persona KYC inquiry for the demo. One approved inquiry satisfies the onboarding gate; the same inquiry ID is stored in both internal verification slots so the existing gate and Plaid flow remain consistent.
-- Context: A live KYB template/provider account is not available for this trial, while the supplied Persona KYC template is usable. The brief requires a verification gate, but does not require two separate Persona inquiries.
-- Positive: Smaller, clearer onboarding flow; one hosted verification link; no unsupported KYB field assumptions; approval state is easy to test end to end.
-- Trade-off: This is identity verification, not true legal-entity KYB. The submission must label it honestly as a KYC fallback and should not imply that the demo verifies the business registry.
-- Consequence: A single inquiry webhook advances both internal statuses only when both stored IDs are the same. Plaid remains blocked until that single inquiry is approved.
-
-### D-023 — Use Supabase Auth with one business membership per demo user
-
-- Timestamp: 2026-08-25T17:30:00Z
-- Status: accepted
-- Decision: Use Supabase email/password Auth for the demo. Each demo user maps to one row in `business_memberships` with the shared business/account scope and either `ADMIN` or `MEMBER` role.
-- Positive: Minimal login friction, persistent sessions, two credible demo roles, and no credentials or authorization decisions in application code.
-- Trade-off: This is intentionally not full account administration; invitations, password reset, MFA, and multi-business switching remain out of scope.
-- Consequence: Authenticated pages and funding/onboarding/card routes resolve the business scope from the membership instead of the hardcoded demo scope. Persona onboarding remains a separate KYC approval gate after login.
-
-### D-024 — Gate navigation through onboarding and funding
-
-- Timestamp: 2026-08-25T18:35:00Z
-- Status: accepted
-- Decision: After login, an unapproved user is restricted to the Persona onboarding screen until the single KYC check is approved. After approval, a user without a linked funding account is restricted to the Plaid funding screen until linking succeeds. The account/profile screen and sign-out remain available as escape hatches.
-- Positive: The demo follows the intended sequence and prevents users from reaching cards or money movement before the required prerequisites are complete.
-- Trade-off: This is deliberately strict and can feel restrictive if a provider is unavailable. The account screen provides a safe place to inspect status and sign out while blocked.
-- Consequence: The navigation gate runs at the request boundary, so typing a URL or clicking a stale link cannot bypass the onboarding/funding sequence.
-
-### D-026 — Hide the primary navigation until setup is complete
-
-- Timestamp: 2026-08-25T18:40:00Z
-- Status: accepted
-- Decision: Do not render the primary navigation bar for unauthenticated users or users still gated in onboarding/funding. It appears only after login, Persona approval, and Plaid linking are complete.
-- Positive: The setup flow is visually focused and users cannot mistake gated destinations for available product areas.
-- Trade-off: The onboarding and funding screens have no primary navigation while incomplete; the user completes the required step or signs out through the direct account flow.
-- Consequence: Server-side route enforcement remains authoritative; the client only controls whether the completed-app navigation is shown.
-
-### D-027 — Keep setup routes out of the completed navigation
-
-- Timestamp: 2026-08-25T18:45:00Z
-- Status: accepted
-- Decision: Keep `/onboarding` and `/funding` available as gated setup routes, but do not show them in the primary navigation after setup is complete. The account page is the canonical place to review KYC and funding status.
-- Positive: The completed product navigation stays focused on daily banking tasks, while setup information has one home.
-- Trade-off: A user must use the account page for status details; the setup routes are not normal product destinations after completion.
-- Consequence: The server gate still redirects users to the setup routes when prerequisites are missing, so removing them from the nav does not remove the onboarding or Plaid flow.
-
-### D-025 — Use the profile avatar as the account entry point
-
-- Timestamp: 2026-08-25T18:35:00Z
-- Status: accepted
-- Decision: The top-right profile avatar opens `/account`, which shows signed-in user details, role, Persona/KYC status, funding-account status, and the sign-out action.
-- Positive: Account and connection details have one predictable home, and sign-out is available without exposing it on every navigation view.
-- Trade-off: Profile editing and switching between businesses are out of scope for this trial.
-
-## Open decisions
-
-The following are intentionally unresolved and should be decided with evidence during implementation:
-
-- Whether USDC is live testnet or simulated.
-- Exact chart-of-accounts structure.
-- Exact hold-accounting entries for authorization, capture, expiry, and reversal.
-- Treatment of uncleared inbound credits in available balance.
-- Standing-order insufficient-funds policy.
-- Reconciliation file format and break-resolution workflow.
-
-## Entry template
-
-### D-XXX — Short decision title
-
-- Timestamp: YYYY-MM-DDTHH:MM:SSZ
-- Status: proposed | accepted | superseded | rejected
-- Decision:
-- Context:
-- Options considered:
-- Reason:
-- Consequence:
-- Evidence or links:
+This is the decision record for the Track 3 trial. It records the choices we made, why we made them, and what we intentionally left out.
+
+## Product direction
+
+### D-001 — Make the ledger the source of truth
+
+- Date: 2026-08-25
+- Decision: Use an append-only, double-entry USD-cents ledger as the core of the product. Providers are adapters around it.
+- Why: Balances, holds, settlements, reversals, statements, and reconciliation need to be explainable from our own history.
+- Result: Provider balances never replace the product ledger.
+
+### D-002 — Focus the trial on three flows
+
+- Date: 2026-08-25
+- Decision: Prioritize onboarding and funding, card authorization and settlement, and controlled outbound payments.
+- Why: These are the flows the reviewer is most likely to test end to end.
+- Cut: Mobile apps, advanced analytics, broad administration, and USDC are outside this trial.
+
+### D-003 — Store money as integer cents
+
+- Date: 2026-08-25
+- Decision: Store and calculate USD as integer cents, never floating-point dollars.
+- Why: It avoids rounding errors and matches the requirements.
+
+### D-004 — Keep value date and booking date separate
+
+- Date: 2026-08-25
+- Decision: Every financial event has an economic value date and a booking date.
+- Why: A delayed provider event must not rewrite the historical record.
+
+## Providers and integrations
+
+### D-005 — Use Increase for ACH
+
+- Date: 2026-08-25
+- Decision: Use Increase for inbound funding and outbound ACH. Keep the simulator only as an explicitly labelled fallback.
+- Why: I have an Increase sandbox account and it gives us one provider boundary for transfers, settlement, returns, webhooks, and exports.
+- Note: The earlier Column decision is superseded. Increase account, counterparty, and webhook configuration are still required for a genuinely live run.
+
+### D-006 — Use Plaid only to link the external bank
+
+- Date: 2026-08-25
+- Decision: Plaid identifies and links the external funding account; it does not move money and is not ledger truth.
+- Why: Bank linking and ACH movement are separate responsibilities.
+
+### D-007 — Use Lithic for cards
+
+- Date: 2026-08-25
+- Decision: Use Lithic sandbox for card issuing and card provider events.
+- Why: It gives us a realistic card boundary for authorization, settlement, holds, and reversals.
+
+### D-008 — Use Persona for the onboarding check
+
+- Date: 2026-08-25
+- Decision: Use one Persona sandbox inquiry for the demo onboarding gate.
+- Why: The available Persona setup supports a clear verification step without pretending that the demo is full legal-entity KYB.
+- Result: The product labels the flow honestly as Persona KYC/onboarding verification.
+
+## Authentication and access
+
+### D-009 — Use Supabase Auth and business memberships
+
+- Date: 2026-08-25
+- Decision: Use Supabase email/password Auth. Each user is mapped to one business membership with an `ADMIN` or `MEMBER` role for this trial.
+- Why: It gives us real sessions and two testable roles without hardcoding the active business.
+- Cut: Multi-business switching, MFA, and full invitation infrastructure are out of scope for this release.
+
+### D-010 — Provision employees directly for now
+
+- Date: 2026-08-25
+- Decision: An authorized admin can create an employee login with an initial password and share it through a secure channel because email delivery is not configured.
+- Why: We need a usable employee/card-delegation flow without inventing an email system for the trial.
+- Requirement before production: Add forced password change and password reset. Never persist or log the initial password.
+
+### D-011 — Enforce roles at the server boundary
+
+- Date: 2026-08-25
+- Decision: `ADMIN` and `MEMBER` permissions are checked on the server. Business and account scope comes from the authenticated membership, not client-provided headers.
+- Why: UI hiding is not authorization, and service-role access must not become a tenant boundary.
+
+## Scope and delivery
+
+### D-012 — Keep the UI focused on reviewer-critical behavior
+
+- Date: 2026-08-25
+- Decision: Keep the existing UI shape while wiring real funding, payments, approvals, cards, reconciliation, and status/error states.
+- Why: The separate design work owns visual refinement; this implementation is limited by correctness and evidence.
+
+### D-013 — Defer the agent surface
+
+- Date: 2026-08-25
+- Decision: Leave the agent tools out of this remediation pass.
+- Why: Payment rail correctness, inbound settlement, maker-checker, reconciliation, card access, and security are more important to the reviewer path.
+
+### D-014 — Commit in small slices
+
+- Date: 2026-08-25
+- Decision: Implement and push one verified phase at a time.
+- Why: Small commits make provider and authorization regressions easier to isolate.
+
+### D-015 — Seed simulated data honestly
+
+- Date: 2026-08-25
+- Decision: The seed includes clearly simulated funding, payment, card, and ledger rows. Live provider evidence must come from provider dashboards and webhook delivery records.
+- Why: A reviewer should be able to run the demo without mistaking seed data for live integration proof.
+
+## Current open items
+
+- Enable Supabase leaked-password protection.
+- Add forced employee password change and password reset.
+- Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
+- Extend the card transaction projection for explicit incremental authorizations, multiple captures, expiry, over-capture, and partial capture scenarios.
+- Keep USDC, wires, standing orders, batch payments, and native mobile out of this release.
