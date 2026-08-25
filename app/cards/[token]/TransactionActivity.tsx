@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { formatLithicDate, type LithicTransaction } from "@/src/integrations/lithic/client";
 
 type TransactionRow = LithicTransaction & { displayAmount: number | null; internalTransactionId?: string; reversalOfTransactionId?: string };
@@ -111,7 +112,7 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
         </button>
       ))}
 
-      {selected && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
+      {selected && typeof document !== "undefined" && createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
         <section className="transaction-modal" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
           <div className="modal-header"><div><p className="eyebrow">Transaction details</p><h3 id="transaction-modal-title">{selected.merchant_descriptor ?? selected.merchant?.descriptor ?? "Card transaction"}</h3></div><button className="modal-close" aria-label="Close transaction details" onClick={() => setSelected(null)}>×</button></div>
           <div className="modal-summary"><div><span className="detail-label">Latest event</span><div className="modal-chips"><span className="chip chip-blue">{latestEvent(selected)?.type ?? "TRANSACTION"}</span><span className="chip chip-neutral">{selected.status ?? "Unknown status"}</span></div></div><div className="modal-amount"><span className="detail-label">{isIncoming(selected) ? "Money in" : "Money out"}</span><strong className={isIncoming(selected) ? "amount-positive" : "amount-negative"}>{signedUsd(selected.displayAmount, isIncoming(selected))}</strong></div></div>
@@ -132,7 +133,7 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
 
           {reversalIntentId && <div className="modal-section"><p className="eyebrow">Link a return</p><form className="reversal-link-form" onSubmit={linkReturn}><p className="modal-note">Simulate the return in Lithic, then paste its provider transaction token here.</p><label className="detail-label" htmlFor="provider-return-token">Lithic return transaction token</label><input id="provider-return-token" value={providerReturnToken} onChange={(event) => setProviderReturnToken(event.target.value)} required placeholder="Lithic transaction token" /><label className="detail-label" htmlFor="return-amount">Return amount (USD)</label><input id="return-amount" inputMode="decimal" value={returnAmountDollars} onChange={(event) => setReturnAmountDollars(event.target.value)} required /><button className="btn btn-primary" type="submit" disabled={linking}>{linking ? "Linking…" : "Confirm link"}</button></form>{linkError && <p className="form-error">{linkError}</p>}</div>}
         </section>
-      </div>}
+      </div>, document.body)}
     </>
   );
 }

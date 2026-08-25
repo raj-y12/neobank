@@ -19,7 +19,6 @@ export default async function CardDetailPage({ params }: { params: Promise<{ tok
     <>
       <section className="card-detail-header">
         <Link className="back-link" href="/cards">← Cards</Link>
-        <h2>{card.type} card ····{card.last_four}</h2>
       </section>
       <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} /></section>
       <section className="panel" style={{ marginTop: 14 }}>
