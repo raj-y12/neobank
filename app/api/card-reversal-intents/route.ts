@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseCardReversalRepository } from "@/src/repositories/supabase-card-reversal-repository";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
+import { canViewCard } from "@/src/domain/card-access";
+import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
 
 export async function POST(request: Request) {
   try {
@@ -7,6 +11,11 @@ export async function POST(request: Request) {
     if (!body.originalTransactionId || !body.idempotencyKey) {
       return NextResponse.json({ error: "originalTransactionId and idempotencyKey are required" }, { status: 400 });
     }
+    const scope = await getAuthenticatedScope();
+    const { data: transaction, error: transactionError } = await createSupabaseAdminClient().from("card_transactions").select("card_token").eq("id", body.originalTransactionId).maybeSingle<{ card_token: string }>();
+    if (transactionError) throw transactionError;
+    const assignment = transaction ? await getBusinessCardAssignment(scope.businessId, transaction.card_token) : null;
+    if (!transaction || !assignment || !canViewCard({ role: scope.role, currentMemberId: scope.memberId, assignedMemberId: assignment.memberId })) return NextResponse.json({ error: "Card is outside the authenticated business scope" }, { status: 404 });
     const intent = await createSupabaseCardReversalRepository().createIntent({
       originalTransactionId: body.originalTransactionId,
       idempotencyKey: body.idempotencyKey,
