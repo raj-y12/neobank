@@ -190,9 +190,9 @@ The following are intentionally unresolved and should be decided with evidence d
 
 - Timestamp: YYYY-MM-DDTHH:MM:SSZ
 - Status: proposed | accepted | superseded | rejected
-- Decision: 
-- Context: 
-- Options considered: 
-- Reason: 
-- Consequence: 
-- Evidence or links: 
+- Decision:
+- Context:
+- Options considered:
+- Reason:
+- Consequence:
+- Evidence or links:
