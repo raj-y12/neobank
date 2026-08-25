@@ -2,6 +2,7 @@ import { listLithicCards } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
 import { listBusinessCardAssignments } from "@/src/repositories/supabase-business-card-repository";
+import { canViewCard } from "@/src/domain/card-access";
 import { CardTile } from "./CardTile";
 import { CardDelegateForm } from "./CardDelegateForm";
 import { IssueCardButton } from "./IssueCardButton";
@@ -16,7 +17,10 @@ export default async function CardsPage() {
     createSupabaseAdminClient().from("business_members").select("id,email,role,status").eq("business_id", scope.businessId).order("created_at", { ascending: true }),
   ]);
   const assignmentByToken = new Map(assignments.map((assignment) => [assignment.cardToken, assignment]));
-  const cards = providerCards.filter((card) => assignmentByToken.has(card.token));
+  const cards = providerCards.filter((card) => {
+    const assignment = assignmentByToken.get(card.token);
+    return assignment && canViewCard({ role: scope.role, currentMemberId: scope.memberId, assignedMemberId: assignment.memberId });
+  });
   const employees = employeesResult.data ?? [];
 
   return (
@@ -27,7 +31,7 @@ export default async function CardsPage() {
       </section>
       {cards.length === 0 ? (
         <section className="panel" style={{ marginTop: 14 }}>
-          <div className="empty-state"><h4>No cards in Lithic yet</h4><p>Create a sandbox card to see it appear here.</p></div>
+          <div className="empty-state"><h4>No cards available</h4><p>{scope.role === "ADMIN" ? "Sync existing cards or create a sandbox card to see it appear here." : "Your administrator has not delegated a card to you yet."}</p></div>
         </section>
       ) : (
         <section className="card-tile-grid" style={{ marginTop: 14 }} aria-label="Issued cards">
