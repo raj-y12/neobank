@@ -80,6 +80,14 @@ export function approvePayment(payment: Payment, approverId: string): Payment {
   return { ...payment, status: "APPROVED" };
 }
 
+export function rejectPayment(payment: Payment, approverId: string): Payment {
+  if (approverId === payment.initiatorId) throw new Error("Initiator cannot reject payment");
+  if (!canTransitionPayment(payment.status, "REJECTED")) {
+    throw new Error(`Cannot reject payment in ${payment.status} state`);
+  }
+  return { ...payment, status: "REJECTED" };
+}
+
 export function createFundingTransfer(input: Omit<FundingTransfer, "id" | "status">): FundingTransfer {
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) {
     throw new Error("Funding amount must be positive cents");

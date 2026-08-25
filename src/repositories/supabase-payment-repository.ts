@@ -13,10 +13,16 @@ type PaymentRow = {
   status: Payment["status"];
 };
 
+function toPayment(data: PaymentRow): Payment {
+  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", status: data.status };
+}
+
 export class SupabasePaymentRepository {
   constructor(private readonly client: SupabaseClient) {}
 
-  async create(payment: Payment, idempotencyKey: string) {
+  async create(payment: Payment, idempotencyKey: string): Promise<Payment> {
+    const existing = await this.getByIdempotencyKey(payment.businessId, idempotencyKey);
+    if (existing) return existing;
     const { error } = await this.client.from("payments").insert({
       id: payment.id,
       business_id: payment.businessId,
@@ -31,13 +37,21 @@ export class SupabasePaymentRepository {
       idempotency_key: idempotencyKey,
     });
     if (error && error.code !== "23505") throw error;
+    if (error?.code === "23505") return (await this.getByIdempotencyKey(payment.businessId, idempotencyKey)) ?? payment;
+    return payment;
+  }
+
+  private async getByIdempotencyKey(businessId: string, idempotencyKey: string) {
+    const { data, error } = await this.client.from("payments").select("id,business_id,account_id,initiator_member_id,amount_cents,currency,rail,recipient,status").eq("business_id", businessId).eq("idempotency_key", idempotencyKey).maybeSingle<PaymentRow>();
+    if (error) throw error;
+    return data ? toPayment(data) : null;
   }
 
   async get(id: string, businessId: string): Promise<Payment | null> {
     const { data, error } = await this.client.from("payments").select("id,business_id,account_id,initiator_member_id,amount_cents,currency,rail,recipient,status").eq("id", id).eq("business_id", businessId).maybeSingle<PaymentRow>();
     if (error) throw error;
     if (!data) return null;
-    return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", status: data.status };
+    return toPayment(data);
   }
 
   async setStatus(id: string, businessId: string, status: Payment["status"]) {
