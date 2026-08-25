@@ -2,6 +2,17 @@ import { describe, expect, it } from "vitest";
 import { deriveLedgerBalances, type BalancePosting } from "./ledger-balance";
 
 describe("deriveLedgerBalances", () => {
+  it("includes payment holds in total ledger funds while available is already reduced", () => {
+    expect(deriveLedgerBalances([
+      { businessId: "b1", accountId: "a1", accountCode: "CUSTOMER_AVAILABLE", debitCents: 2_000, creditCents: 10_000 },
+      { businessId: "b1", accountId: "a1", accountCode: "CUSTOMER_PAYMENT_HOLDS", debitCents: 0, creditCents: 2_000 },
+    ], { businessId: "b1", accountId: "a1" })).toEqual({
+      ledgerBalanceCents: 10_000,
+      availableBalanceCents: 8_000,
+      activeHoldsCents: 0,
+    });
+  });
+
   it("keeps held funds in ledger balance while excluding them from available balance", () => {
     const postings: BalancePosting[] = [
       { accountCode: "CUSTOMER_AVAILABLE", debitCents: 7_340, creditCents: 100_000 },

@@ -51,7 +51,10 @@ export function AppNav() {
 
   return (
     <header className="topbar">
-      <div className="brand-mark" aria-label="Corgi home">c</div>
+      <div className="nav-brand-row">
+        <div className="brand-mark" aria-label="Corgi home">c</div>
+        <div className="nav-brand-copy"><strong>Corgi</strong><span>Business banking</span></div>
+      </div>
 
       <nav className="nav-tabs" aria-label="Primary">
         {TABS.map((tab) => (
@@ -69,6 +72,7 @@ export function AppNav() {
       <div className="topbar-spacer" />
       <Link className="nav-user" href="/account" aria-label="Open account profile">
         <div className="avatar">{email?.slice(0, 2).toUpperCase() ?? "??"}</div>
+        <span className="nav-user-copy"><strong>{email?.split("@")[0] ?? "Account"}</strong><small>Open profile</small></span>
       </Link>
     </header>
   );

@@ -21,12 +21,12 @@ function entry(entryType: string, valueDate: string, postings: LedgerPosting[], 
   return { entryType, valueDate, referenceId, reversalOfReferenceId, postings };
 }
 
-export function openingBalance(amountCents: number, valueDate: string) {
+export function openingBalance(amountCents: number, valueDate: string, scope?: { businessId: string; accountId: string }) {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Opening balance must be positive cents");
-  return entry("OPENING_BALANCE", valueDate, [
+  return { ...entry("OPENING_BALANCE", valueDate, [
     { accountCode: "SAFEGUARDED_CASH", debitCents: amountCents, creditCents: 0 },
     { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: amountCents },
-  ]);
+  ]), ...scope };
 }
 
 export function authorizeHold(amountCents: number, transactionId: string, valueDate: string) {
@@ -86,9 +86,25 @@ export function reverseInboundFunding(amountCents: number, reversalReferenceId: 
 export function settleOutboundPayment(amountCents: number, paymentReferenceId: string, valueDate: string) {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Payment amount must be positive cents");
   return entry("PAYMENT_SETTLEMENT", valueDate, [
-    { accountCode: "CUSTOMER_AVAILABLE", debitCents: amountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_PAYMENT_HOLDS", debitCents: amountCents, creditCents: 0 },
     { accountCode: "SAFEGUARDED_CASH", debitCents: 0, creditCents: amountCents },
   ], paymentReferenceId);
+}
+
+export function reserveOutboundPayment(amountCents: number, paymentReferenceId: string, valueDate: string) {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Payment amount must be positive cents");
+  return entry("PAYMENT_RESERVATION", valueDate, [
+    { accountCode: "CUSTOMER_AVAILABLE", debitCents: amountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_PAYMENT_HOLDS", debitCents: 0, creditCents: amountCents },
+  ], paymentReferenceId);
+}
+
+export function releaseOutboundPayment(amountCents: number, reversalReferenceId: string, originalReferenceId: string, valueDate: string) {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error("Payment return amount must be positive cents");
+  return entry("PAYMENT_RESERVATION_RELEASE", valueDate, [
+    { accountCode: "CUSTOMER_PAYMENT_HOLDS", debitCents: amountCents, creditCents: 0 },
+    { accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: amountCents },
+  ], reversalReferenceId, originalReferenceId);
 }
 
 export function reverseOutboundPayment(amountCents: number, reversalReferenceId: string, originalReferenceId: string, valueDate: string) {

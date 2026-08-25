@@ -26,9 +26,10 @@ export function deriveLedgerBalances(postings: BalancePosting[], scope?: LedgerS
     : postings;
   const availableBalanceCents = liabilityBalance(scopedPostings, "CUSTOMER_AVAILABLE");
   const activeHoldsCents = liabilityBalance(scopedPostings, "CUSTOMER_CARD_HOLDS");
+  const paymentHoldsCents = liabilityBalance(scopedPostings, "CUSTOMER_PAYMENT_HOLDS");
 
   return {
-    ledgerBalanceCents: availableBalanceCents + activeHoldsCents,
+    ledgerBalanceCents: availableBalanceCents + activeHoldsCents + paymentHoldsCents,
     availableBalanceCents,
     activeHoldsCents,
   };

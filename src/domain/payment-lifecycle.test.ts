@@ -10,6 +10,21 @@ import {
 } from "./payment-lifecycle";
 
 describe("payment lifecycle", () => {
+  it("can force an agent-submitted payment into human approval", () => {
+    const payment = createPayment({
+      businessId: "b1",
+      accountId: "a1",
+      initiatorId: "m1",
+      amountCents: 100,
+      currency: "USD",
+      rail: "ACH",
+      recipient: "Supplier",
+      approvalMode: "HUMAN",
+    });
+
+    expect(payment.status).toBe("PENDING_APPROVAL");
+  });
+
   it("requires a second human for payments above the threshold", () => {
     const payment = createPayment({
       businessId: "biz-1",

@@ -54,6 +54,24 @@ export class SupabasePaymentRepository {
     return toPayment(data);
   }
 
+  async listPending(businessId: string) {
+    const { data, error } = await this.client
+      .from("payments")
+      .select("id,amount_cents,recipient,status,initiator_member_id,created_at")
+      .eq("business_id", businessId)
+      .eq("status", "PENDING_APPROVAL")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      amountCents: row.amount_cents as number,
+      recipient: typeof row.recipient === "string" ? row.recipient : (row.recipient as { name?: string })?.name ?? "Unknown",
+      status: row.status as Payment["status"],
+      initiatorMemberId: row.initiator_member_id as string,
+      createdAt: row.created_at as string,
+    }));
+  }
+
   async setStatus(id: string, businessId: string, status: Payment["status"]) {
     const { error } = await this.client.from("payments").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", businessId);
     if (error) throw error;
@@ -61,6 +79,16 @@ export class SupabasePaymentRepository {
 
   async setProviderTransfer(id: string, businessId: string, providerTransferId: string, status: Payment["status"]) {
     const { error } = await this.client.from("payments").update({ provider_payment_id: providerTransferId, status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", businessId);
+    if (error) throw error;
+  }
+
+  async reserveFunds(payment: Payment) {
+    const { error } = await this.client.rpc("reserve_payment_funds", {
+      p_business_id: payment.businessId,
+      p_account_id: payment.accountId,
+      p_payment_id: payment.id,
+      p_amount_cents: payment.amountCents,
+    });
     if (error) throw error;
   }
 

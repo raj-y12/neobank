@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { contextFromHeaders } from "@/src/auth/authorization";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const context = contextFromHeaders(request.headers);
+    const context = await getAuthenticatedScope();
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) throw new Error("Supabase account storage is not configured");

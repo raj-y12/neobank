@@ -22,6 +22,8 @@ export type Payment = {
   status: PaymentStatus;
 };
 
+type PaymentInput = Omit<Payment, "id" | "status"> & { approvalMode?: "THRESHOLD" | "HUMAN" };
+
 export type FundingTransfer = {
   id: string;
   businessId: string;
@@ -55,14 +57,20 @@ export function canTransitionFunding(from: FundingStatus, to: FundingStatus) {
   return fundingTransitions[from].includes(to);
 }
 
-export function createPayment(input: Omit<Payment, "id" | "status">): Payment {
+export function createPayment(input: PaymentInput): Payment {
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) {
     throw new Error("Payment amount must be positive cents");
   }
   return {
-    ...input,
+    businessId: input.businessId,
+    accountId: input.accountId,
+    initiatorId: input.initiatorId,
+    amountCents: input.amountCents,
+    currency: input.currency,
+    rail: input.rail,
+    recipient: input.recipient,
     id: crypto.randomUUID(),
-    status: input.amountCents > APPROVAL_THRESHOLD_CENTS ? "PENDING_APPROVAL" : "APPROVED",
+    status: input.approvalMode === "HUMAN" || input.amountCents > APPROVAL_THRESHOLD_CENTS ? "PENDING_APPROVAL" : "APPROVED",
   };
 }
 

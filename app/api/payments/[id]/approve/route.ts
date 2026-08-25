@@ -3,7 +3,6 @@ import { approvePayment } from "@/src/domain/payment-lifecycle";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
-import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,8 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const existing = await repository.get(id, context.businessId);
     if (!existing) throw new Error("Payment not found in business scope");
     const payment = approvePayment(existing, context.memberId);
-    const balances = await createSupabaseLedgerRepository().getBalances({ businessId: context.businessId, accountId: context.accountId });
-    if (balances.availableBalanceCents < payment.amountCents) throw new Error("Insufficient available funds");
+    await repository.reserveFunds(payment);
     await repository.addApproval(id, context.memberId, "APPROVED");
     const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
     await repository.setProviderTransfer(id, context.businessId, transfer.providerTransferId, "SUBMITTED");
