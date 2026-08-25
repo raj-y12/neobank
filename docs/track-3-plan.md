@@ -1,12 +1,201 @@
 # Track 3 — Neobank Build Plan
 
-Status: proposed plan, before implementation
+Status: remediation plan, prepared 2026-08-25
 
 The sendable T+2h scope is captured in [`attack-plan.md`](attack-plan.md). This document contains the fuller build sequence behind it.
 
 Slice 1 is scoped separately in [`slice-1-plan.md`](slice-1-plan.md).
 
 This document defines the intended shape of the 48-hour Track 3 submission. It is a scope and sequencing document, not a substitute for the timestamped decision log in [`decisions.md`](../decisions.md).
+
+## Current remediation plan
+
+This plan supersedes the original 48-hour sequencing for the remaining work. The agent surface is intentionally excluded from this pass. The target is a reviewer-runnable, production-shaped ACH and card-account path with honest integration evidence.
+
+### Phase 0 — Freeze the baseline and remove ambiguity
+
+What to implement:
+
+- Record the current baseline: `npm test`, `npm run typecheck`, `npm run build`, deployed URL, current Vercel environment modes, and provider dashboard references.
+- Treat `origin/main` as the integration branch and preserve unrelated working-tree files.
+- Replace stale documentation references to Column/demo headers with Increase/Supabase Auth behavior.
+- Define one canonical business/account scope for the demo and one repeatable seed path.
+
+Verification:
+
+- All three checks pass.
+- `git rev-list --left-right --count origin/main...HEAD` is zero.
+- README, evidence pack, seed file, and route behavior describe the same system.
+
+Guardrails:
+
+- Do not add agent work in this plan.
+- Do not claim live integration status from an environment variable alone; require a provider request or webhook evidence ID.
+
+### Phase 1 — Make Increase ACH a complete, observable rail
+
+What to implement:
+
+- Normalize Increase transfer events for both inbound funding and outbound payments.
+- Resolve webhook events to either `funding_transfers` or `payments` by provider transfer ID, scoped to the owning business/account.
+- Verify Increase signatures at the public webhook boundary; keep the internal event processor non-public or secret-protected.
+- Complete `PENDING → SUBMITTED → SETTLED/RETURNED` for outbound payments and `PENDING → SETTLED/RETURNED` for inbound funding.
+- Add provider transfer IDs, webhook IDs, event type, and last provider status to the payment/funding read models.
+- Require the configured Increase account and counterparty routing details before selecting live mode; otherwise show an explicit simulator state.
+- Keep idempotency across duplicate webhook delivery and retries.
+
+Verification:
+
+- Create a sandbox inbound transfer, settle it, observe the signed webhook, and verify the available balance and ledger entry.
+- Create an outbound payment, approve it with a second user, submit it to Increase, settle it, and verify payment status plus ledger entry.
+- Return the same transfer and verify one reversal entry, no duplicate balance effect, and a visible returned status.
+- Replay the same webhook twice and send it out of order; verify one economic effect and a parked/reconciled event.
+
+Guardrails:
+
+- Never update a settled journal entry; use a new reversal entry.
+- Never let a provider balance replace the ledger balance.
+- Never accept an unsigned call to the internal payment-rail event handler.
+
+### Phase 2 — Finish Plaid inbound funding and balance correctness
+
+What to implement:
+
+- Reconcile the migration and seed schema around encrypted Plaid access tokens and encrypted account/routing numbers.
+- Remove stale seed columns and add a complete linked-bank seed/test path.
+- Keep the Plaid access token encrypted at rest and never return it to the browser or logs.
+- Ensure Add Money always creates cents correctly, records a pending transfer, and changes available balance only after settlement.
+- Add a clear pending/settled/returned funding history to the funding/account surfaces.
+
+Verification:
+
+- Link a Plaid Sandbox account, create `$500.00`, verify the stored amount is `50000`, and verify no balance increase while pending.
+- Settle through Increase webhook and verify available balance increases by exactly `50000`.
+- Return it and verify the reversal restores the previous balance.
+
+Guardrails:
+
+- Do not reintroduce plaintext provider credentials.
+- Do not use a UI-only simulation as proof of settlement.
+
+### Phase 3 — Harden maker-checker and outbound payment UX
+
+What to implement:
+
+- Make the approval queue read real payment and approval records, including approval history and rejection state.
+- Enforce `ADMIN`/`MEMBER` behavior consistently at the API boundary.
+- Require a different active business member above the `$1,000.00` threshold.
+- Add explicit reject behavior and idempotent approve/reject handling.
+- Re-check available funds immediately before provider submission.
+- Make direct-under-threshold submissions and approved-over-threshold submissions use the same provider-event lifecycle.
+
+Verification:
+
+- Member creates a `$1,240.00` payment; it appears in the queue as pending.
+- Same member cannot approve it; a second active member can.
+- Repeated approval cannot submit twice.
+- Rejected payments never reach Increase.
+- A payment with insufficient funds is blocked before submission.
+
+Guardrails:
+
+- No client-provided role or business ID is trusted.
+- No approval route may operate on a record outside the authenticated business.
+
+### Phase 4 — Replace demo reconciliation with real file reconciliation
+
+What to implement:
+
+- Define the supported Increase scheme/export row format and parser.
+- Store an immutable reconciliation file receipt and idempotent row identity.
+- Diff provider rows against ledger/payment/funding references and amounts.
+- Persist missing-provider, missing-ledger, amount-mismatch, duplicate, and aged breaks.
+- Add break resolution with notes and audit history; resolution must not edit the ledger.
+- Remove or clearly isolate the current “Plant demo break” control from the reviewer path.
+
+Verification:
+
+- Import a clean file with zero breaks.
+- Remove one provider row, alter one amount, and add one unknown row; verify three distinct breaks.
+- Re-import the same file and verify no duplicates.
+- Resolve a break and verify the ledger remains unchanged.
+
+Guardrails:
+
+- Reconciliation is evidence about provider state; it cannot silently rewrite customer truth.
+- File references, provider row IDs, and business scope must be mandatory.
+
+### Phase 5 — Repair card inventory and transaction correctness
+
+What to implement:
+
+- Add a repeatable admin-only card sync/import path so existing Lithic cards are associated without hardcoding provider tokens in a migration.
+- Enforce that admins see all cards for their business while members see only cards delegated to them.
+- Enforce the same ownership check on card detail, transaction detail, and card APIs.
+- Extend the card transaction model to preserve multiple captures, incremental authorizations, partial captures, over-captures, expiry, and reversal relationships as separate provider events/derived state.
+- Keep authorization holds, settlement, expiry, and return ledger effects idempotent.
+
+Verification:
+
+- Sync existing sandbox cards and issue a new one; all appear once.
+- Delegate one card to an employee; the employee sees only that card.
+- Replay authorization, incremental auth, partial capture, over-capture, expiry, and return events; verify the hold and ledger invariants.
+
+Guardrails:
+
+- Never assign cards across businesses based only on a global Lithic account.
+- Never expose PAN or provider secrets in the UI.
+
+### Phase 6 — Complete production auth and tenant security
+
+What to implement:
+
+- Keep direct employee login provisioning because email delivery is unavailable, but add an initial-password/forced-password-change state.
+- Add password reset/change support before production handoff.
+- Add missing RLS policies for onboarding, linked funding accounts, payment events, and reconciliation files.
+- Set fixed search paths on database functions and enable leaked-password protection.
+- Audit every service-role route for authenticated business ownership and role checks.
+- Add cross-business and member/admin authorization tests.
+
+Verification:
+
+- A member cannot read or mutate another business’s records.
+- A member cannot approve, delegate cards, resolve reconciliation, or issue cards unless explicitly allowed.
+- Provider tokens and initial passwords do not appear in logs or persistent application data.
+- Supabase security advisors show no unresolved application-owned warnings.
+
+Guardrails:
+
+- Service-role access is never treated as authorization by itself.
+- Do not use editable user metadata for role decisions.
+
+### Phase 7 — Submission evidence and freeze
+
+What to implement:
+
+- Update README and the evidence pack with exact live/simulated labels and environment requirements.
+- Add a complete seed script for business, auth users, memberships, onboarding, linked funding, opening ledger, cards, and employee/card delegation.
+- Add a cut list that explicitly excludes the agent surface for this release.
+- Capture provider dashboard screenshots, webhook delivery IDs, request IDs, and representative ledger/payment/reconciliation rows.
+- Run the five-minute reviewer rehearsal against the deployed URL.
+
+Verification:
+
+- A fresh reviewer can seed, log in, fund, settle, send, approve, return, reconcile, and inspect statements without undocumented manual database changes.
+- The evidence pack proves each live adapter and labels every simulator honestly.
+- Final branch is clean except intentionally ignored local files and is pushed to `main` in small phase commits.
+
+### Commit slices
+
+Keep commits small and reviewable:
+
+1. Increase event normalization and outbound settlement/return.
+2. Plaid/inbound funding schema, settlement, and balance fixes.
+3. Maker-checker role and approval hardening.
+4. Reconciliation file ingestion and breaks.
+5. Card sync, scoping, and transaction model.
+6. Auth/RLS/security hardening.
+7. Seed, README, evidence pack, and final verification.
 
 ## Objective
 
