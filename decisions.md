@@ -255,6 +255,15 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: The onboarding and funding screens have no primary navigation while incomplete; the user completes the required step or signs out through the direct account flow.
 - Consequence: Server-side route enforcement remains authoritative; the client only controls whether the completed-app navigation is shown.
 
+### D-027 — Keep setup routes out of the completed navigation
+
+- Timestamp: 2026-08-25T18:45:00Z
+- Status: accepted
+- Decision: Keep `/onboarding` and `/funding` available as gated setup routes, but do not show them in the primary navigation after setup is complete. The account page is the canonical place to review KYC and funding status.
+- Positive: The completed product navigation stays focused on daily banking tasks, while setup information has one home.
+- Trade-off: A user must use the account page for status details; the setup routes are not normal product destinations after completion.
+- Consequence: The server gate still redirects users to the setup routes when prerequisites are missing, so removing them from the nav does not remove the onboarding or Plaid flow.
+
 ### D-025 — Use the profile avatar as the account entry point
 
 - Timestamp: 2026-08-25T18:35:00Z
