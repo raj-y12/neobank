@@ -22,7 +22,14 @@ export type LedgerStatementRow = {
   referenceId: string | null;
   reversalOfReferenceId: string | null;
   amountCents: number;
+  availableBalanceImpactCents: number;
 };
+
+function accountNet(postings: StatementPosting[], accountCode: string) {
+  return postings
+    .filter((posting) => posting.accountCode === accountCode)
+    .reduce((amount, posting) => amount + posting.creditCents - posting.debitCents, 0);
+}
 
 export function projectStatement(entries: StatementJournalEntry[]): LedgerStatementRow[] {
   return [...entries]
@@ -34,8 +41,12 @@ export function projectStatement(entries: StatementJournalEntry[]): LedgerStatem
       bookingTimestamp: entry.bookingTimestamp,
       referenceId: entry.referenceId,
       reversalOfReferenceId: entry.reversalOfReferenceId,
-      amountCents: entry.postings
-        .filter((posting) => posting.accountCode === "CUSTOMER_AVAILABLE")
-        .reduce((amount, posting) => amount + posting.creditCents - posting.debitCents, 0),
+      // Clearing releases the old hold and posts the final merchant amount
+      // in one journal entry. Use the payable leg for the transaction amount,
+      // while retaining the customer-available leg as the balance movement.
+      amountCents: entry.entryType === "CARD_CLEARING"
+        ? -accountNet(entry.postings, "CARD_SETTLEMENT_PAYABLE")
+        : accountNet(entry.postings, "CUSTOMER_AVAILABLE"),
+      availableBalanceImpactCents: accountNet(entry.postings, "CUSTOMER_AVAILABLE"),
     }));
 }
