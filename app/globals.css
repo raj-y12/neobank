@@ -106,7 +106,7 @@ h4 { margin-bottom: 8px; font-size: 16px; font-weight: 600; }
 .content-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-top: 14px; }
 .panel { padding: 24px; }
 .panel-heading { justify-content: space-between; gap: 16px; }
-.panel + .panel { margin-top: 14px; }
+.shell > .panel + .panel { margin-top: 14px; }
 
 /* ---- empty / list rows ---- */
 
