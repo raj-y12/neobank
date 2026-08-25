@@ -11,6 +11,8 @@ const TABS = [
 export function AppNav() {
   const pathname = usePathname();
 
+  if (pathname === "/login" || pathname.startsWith("/auth")) return null;
+
   return (
     <header className="topbar">
       <div className="brand-mark" aria-label="Corgi home">c</div>
