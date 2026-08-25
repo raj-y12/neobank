@@ -1,3 +1,5 @@
+import { CountUp } from "../components/CountUp";
+
 const breaks = [
   {
     kind: "In file, not ledger",
@@ -29,34 +31,33 @@ export default function ReconciliationPage() {
         <div>
           <p className="eyebrow">Nightly scheme file vs. ledger</p>
           <h2>Reconciliation breaks</h2>
-          <p className="intro-copy">
-            Every break is diffed automatically. Nothing here is fixed by
-            editing a row — a break resolves only when a matching entry
-            appears on both sides.
-          </p>
         </div>
         <button className="btn btn-outline">Run reconciliation now</button>
       </section>
 
-      <section className="metric-grid" aria-label="Reconciliation summary">
-        <article className="metric-card">
-          <p className="card-label">File lines</p>
-          <p className="metric-value">1,204</p>
-          <p className="card-detail">Aug 24 scheme file</p>
-        </article>
-        <article className="metric-card">
-          <p className="card-label">Matched</p>
-          <p className="metric-value">1,201</p>
-          <p className="card-detail">99.8% auto-matched</p>
-        </article>
-        <article className="metric-card">
-          <p className="card-label">Open breaks</p>
-          <p className="metric-value">3</p>
-          <p className="card-detail">Oldest: 3 days</p>
-        </article>
+      <section className="hero-card" aria-label="Match rate">
+        <p className="hero-eyebrow">Auto-matched</p>
+        <p className="hero-value">
+          <CountUp value={99.8} decimals={1} suffix="%" durationMs={700} />
+        </p>
+        <p className="hero-meta">1,201 of 1,204 lines in last night&apos;s scheme file</p>
+        <div className="hero-foot">
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Open breaks</p>
+            <p className="hero-foot-value tabular">3</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Oldest break</p>
+            <p className="hero-foot-value">3 days</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Source</p>
+            <p className="hero-foot-value">Processor SFTP</p>
+          </div>
+        </div>
       </section>
 
-      <section className="panel" style={{ marginTop: 14 }}>
+      <section className="panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Breaks</p>

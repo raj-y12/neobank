@@ -1,3 +1,5 @@
+import { CountUp } from "../components/CountUp";
+
 const events = [
   {
     label: "Authorization",
@@ -36,34 +38,33 @@ export default function CardsPage() {
         <div>
           <p className="eyebrow">Card ····4821 · Jordan R.</p>
           <h2>Fuel-pump authorization</h2>
-          <p className="intro-copy">
-            The full lifecycle for one card transaction, from authorization
-            hold through settlement and reversal — every step is an event,
-            never an edit.
-          </p>
         </div>
         <button className="btn btn-dark">Freeze card</button>
       </section>
 
-      <section className="metric-grid" aria-label="Hold and settlement amounts">
-        <article className="metric-card">
-          <p className="card-label">Authorized</p>
-          <p className="metric-value">$50.00</p>
-          <p className="card-detail">Original hold amount</p>
-        </article>
-        <article className="metric-card">
-          <p className="card-label">Settled</p>
-          <p className="metric-value">$73.40</p>
-          <p className="card-detail">Captured 2 days later</p>
-        </article>
-        <article className="metric-card">
-          <p className="card-label">Ledger effect</p>
-          <p className="metric-value">$0.00</p>
-          <p className="card-detail">Reversed the next day</p>
-        </article>
+      <section className="hero-card" aria-label="Settlement amount">
+        <p className="hero-eyebrow">Settled amount</p>
+        <p className="hero-value">
+          <CountUp value={73.4} prefix="$" />
+        </p>
+        <p className="hero-meta">Captured 2 days after a $50.00 authorization</p>
+        <div className="hero-foot">
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Authorized</p>
+            <p className="hero-foot-value tabular">$50.00</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Ledger effect</p>
+            <p className="hero-foot-value tabular">$0.00</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Hold releases</p>
+            <p className="hero-foot-value">Exactly once</p>
+          </div>
+        </div>
       </section>
 
-      <section className="panel" style={{ marginTop: 14 }}>
+      <section className="panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Event history</p>

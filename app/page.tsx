@@ -1,8 +1,4 @@
-const metrics = [
-  { label: "Ledger balance", value: "$24,680.00", detail: "USD account" },
-  { label: "Available balance", value: "$23,940.00", detail: "$740.00 held" },
-  { label: "Pending approvals", value: "2", detail: "Needs review" },
-];
+import { CountUp } from "./components/CountUp";
 
 export default function Home() {
   return (
@@ -11,21 +7,38 @@ export default function Home() {
         <div>
           <p className="eyebrow">Good morning, Raj</p>
           <h2>Keep the business moving.</h2>
-          <p className="intro-copy">
-            Your balances, cards, and payments in one clear operating view.
-          </p>
         </div>
         <button className="btn btn-primary">Send payment</button>
       </section>
 
-      <section className="metric-grid" aria-label="Account overview">
-        {metrics.map((metric) => (
-          <article className="metric-card" key={metric.label}>
-            <p className="card-label">{metric.label}</p>
-            <p className="metric-value">{metric.value}</p>
-            <p className="card-detail">{metric.detail}</p>
-          </article>
-        ))}
+      <section className="hero-card" aria-label="Available balance">
+        <p className="hero-eyebrow">Available balance</p>
+        <p className="hero-value">
+          <CountUp value={23940} prefix="$" />
+        </p>
+        <p className="hero-meta">$740.00 held across 1 active authorization</p>
+        <div className="hero-foot">
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Ledger balance</p>
+            <p className="hero-foot-value tabular">
+              <CountUp value={24680} prefix="$" durationMs={700} />
+            </p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Pending approvals</p>
+            <p className="hero-foot-value tabular">2</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Account</p>
+            <p className="hero-foot-value">USD · Operating</p>
+          </div>
+        </div>
+        <div className="quick-actions">
+          <span className="quick-action">↑ Send</span>
+          <span className="quick-action">↓ Add money</span>
+          <span className="quick-action">＋ New card</span>
+          <span className="quick-action">≡ Statement</span>
+        </div>
       </section>
 
       <section className="content-grid">

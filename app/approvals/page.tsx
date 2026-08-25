@@ -1,3 +1,5 @@
+import { CountUp } from "../components/CountUp";
+
 const queue = [
   {
     name: "Northstar Supplies",
@@ -29,13 +31,30 @@ export default function ApprovalsPage() {
         <div>
           <p className="eyebrow">Maker-checker</p>
           <h2>Approval queue</h2>
-          <p className="intro-copy">
-            Payments above the threshold need a second human. The initiator
-            can never approve their own payment — and neither can the agent
-            surface.
-          </p>
         </div>
         <span className="pill pill-orange">Threshold $1,000.00</span>
+      </section>
+
+      <section className="hero-card" aria-label="Amount awaiting approval">
+        <p className="hero-eyebrow">Awaiting approval</p>
+        <p className="hero-value">
+          <CountUp value={4040} prefix="$" />
+        </p>
+        <p className="hero-meta">Across 2 payments · a different human must approve each</p>
+        <div className="hero-foot">
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Pending</p>
+            <p className="hero-foot-value tabular">2</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Rejected today</p>
+            <p className="hero-foot-value tabular">1</p>
+          </div>
+          <div className="hero-foot-item">
+            <p className="hero-foot-label">Self-approval attempts</p>
+            <p className="hero-foot-value">Always blocked</p>
+          </div>
+        </div>
       </section>
 
       <section className="panel">
