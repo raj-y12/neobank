@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server";
+import { contextFromHeaders } from "@/src/auth/authorization";
+import { approvePayment } from "@/src/domain/payment-lifecycle";
+import { getPaymentRail } from "@/src/integrations/simulated-ach";
+import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
+import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const context = contextFromHeaders(request.headers);
+    const { id } = await params;
+    const repository = createSupabasePaymentRepository();
+    if (!await repository.memberBelongsToBusiness(context.memberId, context.businessId)) throw new Error("Approver is not a member of this business");
+    const existing = await repository.get(id, context.businessId);
+    if (!existing) throw new Error("Payment not found in business scope");
+    const payment = approvePayment(existing, context.memberId);
+    const balances = await createSupabaseLedgerRepository().getBalances({ businessId: context.businessId, accountId: context.accountId });
+    if (balances.availableBalanceCents < payment.amountCents) throw new Error("Insufficient available funds");
+    await repository.addApproval(id, context.memberId, "APPROVED");
+    const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
+    await repository.setStatus(id, context.businessId, "SUBMITTED");
+    return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to approve payment" }, { status: 400 });
+  }
+}
