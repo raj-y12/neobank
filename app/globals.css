@@ -168,9 +168,9 @@ h4 { margin-bottom: 8px; font-size: 16px; font-weight: 600; }
 .empty-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 18px; border-radius: 50%; background: var(--orange-soft); color: var(--orange-dark); font-size: 22px; }
 .empty-state p { max-width: 340px; margin-bottom: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
 
-.list-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); transition: padding-left .2s var(--ease-spring); }
+.list-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); transition: transform .2s var(--ease-spring); }
 .list-row:last-child { border-bottom: 0; }
-.list-row:hover { padding-left: 4px; }
+.list-row:hover { transform: translateX(4px); }
 .list-icon { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; font-weight: 600; }
 .list-icon.is-blue { background: var(--blue-soft); color: var(--blue); }
 .list-icon.is-orange { background: var(--orange-soft); color: var(--orange-dark); }
