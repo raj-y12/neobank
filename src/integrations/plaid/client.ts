@@ -4,13 +4,15 @@ const PLAID_BASE_URLS: Record<string, string> = {
   production: "https://production.plaid.com",
 };
 
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+
 type PlaidResponse = { request_id?: string; link_token?: string; access_token?: string; item_id?: string; item?: { institution_id?: string | null; institution_name?: string | null } };
 
 function plaidBaseUrl() {
   return PLAID_BASE_URLS[process.env.PLAID_ENV ?? "sandbox"] ?? PLAID_BASE_URLS.sandbox;
 }
 
-async function plaidFetch<T extends PlaidResponse>(path: string, body: Record<string, unknown>): Promise<T> {
+async function plaidFetch<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const clientId = process.env.PLAID_CLIENT_ID;
   const secret = process.env.PLAID_SECRET;
   if (!clientId || !secret) throw new Error("PLAID_CLIENT_ID and PLAID_SECRET are required");
@@ -41,4 +43,33 @@ export async function exchangePlaidPublicToken(publicToken: string) {
 
 export async function getPlaidItem(accessToken: string) {
   return plaidFetch<{ item: { item_id: string; institution_id?: string | null; institution_name?: string | null }; request_id: string }>("/item/get", { access_token: accessToken });
+}
+
+function encryptionKey() {
+  const secret = process.env.PLAID_TOKEN_ENCRYPTION_KEY;
+  if (!secret) throw new Error("PLAID_TOKEN_ENCRYPTION_KEY is not configured");
+  return createHash("sha256").update(secret).digest();
+}
+
+export function encryptPlaidAccessToken(value: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${ciphertext.toString("base64url")}`;
+}
+
+export function decryptPlaidAccessToken(value: string) {
+  if (value.startsWith("SIMULATED:")) return Buffer.from(value.slice("SIMULATED:".length), "base64url").toString("utf8");
+  const [ivEncoded, tagEncoded, ciphertextEncoded] = value.split(".");
+  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivEncoded, "base64url"));
+  decipher.setAuthTag(Buffer.from(tagEncoded, "base64url"));
+  return Buffer.concat([decipher.update(Buffer.from(ciphertextEncoded, "base64url")), decipher.final()]).toString("utf8");
+}
+
+export async function getPlaidAuthNumbers(accessToken: string) {
+  const response = await plaidFetch<{ accounts: Array<{ account_id: string; name?: string; mask?: string }>; numbers: { ach: Array<{ account_id: string; account: string; routing: string }> } }>("/auth/get", { access_token: accessToken });
+  const number = response.numbers.ach[0];
+  if (!number) throw new Error("Plaid did not return an ACH account");
+  const account = response.accounts.find((candidate) => candidate.account_id === number.account_id);
+  return { accountNumber: number.account, routingNumber: number.routing, accountName: account?.name, accountMask: account?.mask };
 }

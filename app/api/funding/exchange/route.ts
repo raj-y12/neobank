@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isBusinessApproved } from "@/src/domain/onboarding";
-import { exchangePlaidPublicToken, getPlaidItem } from "@/src/integrations/plaid/client";
+import { exchangePlaidPublicToken, getPlaidAuthNumbers, getPlaidItem } from "@/src/integrations/plaid/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-onboarding-repository";
 import { createSupabaseFundingAccountRepository } from "@/src/repositories/supabase-funding-account-repository";
@@ -14,10 +14,13 @@ export async function POST(request: Request) {
     if (!isBusinessApproved(onboarding)) return NextResponse.json({ error: "Business verification must be approved before linking a bank" }, { status: 403 });
     const exchanged = await exchangePlaidPublicToken(body.publicToken);
     const item = await getPlaidItem(exchanged.access_token);
+    const numbers = await getPlaidAuthNumbers(exchanged.access_token);
     const account = await createSupabaseFundingAccountRepository().save({
       ...scope,
       providerItemId: exchanged.item_id,
       providerAccessToken: exchanged.access_token,
+      accountNumber: numbers.accountNumber,
+      routingNumber: numbers.routingNumber,
       institutionId: item.item.institution_id,
       institutionName: item.item.institution_name,
       accountName: body.accountName,

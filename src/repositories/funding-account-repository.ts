@@ -24,5 +24,7 @@ export interface FundingAccountRepository {
     institutionName?: string | null;
     accountName?: string | null;
     accountMask?: string | null;
+    accountNumber?: string | null;
+    routingNumber?: string | null;
   }): Promise<LinkedFundingAccount>;
 }

@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { FundingAccountRepository, LinkedFundingAccount } from "./funding-account-repository";
+import { decryptPlaidAccessToken, encryptPlaidAccessToken } from "../integrations/plaid/client";
 
 type FundingRow = {
   id: string; business_id: string; account_id: string; provider: string; provider_item_id: string;
@@ -21,11 +22,20 @@ export class SupabaseFundingAccountRepository implements FundingAccountRepositor
   async save(input: Parameters<FundingAccountRepository["save"]>[0]) {
     const { data, error } = await this.client.from("linked_funding_accounts").upsert({
       business_id: input.businessId, account_id: input.accountId, provider: "PLAID", provider_item_id: input.providerItemId,
-      provider_access_token: input.providerAccessToken, institution_id: input.institutionId ?? null, institution_name: input.institutionName ?? null,
+      provider_access_token: encryptPlaidAccessToken(input.providerAccessToken), institution_id: input.institutionId ?? null, institution_name: input.institutionName ?? null,
       account_name: input.accountName ?? null, account_mask: input.accountMask ?? null, status: "LINKED", updated_at: new Date().toISOString(),
+      encrypted_account_number: input.accountNumber ? encryptPlaidAccessToken(input.accountNumber) : null,
+      encrypted_routing_number: input.routingNumber ? encryptPlaidAccessToken(input.routingNumber) : null,
     }, { onConflict: "business_id" }).select(columns).single<FundingRow>();
     if (error) throw error;
     return toAccount(data);
+  }
+
+  async getAchSource(businessId: string) {
+    const { data, error } = await this.client.from("linked_funding_accounts").select("encrypted_account_number,encrypted_routing_number").eq("business_id", businessId).single<{ encrypted_account_number: string | null; encrypted_routing_number: string | null }>();
+    if (error) throw error;
+    if (!data.encrypted_account_number || !data.encrypted_routing_number) throw new Error("Linked bank has no ACH account details");
+    return { accountNumber: decryptPlaidAccessToken(data.encrypted_account_number), routingNumber: decryptPlaidAccessToken(data.encrypted_routing_number) };
   }
 }
 

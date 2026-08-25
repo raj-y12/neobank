@@ -11,7 +11,7 @@ export class SupabaseFundingRepository {
   }
 
   async getSourceDetails(id: string, businessId: string) {
-    const { data, error } = await this.client.from("linked_funding_accounts").select("encrypted_access_token,encrypted_account_number,encrypted_routing_number").eq("id", id).eq("business_id", businessId).single();
+    const { data, error } = await this.client.from("linked_funding_accounts").select("encrypted_account_number,encrypted_routing_number").eq("id", id).eq("business_id", businessId).single();
     if (error) throw error;
     if (!data.encrypted_account_number || !data.encrypted_routing_number) throw new Error("Linked bank has not completed ACH account verification");
     return { accountNumber: decryptPlaidAccessToken(data.encrypted_account_number), routingNumber: decryptPlaidAccessToken(data.encrypted_routing_number) };
