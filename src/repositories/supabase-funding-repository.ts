@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { FundingTransfer } from "../domain/payment-lifecycle";
-import { decryptPlaidAccessToken } from "../integrations/plaid/client";
+import { decryptPlaidAccessToken, encryptPlaidAccessToken, getPlaidAuthNumbers } from "../integrations/plaid/client";
 
 export class SupabaseFundingRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -11,9 +11,14 @@ export class SupabaseFundingRepository {
   }
 
   async getSourceDetails(id: string, businessId: string) {
-    const { data, error } = await this.client.from("linked_funding_accounts").select("encrypted_account_number,encrypted_routing_number").eq("id", id).eq("business_id", businessId).single();
+    const { data, error } = await this.client.from("linked_funding_accounts").select("id,provider_access_token,encrypted_account_number,encrypted_routing_number").eq("id", id).eq("business_id", businessId).single<{ id: string; provider_access_token: string; encrypted_account_number: string | null; encrypted_routing_number: string | null }>();
     if (error) throw error;
-    if (!data.encrypted_account_number || !data.encrypted_routing_number) throw new Error("Linked bank has not completed ACH account verification");
+    if (!data.encrypted_account_number || !data.encrypted_routing_number) {
+      const numbers = await getPlaidAuthNumbers(decryptPlaidAccessToken(data.provider_access_token));
+      const { error: updateError } = await this.client.from("linked_funding_accounts").update({ encrypted_account_number: encryptPlaidAccessToken(numbers.accountNumber), encrypted_routing_number: encryptPlaidAccessToken(numbers.routingNumber), account_name: numbers.accountName ?? null, account_mask: numbers.accountMask ?? null, updated_at: new Date().toISOString() }).eq("id", data.id);
+      if (updateError) throw updateError;
+      return numbers;
+    }
     return { accountNumber: decryptPlaidAccessToken(data.encrypted_account_number), routingNumber: decryptPlaidAccessToken(data.encrypted_routing_number) };
   }
 }
