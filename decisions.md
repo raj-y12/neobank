@@ -164,6 +164,15 @@ This is a timestamped, append-only log of decisions, assumptions, questions, and
 - Trade-off: A manually-created or externally-created Lithic return cannot be safely auto-linked. It must be parked as `UNMATCHED_RETURN` or explicitly matched by an authorized operator.
 - Consequence: The UI and ledger use our internal `reverses_transaction_id`; Lithic tokens and event IDs remain audit references. Out-of-order delivery is handled by storing the provider token and resolving the pending intent when the webhook arrives.
 
+### D-017 — Customer funds remain owned by the team while holds reduce availability
+
+- Timestamp: 2026-08-25
+- Status: accepted
+- Decision: The business team owns the funds economically. A card authorization does not reduce the total customer ledger balance; it reserves money by moving it from the team's available-funds bucket into its card-holds bucket.
+- Positive: Ledger balance remains a complete view of the team's money, while available balance accurately reflects what can be spent immediately.
+- Trade-off: Available balance must be derived from settled postings and active holds. It must not be stored as an independently editable balance.
+- Consequence: A `$1,000` ledger balance with a `$50` active hold has `$950` available. Clearing releases the hold and posts the final settled amount; expiry or authorization reversal releases the hold without posting a settlement.
+
 ## Open decisions
 
 The following are intentionally unresolved and should be decided with evidence during implementation:
