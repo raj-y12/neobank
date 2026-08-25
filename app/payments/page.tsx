@@ -1,0 +1,3 @@
+export default function PaymentsPage() {
+  return <main className="panel page-panel"><p className="eyebrow">Payments · ACH</p><h1>Send money</h1><p className="muted">Payments above $1,000 require a second business member. The initiator cannot approve their own payment.</p><div className="status-card"><div><strong>Northstar Supplies</strong><p className="list-meta">$1,240.00 · PENDING_APPROVAL · initiated by Raj</p></div><span className="chip chip-orange">Needs approval</span></div><div className="status-card"><div><strong>Provider mode</strong><p className="list-meta">Column-compatible adapter</p></div><span className="chip chip-orange">SIMULATED</span></div></main>;
+}

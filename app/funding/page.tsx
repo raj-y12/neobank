@@ -1,0 +1,3 @@
+export default function FundingPage() {
+  return <main className="panel page-panel"><p className="eyebrow">Fund account · Plaid + ACH</p><h1>Add money</h1><p className="muted">Linking identifies your external bank. A separate ACH transfer settles later and only then increases the ledger balance.</p><div className="status-card"><strong>Chase checking ···· 4821</strong><span className="chip chip-orange">PLAID SIMULATED</span></div><div className="form-row"><label>Amount in cents<input defaultValue="50000" inputMode="numeric" /></label><button className="btn btn-primary">Create pending transfer</button></div><p className="list-meta">Rail: ACH · settlement: pending · available balance impact: $0.00 until settled</p></main>;
+}
