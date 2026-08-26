@@ -186,11 +186,25 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Why: Employees need to use their assigned card and understand what happened to their own payment requests without gaining access to company-wide financial data or administrative controls. Navigation hiding improves clarity, while matching page, API, and query authorization prevents direct-route access and cross-member data leakage.
 - UI result: `/approvals` remains the admin approval queue but becomes **My requests** for members. The member overview and account surfaces contain personal data only; admin-only navigation items are omitted.
 
+### D-028 — Replace the REST-only agent surface with a real MCP server and a versioned public API
+
+- Date: 2026-08-26
+- Decision: Ship a proper MCP server (`src/mcp/`, mounted at `/api/mcp`, Streamable HTTP transport) with six tools (`get_account_summary`, `list_cards`, `get_card`, `get_payment`, `create_payment`, `list_reconciliation_breaks`), authenticated the same way as everything else — a Supabase user access token, never the service-role key. Alongside it, add a versioned public REST API at `/api/v1/*` with Scalar docs at `/docs` and an OpenAPI contract at `/api/v1/openapi.json`.
+- Why: The original agent surface (`app/api/agent/*`) was four bespoke REST routes that satisfied the letter of "an agent surface, implemented" but not really the MCP protocol the brief asks for. An agent connecting through a standard MCP client should be able to list tools and call them the same way it would against any other MCP server, not hit hand-rolled endpoints with agent-specific auth conventions.
+- `create_payment` stays two-step by design: an unconfirmed call returns a preview and `requiresConfirmation: true`; only a second call with the identical idempotency key and `confirmed: true` creates the payment, which still lands in the normal maker-checker approval queue. Nothing about the MCP transport bypasses approval — it is a thinner client on top of the same domain functions.
+- Card tools never return PAN/CVV/expiry/PIN; sensitive fields stay behind the authenticated web card-detail flow where Lithic's own secure embed renders them.
+
+### D-029 — Remove the old `app/api/agent/*` routes
+
+- Date: 2026-08-26
+- Decision: Delete `app/api/agent/account-summary`, `payment-status`, and `submit-payment` outright — nothing referenced them once the MCP server and public API shipped. `reconciliation-breaks` was different: the Reconciliation page's own UI called it directly (cookie-session auth, not agent-specific), so it was moved rather than deleted, to `app/api/reconciliation/breaks` (GET), matching the `/api/v1/reconciliation/breaks` naming used elsewhere. `ReconciliationClient.tsx` was updated to call the new path.
+- Why: Leaving `app/api/agent/*` in place after the MCP server shipped would have meant two undocumented, redundant "agent" surfaces sitting in the repo with no README mention of either — exactly the kind of code a reviewer points at and asks "what is this and why does it still exist."
+
 ## Current open items
 
 - Enable Supabase leaked-password protection.
 - Add forced employee password change and password reset.
-- Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
+- Capture a Plaid Link-success screenshot and a provider webhook-delivery ID (not just an event ID) for the submission evidence pack — Increase, Persona, and Lithic screenshots are already captured in `docs/evidence/` and linked from the README and `docs/integration-evidence.md`.
 - Confirm the external cron jobs are configured in the deployed environment for Lithic recovery and standing-order execution.
 - Replace the owner KYC fallback with full business and director KYB when Persona makes that provider capability available.
 - Keep USDC, wires, batch payments, and native mobile out of this release.

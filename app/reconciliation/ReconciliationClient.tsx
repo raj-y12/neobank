@@ -15,7 +15,7 @@ export default function ReconciliationPage() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch("/api/agent/reconciliation-breaks", { cache: "no-store" });
+      const response = await fetch("/api/reconciliation/breaks", { cache: "no-store" });
       const body = await response.json();
       setBreaks(body.breaks ?? []);
       if (response.ok) setMessage(`${body.breaks?.length ?? 0} break(s) loaded`);
