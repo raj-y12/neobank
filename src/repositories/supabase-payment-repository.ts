@@ -9,12 +9,12 @@ type PaymentRow = {
   amount_cents: number;
   currency: "USD";
   rail: "ACH";
-  recipient: string | { name?: string };
+  recipient: string | { name?: string; accountNumber?: string; routingNumber?: string };
   status: Payment["status"];
 };
 
 function toPayment(data: PaymentRow): Payment {
-  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", status: data.status };
+  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", recipientBank: typeof data.recipient === "string" || !data.recipient.accountNumber || !data.recipient.routingNumber ? undefined : { accountNumber: data.recipient.accountNumber, routingNumber: data.recipient.routingNumber }, status: data.status };
 }
 
 export class SupabasePaymentRepository {
@@ -32,7 +32,7 @@ export class SupabasePaymentRepository {
       amount_cents: payment.amountCents,
       currency: payment.currency,
       rail: payment.rail,
-      recipient: { name: payment.recipient },
+      recipient: { name: payment.recipient, ...payment.recipientBank },
       status: payment.status,
       idempotency_key: idempotencyKey,
     });

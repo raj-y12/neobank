@@ -132,3 +132,9 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Date: 2026-08-26
 - Decision: A standing-order occurrence is keyed by `standing_order_id:scheduled_date`; insufficient funds are recorded as an explicit skipped outcome, with retry policy stored on the order.
 - Why: A scheduler may retry after a timeout or run on more than one instance. The unique occurrence key prevents duplicate payments, while an explicit outcome preserves an auditable decision instead of silently dropping a run.
+
+### D-019 — Collect ACH beneficiary details and convert dollars at the API boundary
+
+- Date: 2026-08-26
+- Decision: The send-money form collects recipient name, account number, routing number, and a dollar amount. The API validates the banking identifiers and converts the dollar string to integer cents before creating the payment or calling the rail.
+- Why: Users think in dollars, while ledger and provider amounts must be exact integer cents. Keeping conversion server-side prevents client rounding or unit mismatches; storing beneficiary details with the payment keeps retries deterministic.

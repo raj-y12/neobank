@@ -19,6 +19,7 @@ export type Payment = {
   currency: "USD";
   rail: "ACH";
   recipient: string;
+  recipientBank?: { accountNumber: string; routingNumber: string };
   status: PaymentStatus;
 };
 
@@ -69,6 +70,7 @@ export function createPayment(input: PaymentInput): Payment {
     currency: input.currency,
     rail: input.rail,
     recipient: input.recipient,
+    recipientBank: input.recipientBank,
     id: crypto.randomUUID(),
     status: input.approvalMode === "HUMAN" || input.amountCents > APPROVAL_THRESHOLD_CENTS ? "PENDING_APPROVAL" : "APPROVED",
   };

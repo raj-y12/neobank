@@ -4,10 +4,12 @@ import { useState } from "react";
 
 export default function PaymentsPage() {
   const [recipient, setRecipient] = useState("Northstar Supplies");
-  const [amount, setAmount] = useState("124000");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [routingNumber, setRoutingNumber] = useState("");
+  const [amount, setAmount] = useState("1240.00");
   const [message, setMessage] = useState("No payment created yet.");
   async function createPayment() {
-    const response = await fetch("/api/payments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recipient, amountCents: Number(amount), idempotencyKey: `payment-${crypto.randomUUID()}` }) });
+    const response = await fetch("/api/payments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recipient, accountNumber, routingNumber, amountDollars: amount, idempotencyKey: `payment-${crypto.randomUUID()}` }) });
     const body = await response.json();
     setMessage(response.ok ? `${body.payment.status}: ${body.approvalRequired ? "waiting for a second human" : "submitted"}` : body.error);
   }
@@ -24,7 +26,9 @@ export default function PaymentsPage() {
         <h3>Payment details</h3>
         <div className="form-row">
           <label>Recipient<input className="input" value={recipient} onChange={(event) => setRecipient(event.target.value)} /></label>
-          <label>Amount in cents<input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="numeric" /></label>
+          <label>Amount in dollars<input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></label>
+          <label>Account number<input className="input" value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+          <label>Routing number<input className="input" value={routingNumber} onChange={(event) => setRoutingNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
           <button className="btn btn-primary" onClick={createPayment}>Send payment</button>
         </div>
         <p className="list-meta" role="status">{message}</p>

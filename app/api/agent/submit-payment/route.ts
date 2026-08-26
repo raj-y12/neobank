@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { createPayment } from "@/src/domain/payment-lifecycle";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
+import { dollarsToCents } from "@/src/domain/money";
 
 export async function POST(request: Request) {
   try {
     const context = await getAuthenticatedScope();
-    const body = await request.json() as { amountCents?: number; recipient?: string; idempotencyKey?: string };
-    if (!body.amountCents || !body.recipient || !body.idempotencyKey) throw new Error("amountCents, recipient, and idempotencyKey are required");
-    const payment = createPayment({ businessId: context.businessId, accountId: context.accountId, initiatorId: context.memberId, amountCents: body.amountCents, currency: "USD", rail: "ACH", recipient: body.recipient, approvalMode: "HUMAN" });
+    const body = await request.json() as { amountDollars?: string; recipient?: string; accountNumber?: string; routingNumber?: string; idempotencyKey?: string };
+    if (!body.amountDollars || !body.recipient || !body.accountNumber || !body.routingNumber || !body.idempotencyKey) throw new Error("amountDollars, recipient, accountNumber, routingNumber, and idempotencyKey are required");
+    if (!/^\d{4,17}$/.test(body.accountNumber) || !/^\d{9}$/.test(body.routingNumber)) throw new Error("Invalid ACH account or routing number");
+    const payment = createPayment({ businessId: context.businessId, accountId: context.accountId, initiatorId: context.memberId, amountCents: dollarsToCents(body.amountDollars), currency: "USD", rail: "ACH", recipient: body.recipient, recipientBank: { accountNumber: body.accountNumber, routingNumber: body.routingNumber }, approvalMode: "HUMAN" });
     const repository = createSupabasePaymentRepository();
     const persisted = await repository.create(payment, body.idempotencyKey);
     try {
