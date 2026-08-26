@@ -5,8 +5,9 @@ import { createPortal } from "react-dom";
 import { IconClose } from "../components/Icon";
 import type { MembershipRole } from "@/src/domain/auth";
 import { paymentStatusLabel } from "@/src/domain/payment-request-view";
+import { formatEmployeeName } from "@/src/domain/team";
 
-type Approval = { id: string; amount_cents: number; recipient: { name?: string } | string; initiator_member_id: string; status: string };
+type Approval = { id: string; amount_cents: number; recipient: { name?: string } | string; initiator_member_id: string; status: string; standingOrder: { scheduled_date: string } | null; initiator: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null };
 type RequestView = { id: string; amountCents: number; recipient: string; status: Parameters<typeof paymentStatusLabel>[0]; createdAt: string };
 
 export default function ApprovalsClient({ role }: { role: MembershipRole }) {
@@ -59,8 +60,8 @@ export default function ApprovalsClient({ role }: { role: MembershipRole }) {
                 return (
                   <tr key={approval.id}>
                     <td><span className="table-avatar">{(name ?? "?").slice(0, 1).toUpperCase()}</span>{name}</td>
-                    <td>{approval.initiator_member_id}</td>
-                    <td><span className={`table-status status-${approval.status.toLowerCase()}`}>{approval.status}</span></td>
+                    <td>{approval.initiator ? formatEmployeeName({ id: approval.initiator.id, firstName: approval.initiator.first_name, lastName: approval.initiator.last_name, email: approval.initiator.email }) : approval.initiator_member_id}</td>
+                    <td><span className={`table-status status-${approval.status.toLowerCase()}`}>{approval.status}</span>{approval.standingOrder && <span className="chip chip-neutral table-chip">Standing order · {approval.standingOrder.scheduled_date}</span>}</td>
                     <td className="tabular">${(approval.amount_cents / 100).toFixed(2)}</td>
                     <td><div className="form-row"><button className="btn btn-outline" onClick={() => approve(approval.id)}>Approve</button><button className="btn btn-ghost" onClick={() => reject(approval.id)}>Reject</button></div></td>
                   </tr>

@@ -16,7 +16,29 @@ export async function GET() {
     const client = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data, error } = await client.from("payments").select("id,amount_cents,recipient,status,initiator_member_id,created_at").eq("business_id", context.businessId).eq("status", "PENDING_APPROVAL").order("created_at", { ascending: true });
     if (error) throw error;
-    return NextResponse.json({ businessId: context.businessId, approvals: data ?? [] });
+    const paymentRows = data ?? [];
+    const paymentIds = paymentRows.map((payment) => payment.id as string);
+    const initiatorIds = [...new Set(paymentRows.map((payment) => payment.initiator_member_id as string))];
+    const [{ data: occurrences, error: occurrenceError }, { data: initiators, error: initiatorError }] = await Promise.all([
+      paymentIds.length
+        ? client.from("standing_order_occurrences").select("payment_id,standing_order_id,scheduled_date").in("payment_id", paymentIds)
+        : Promise.resolve({ data: [], error: null }),
+      initiatorIds.length
+        ? client.from("business_members").select("id,first_name,last_name,email").in("id", initiatorIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (occurrenceError) throw occurrenceError;
+    if (initiatorError) throw initiatorError;
+    const occurrenceByPayment = new Map((occurrences ?? []).map((occurrence) => [occurrence.payment_id, occurrence]));
+    const initiatorById = new Map((initiators ?? []).map((initiator) => [initiator.id, initiator]));
+    return NextResponse.json({
+      businessId: context.businessId,
+      approvals: paymentRows.map((payment) => ({
+        ...payment,
+        standingOrder: occurrenceByPayment.get(payment.id) ?? null,
+        initiator: initiatorById.get(payment.initiator_member_id) ?? null,
+      })),
+    });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load approvals" }, { status: 400 });
   }
