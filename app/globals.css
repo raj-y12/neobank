@@ -388,7 +388,7 @@ h4 { margin-bottom: var(--space-3); font-size: var(--text-sm); font-weight: 600;
 .status-dot { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--orange); }
 .status-dot.is-alert { background: var(--red); }
 .status-dot.is-ok { background: var(--green); }
-.action-stack { display: grid; justify-items: end; gap: var(--space-3); }
+.action-stack { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
 .form-error { max-width: 260px; margin: 0; color: var(--red); font-size: var(--text-2xs); text-align: right; }
 
 /* ---- form controls (for approvals / statement filters) ---- */

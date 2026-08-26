@@ -64,7 +64,7 @@ export default async function Home() {
           )}
 
           <div className="widget-card">
-            <h3>Operating account</h3>
+            <div className="panel-heading"><h3>Operating account</h3></div>
             <div className="list-row"><div className="list-icon is-navy"><IconDollar /></div><div><p className="list-title">Ledger balance</p></div><span className="list-value">{formatUsdCents(balances.ledgerBalanceCents)}</span></div>
           </div>
         </aside>
