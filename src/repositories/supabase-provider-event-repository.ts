@@ -11,7 +11,8 @@ type ProviderEventRow = {
   provider_event_id: string;
   event_type: string;
   payload: unknown;
-  processing_version: number;
+  processing_version?: number;
+  received_at?: string;
 };
 
 export class SupabaseProviderEventRepository implements ProviderEventRepository {
@@ -34,20 +35,29 @@ export class SupabaseProviderEventRepository implements ProviderEventRepository 
   }
 
   async listForTransaction(provider: string, providerTransactionId: string): Promise<StoredProviderEvent[]> {
-    const { data, error } = await this.client
+    const load = (withVersion: boolean) => this.client
       .from("provider_events")
-      .select("provider,provider_event_id,event_type,payload,received_at,processing_version")
+      .select(withVersion ? "provider,provider_event_id,event_type,payload,received_at,processing_version" : "provider,provider_event_id,event_type,payload,received_at")
       .eq("provider", provider)
       .eq("payload->>token", providerTransactionId)
       .order("received_at", { ascending: true });
+    let { data, error } = await load(true);
+    let processingVersionFallback = false;
+    if (error?.code === "42703") {
+      const fallback = await load(false);
+      data = fallback.data;
+      error = fallback.error;
+      processingVersionFallback = true;
+    }
     if (error) throw error;
-    return (data ?? []).map((row) => ({
+    const rows = (data ?? []) as unknown as ProviderEventRow[];
+    return rows.map((row) => ({
       provider: row.provider,
       providerEventId: row.provider_event_id,
       eventType: row.event_type,
       payload: row.payload,
-      receivedAt: row.received_at,
-      processingVersion: row.processing_version,
+      receivedAt: row.received_at ?? new Date(0).toISOString(),
+      processingVersion: processingVersionFallback ? 2 : row.processing_version ?? 2,
     }));
   }
 
