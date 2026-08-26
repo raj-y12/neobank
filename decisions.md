@@ -144,3 +144,9 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Date: 2026-08-26
 - Decision: Increase credentials never select the live payment rail by themselves. Live money movement requires `PAYMENT_RAIL_MODE=LIVE`; all local and demo environments default to `SIMULATED`.
 - Why: Provider account balances and the product ledger are separate boundaries. Accidental credential discovery must not turn a UI test into a real transfer.
+
+### D-021 — Simulate funding lifecycle without provider credentials
+
+- Date: 2026-08-26
+- Decision: In `SIMULATED` mode, funding SETTLE/RETURN actions replay the internal payment-rail webhook path with a deterministic synthetic event ID. Increase simulation endpoints are reachable only in explicit `LIVE` mode.
+- Why: A demo must exercise the same ledger and idempotency behavior without touching the Increase sandbox or depending on provider credentials.
