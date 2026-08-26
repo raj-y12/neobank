@@ -32,7 +32,7 @@ export default async function CardDetailPage({ params }: { params: Promise<{ tok
   return (
     <div className="card-detail-column">
       <Link className="back-link" href="/cards"><IconChevronLeft /> Cards</Link>
-      <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} /></section>
+      <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} delegatedTo={assignment.employeeEmail} /></section>
       {scope.role === "ADMIN" && <CardDelegateForm cardToken={token} assignedMemberId={assignment.memberId} employees={employeesResult.data ?? []} />}
       <section className="panel panel-flat">
         <div className="panel-heading"><div><h3>Recent activity</h3></div><span className="chip chip-neutral">{recentTransactions.length}</span></div>

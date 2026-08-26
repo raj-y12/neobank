@@ -36,9 +36,10 @@ export async function listBusinessCardAssignments(businessId: string): Promise<B
 }
 
 export async function getBusinessCardAssignment(businessId: string, cardToken: string) {
-  const { data, error } = await createSupabaseAdminClient().from("business_cards").select("card_token,member_id,status").eq("business_id", businessId).eq("card_token", cardToken).maybeSingle<{ card_token: string; member_id: string | null; status: BusinessCardAssignment["status"] }>();
+  const { data, error } = await createSupabaseAdminClient().from("business_cards").select("card_token,member_id,status,business_members(email)").eq("business_id", businessId).eq("card_token", cardToken).maybeSingle<{ card_token: string; member_id: string | null; status: BusinessCardAssignment["status"]; business_members: { email: string | null } | { email: string | null }[] | null }>();
   if (error) throw error;
-  return data ? { cardToken: data.card_token, memberId: data.member_id, status: data.status, employeeEmail: null } : null;
+  const member = Array.isArray(data?.business_members) ? data.business_members[0] : data?.business_members;
+  return data ? { cardToken: data.card_token, memberId: data.member_id, status: data.status, employeeEmail: member?.email ?? null } : null;
 }
 
 export async function delegateBusinessCard(input: { businessId: string; cardToken: string; memberId: string }) {
