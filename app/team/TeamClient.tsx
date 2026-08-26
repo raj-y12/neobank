@@ -48,7 +48,7 @@ export function TeamClient() {
 
     <section className="panel">
       <div className="table-toolbar">
-        <div><h3>{employees.length} employee{employees.length === 1 ? "" : "s"}</h3></div>
+        <div className="panel-heading"><h3>Employees</h3><span className="chip chip-neutral">{employees.length}</span></div>
       </div>
       {loading ? <div className="skeleton-list" aria-label="Loading employees" aria-busy="true"><span /><span /><span /></div> : employees.length === 0 ? <div className="empty-state"><h4>No employees yet</h4><p>{loadError || "Add an employee above to get started."}</p></div> : (
         <table className="data-table">

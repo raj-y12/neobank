@@ -57,7 +57,7 @@ export default async function Home() {
             <div className="widget-card">
               <div className="panel-heading"><h3>Approvals</h3><span className="chip chip-orange">{pendingApprovals.length}</span></div>
               {pendingApprovals.length === 0 ? <p className="list-meta">Nothing waiting on your approval.</p> : pendingApprovals.slice(0, 3).map((approval) => (
-                <div className="list-row" key={approval.id}><div className="list-icon is-blue"><IconDollar /></div><div><p className="list-title">{approval.recipient}</p><p className="list-meta">ACH · {formatUsdCents(approval.amountCents)}</p></div><span className="status-dot" /></div>
+                <Link className="list-row" href="/approvals" key={approval.id} aria-label={`Review approval for ${approval.recipient}`}><div className="list-icon is-blue"><IconDollar /></div><div><p className="list-title">{approval.recipient}</p><p className="list-meta">ACH · {formatUsdCents(approval.amountCents)}</p></div><span className="status-dot" /></Link>
               ))}
               <Link className="btn btn-outline btn-block" href="/approvals">Open approval queue</Link>
             </div>

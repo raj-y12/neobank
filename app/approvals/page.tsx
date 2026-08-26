@@ -45,7 +45,7 @@ export default function ApprovalsPage() {
 
       <section className="panel">
         <div className="table-toolbar">
-          <div><h3>{approvals.length} waiting</h3></div>
+          <div className="panel-heading"><h3>Waiting for approval</h3><span className="chip chip-orange">{approvals.length}</span></div>
         </div>
         {loading ? <div className="skeleton-list" aria-label="Loading approvals" aria-busy="true"><span /><span /><span /></div> : approvals.length === 0 ? <div className="empty-state"><h4>No pending approvals</h4><p>{message}</p></div> : (
           <table className="data-table">
