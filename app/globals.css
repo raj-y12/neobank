@@ -557,6 +557,13 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .event-amounts small { color: var(--muted); font-size: 10px; }
 .event-amounts strong { color: var(--body-text); font-size: var(--text-2xs); font-weight: 500; font-variant-numeric: tabular-nums; }
 .modal-note { margin: var(--space-3) 0 var(--space-4); line-height: 1.5; }
+.payment-status-modal { height: auto; min-height: 360px; align-self: center; }
+.payment-status-track { display: grid; gap: var(--space-3); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-sm); }
+.payment-status-track span { position: relative; padding-left: 24px; }
+.payment-status-track span::before { content: ""; position: absolute; top: .35em; left: 0; width: 10px; height: 10px; border: 2px solid var(--line-strong); border-radius: 50%; }
+.payment-status-track .is-complete, .payment-status-track .is-current { color: var(--ink); }
+.payment-status-track .is-complete::before { border-color: var(--green); background: var(--green); }
+.payment-status-track .is-current::before { border-color: var(--orange); box-shadow: 0 0 0 4px var(--orange-soft); }
 .related-row { width: 100%; min-height: 56px; justify-content: space-between; gap: var(--space-4); border: 0; border-bottom: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); background: transparent; color: inherit; text-align: left; cursor: pointer; transition: background-color .2s var(--ease-standard); }
 .modal-section-title { color: var(--ink); font-size: var(--text-sm); font-weight: 600; }
 .event-title strong { font-size: var(--text-sm); font-weight: 600; }
