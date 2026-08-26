@@ -18,8 +18,22 @@ export async function POST(request: Request) {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) throw new Error("Supabase reconciliation storage is not configured");
     const client = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: file, error: fileError } = await client.from("reconciliation_files").upsert({ business_id: context.businessId, provider: "INCREASE", file_reference: reference }, { onConflict: "business_id,provider,file_reference" }).select("id").single();
-    if (fileError) throw fileError;
+    const { data: existingFile, error: existingFileError } = await client.from("reconciliation_files").select("id").eq("business_id", context.businessId).eq("provider", "INCREASE").eq("file_reference", reference).maybeSingle<{ id: string }>();
+    if (existingFileError) throw existingFileError;
+    let file = existingFile;
+    if (!file) {
+      const { data: createdFile, error: createFileError } = await client.from("reconciliation_files").insert({ business_id: context.businessId, provider: "INCREASE", file_reference: reference }).select("id").single<{ id: string }>();
+      if (createFileError) {
+        // Another reconciliation request may have created the same file after
+        // the lookup. Re-read the scoped row before surfacing the error.
+        if ((createFileError as { code?: string }).code !== "23505") throw createFileError;
+        const { data: racedFile, error: racedFileError } = await client.from("reconciliation_files").select("id").eq("business_id", context.businessId).eq("provider", "INCREASE").eq("file_reference", reference).maybeSingle<{ id: string }>();
+        if (racedFileError || !racedFile) throw racedFileError ?? new Error("Unable to create reconciliation file");
+        file = racedFile;
+      } else {
+        file = createdFile;
+      }
+    }
     const [{ data: fundingRows, error: fundingError }, { data: paymentRows, error: paymentError }] = await Promise.all([
       client.from("funding_transfers").select("id,provider_transfer_id,status").eq("business_id", context.businessId).eq("status", "SETTLED"),
       client.from("payments").select("id,provider_payment_id,status").eq("business_id", context.businessId).eq("status", "SETTLED"),

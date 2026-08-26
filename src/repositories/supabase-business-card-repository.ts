@@ -18,7 +18,10 @@ export async function syncBusinessCards(input: { businessId: string; cardTokens:
   const admin = createSupabaseAdminClient();
   const tokens = [...new Set(input.cardTokens)];
   if (tokens.length === 0) return 0;
-  const { data: existing, error: existingError } = await admin.from("business_cards").select("card_token").eq("business_id", input.businessId).in("card_token", tokens);
+  // Card tokens are globally unique in the database. A provider card may be
+  // visible to more than one business-level sync job, but it must only be
+  // owned by the business that already has the row.
+  const { data: existing, error: existingError } = await admin.from("business_cards").select("card_token").in("card_token", tokens);
   if (existingError) throw existingError;
   const existingTokens = new Set((existing ?? []).map((row) => row.card_token));
   const missing = tokens.filter((token) => !existingTokens.has(token));
