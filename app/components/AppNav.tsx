@@ -5,22 +5,18 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/browser";
 import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
+import { navigationForRole } from "@/src/domain/access-policy";
+import type { MembershipRole } from "@/src/domain/auth";
 import { BrandMark } from "./BrandMark";
 import { IconCheckCircle, IconDollar, IconHome, IconReceipt, IconUsers } from "./Icon";
 
-const TABS = [
-  { href: "/", label: "Overview", icon: <IconHome /> },
-  { href: "/cards", label: "Cards", icon: "card" as const },
-  { href: "/team", label: "Employees", icon: <IconUsers /> },
-  { href: "/payments", label: "Payments", icon: <IconDollar /> },
-  { href: "/approvals", label: "Approvals", icon: <IconCheckCircle /> },
-  { href: "/reconciliation", label: "Reconciliation", icon: <IconReceipt /> },
-];
+const ICONS = { "/": <IconHome />, "/cards": "card" as const, "/team": <IconUsers />, "/payments": <IconDollar />, "/approvals": <IconCheckCircle />, "/reconciliation": <IconReceipt /> };
 
 export function AppNav() {
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string | null>(null);
+  const [role, setRole] = useState<MembershipRole | null>(null);
   const isPublicPath = pathname === "/login" || pathname === "/onboarding";
   const [showNavigation, setShowNavigation] = useState(!isPublicPath);
 
@@ -38,8 +34,9 @@ export function AppNav() {
         return;
       }
       const statusResponse = await fetch("/api/navigation-status", { cache: "no-store" });
-      const status = statusResponse.ok ? await statusResponse.json() as { ownerName?: string | null } : null;
+      const status = statusResponse.ok ? await statusResponse.json() as { ownerName?: string | null; role?: MembershipRole } : null;
       setOwnerName(status?.ownerName ?? null);
+      setRole(status?.role ?? null);
       setShowNavigation(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: true, pathname }));
     };
     void loadStatus();
@@ -47,6 +44,7 @@ export function AppNav() {
       setEmail(session?.user.email ?? null);
       if (!session) {
         setOwnerName(null);
+        setRole(null);
         setShowNavigation(false);
       }
       else void loadStatus();
@@ -62,6 +60,7 @@ export function AppNav() {
   }, [isPublicPath, pathname]);
 
   if (!showNavigation) return null;
+  const tabs = role ? navigationForRole(role).map((tab) => ({ ...tab, icon: ICONS[tab.href as keyof typeof ICONS] })) : [];
 
   return (
     <header className="sidebar">
@@ -71,7 +70,7 @@ export function AppNav() {
       </Link>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.href}
             href={tab.href}

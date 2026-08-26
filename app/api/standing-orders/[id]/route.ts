@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
     const body = await request.json() as { status?: string; nextRunDate?: string; insufficientFundsPolicy?: string };
     const update: Record<string, string> = {};

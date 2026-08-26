@@ -6,6 +6,7 @@ import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
 export async function GET() {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin.from("business_members").select("id,first_name,last_name,email,role,status").eq("business_id", scope.businessId).order("created_at", { ascending: true });
     if (error) throw error;

@@ -12,8 +12,9 @@ export async function GET() {
     ]);
     return NextResponse.json({
       authenticated: true,
-      ownerName: onboarding?.ownerName ?? null,
+      ownerName: scope.role === "ADMIN" ? onboarding?.ownerName ?? null : null,
       businessName: onboarding?.businessName ?? null,
+      role: scope.role,
       onboardingApproved: onboarding?.businessStatus === "APPROVED" && onboarding.ownerStatus === "APPROVED",
       fundingLinked: Boolean(funding),
     });

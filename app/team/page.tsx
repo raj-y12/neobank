@@ -1,6 +1,10 @@
 import { TeamClient } from "./TeamClient";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { requirePageAccess } from "@/src/lib/page-authorization";
 
-export default function TeamPage() {
+export default async function TeamPage() {
+  const scope = await getAuthenticatedScope();
+  requirePageAccess(scope, "/team");
   return (
     <>
       <section className="intro">

@@ -7,6 +7,7 @@ import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-
 export async function POST() {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const onboarding = await createSupabaseOnboardingRepository().get(scope.businessId);
     if (!isBusinessApproved(onboarding)) return NextResponse.json({ error: "Business verification must be approved before linking a bank" }, { status: 403 });
     const response = await createPlaidLinkToken({ businessId: scope.businessId });

@@ -7,11 +7,17 @@ import { getLedgerActivity } from "@/src/repositories/supabase-ledger-statement-
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { IconArrowDown, IconArrowUp, IconDollar, IconReceipt } from "./components/Icon";
+import { listLithicCards } from "@/src/integrations/lithic/client";
+import { listBusinessCardAssignments } from "@/src/repositories/supabase-business-card-repository";
+import { filterVisibleCards } from "@/src/domain/card-access";
+import { CardTile } from "./cards/CardTile";
+import { paymentStatusLabel } from "@/src/domain/payment-request-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const scope = await getAuthenticatedScope();
+  if (scope.role === "MEMBER") return <MemberHome scope={scope} />;
   const ledger = createSupabaseLedgerRepository();
   const ledgerScope = { businessId: scope.businessId, accountId: scope.accountId };
   const [balances, activity, pendingApprovals] = await Promise.all([
@@ -72,4 +78,21 @@ export default async function Home() {
 
     </>
   );
+}
+
+async function MemberHome({ scope }: { scope: Awaited<ReturnType<typeof getAuthenticatedScope>> }) {
+  const [providerCards, assignments, requests] = await Promise.all([
+    listLithicCards(),
+    listBusinessCardAssignments(scope.businessId),
+    createSupabasePaymentRepository().listForMember(scope.businessId, scope.memberId),
+  ]);
+  const visibleAssignments = filterVisibleCards(assignments, { role: scope.role, currentMemberId: scope.memberId });
+  const assignmentByToken = new Map(visibleAssignments.map((assignment) => [assignment.cardToken, assignment]));
+  const cards = providerCards.filter((card) => assignmentByToken.has(card.token));
+  return <>
+    <section className="intro"><h2>Overview</h2><p className="intro-copy">Your cards and payment requests.</p></section>
+    <section className="section-panel"><div className="panel-heading"><div><p className="eyebrow">Your cards</p><h3>{cards.length} delegated card{cards.length === 1 ? "" : "s"}</h3></div><Link className="btn btn-outline" href="/cards">View cards</Link></div>{cards.length === 0 ? <div className="panel empty-state"><h4>No cards yet</h4><p>Your administrator will assign a card here.</p></div> : <div className="card-tile-grid">{cards.map((card) => { const assignment = visibleAssignments.find((item) => item.cardToken === card.token); return <CardTile key={card.token} card={card} href={`/cards/${card.token}`} delegatedTo={assignment?.employeeName} cardColor={assignment?.cardColor} />; })}</div>}</section>
+    <section className="panel"><div className="panel-heading"><div><p className="eyebrow">My requests</p><h3>Recent payment requests</h3></div><Link className="btn btn-outline" href="/approvals">View all</Link></div>{requests.length === 0 ? <div className="empty-state"><h4>No requests yet</h4><p>Payments you send will appear here.</p></div> : <div>{requests.slice(0, 5).map((request) => <div className="list-row" key={request.id}><div><p className="list-title">{request.recipient}</p><p className="list-meta">{new Date(request.createdAt).toLocaleDateString("en-GB")}</p></div><span className={`table-status status-${request.status.toLowerCase().replaceAll("_", "-")}`}>{paymentStatusLabel(request.status)}</span><span className="list-value">{formatUsdCents(request.amountCents)}</span></div>)}</div>}</section>
+    <section className="status-card"><div><strong>Ready to send money?</strong><p className="list-meta">Create a payment request for your admin to review when required.</p></div><Link className="btn btn-primary" href="/payments">Send money</Link></section>
+  </>;
 }

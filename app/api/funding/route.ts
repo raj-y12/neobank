@@ -11,6 +11,7 @@ import { createSupabaseProviderAccountRepository } from "@/src/repositories/supa
 export async function POST(request: Request) {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const body = await request.json() as { amountCents?: number; idempotencyKey?: string };
     if (!body.amountCents || !body.idempotencyKey) throw new Error("amountCents and idempotencyKey are required");
     const onboarding = await createSupabaseOnboardingRepository().get(scope.businessId);
