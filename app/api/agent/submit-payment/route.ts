@@ -4,6 +4,7 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { dollarsToCents } from "@/src/domain/money";
 import { validateAchBankDetails } from "@/src/domain/ach";
+import { toPublicPayment } from "@/src/lib/public-api-payment";
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       }
       throw error;
     }
-    return NextResponse.json({ payment: persisted, providerSubmitted: false, queue: "approval" }, { status: 201 });
+    return NextResponse.json({ payment: toPublicPayment(persisted), providerSubmitted: false, queue: "approval" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to queue agent payment" }, { status: 400 });
   }

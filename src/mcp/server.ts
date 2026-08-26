@@ -5,6 +5,7 @@ import { validateAchBankDetails } from "../domain/ach";
 import { dollarsToCents } from "../domain/money";
 import { ageBucket } from "../domain/reconciliation";
 import { getPublicApiScope } from "../lib/public-api-auth";
+import { toPublicPayment } from "../lib/public-api-payment";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseLedgerRepository } from "../repositories/supabase-ledger-repository";
 import { createSupabasePaymentRepository } from "../repositories/supabase-payment-repository";
@@ -43,7 +44,7 @@ async function makeServer(ctx: McpRequestContext) {
   server.registerTool("get_payment", { title: "Get payment", description: "Read a payment and its current status.", inputSchema: { id: z.string().min(1) } }, async ({ id }) => {
     const payment = await createSupabasePaymentRepository().get(id, scope.businessId);
     if (!payment || (scope.role === "MEMBER" && payment.initiatorId !== scope.memberId)) return result({ error: "Payment not found" });
-    return result({ payment });
+    return result({ payment: toPublicPayment(payment) });
   });
 
   server.registerTool("create_payment", {
@@ -61,7 +62,7 @@ async function makeServer(ctx: McpRequestContext) {
     const repository = createSupabasePaymentRepository();
     const persisted = await repository.create(payment, idempotencyKey);
     await repository.reserveFunds(persisted);
-    return result({ requiresConfirmation: false, payment: persisted, providerSubmitted: false, queue: "approval" });
+    return result({ requiresConfirmation: false, payment: toPublicPayment(persisted), providerSubmitted: false, queue: "approval" });
   });
 
   server.registerTool("list_reconciliation_breaks", { title: "List reconciliation breaks", description: "Read reconciliation breaks for the authenticated business. Admin only." }, async () => {
