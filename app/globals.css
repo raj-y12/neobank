@@ -574,7 +574,7 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .related-row:hover { background: var(--card-soft); }
 .related-row:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--orange); outline-offset: -2px; }
 .reversal-link-form { display: grid; gap: var(--space-3); margin-top: var(--space-5); padding: var(--space-5); border-radius: var(--radius-md); background: var(--card-soft); }
-.reversal-link-form input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: var(--space-3); padding: 0 var(--space-4); background: var(--card); color: var(--body-text); font: inherit; }
+.reversal-link-form input, .reversal-link-form select { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: var(--space-3); padding: 0 var(--space-4); background: var(--card); color: var(--body-text); font: inherit; }
 .reversal-link-form input:focus { outline: 2px solid var(--orange); outline-offset: 1px; }
 .form-error { margin: var(--space-4) 0 0; color: var(--red); font-size: var(--text-2xs); }
 .statement-panel { margin-top: var(--space-4); }
