@@ -1,7 +1,7 @@
 import type { AccountStatement, StatementJournalEntry } from "../domain/account-statement";
 import type { LedgerScope } from "../domain/ledger-balance";
 
-export type StatementQuery = { statementDate: string; asOfBookingTimestamp?: string };
+export type StatementQuery = { statementDate: string; statementEndDate?: string; asOfBookingTimestamp?: string };
 
 export interface AccountStatementRepository {
   getAccountStatement(scope: LedgerScope, query: StatementQuery): Promise<AccountStatement>;

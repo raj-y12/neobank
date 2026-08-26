@@ -8,26 +8,32 @@ export const dynamic = "force-dynamic";
 
 function signedUsd(value: number) { return value < 0 ? `−${formatUsdCents(Math.abs(value))}` : formatUsdCents(value); }
 
-export default async function StatementsPage({ searchParams }: { searchParams: Promise<{ date?: string; asOf?: string }> }) {
+export default async function StatementsPage({ searchParams }: { searchParams: Promise<{ date?: string; from?: string; to?: string; asOf?: string }> }) {
   const scope = await getAuthenticatedScope();
   const repository = createSupabaseAccountStatementRepository();
   const params = await searchParams;
-  if (params.date && !parseStatementDate(params.date)) {
+  const requestedFrom = params.from ?? params.date;
+  const requestedTo = params.to ?? params.date;
+  if ((requestedFrom && !parseStatementDate(requestedFrom)) || (requestedTo && !parseStatementDate(requestedTo))) {
     return <section className="panel empty-state"><h2>Invalid statement date</h2><p>Choose a valid UTC calendar date in YYYY-MM-DD format.</p><Link className="btn btn-outline" href="/statements">Return to statements</Link></section>;
   }
   if (params.asOf && Number.isNaN(Date.parse(params.asOf))) {
     return <section className="panel empty-state"><h2>Invalid knowledge timestamp</h2><p>Choose a valid ISO timestamp for the historical view.</p><Link className="btn btn-outline" href="/statements">Return to statements</Link></section>;
   }
   const latest = await repository.getLatestStatementDate(scope);
-  const statementDate = parseStatementDate(params.date) ?? latest ?? new Date().toISOString().slice(0, 10);
+  const statementDate = parseStatementDate(requestedFrom) ?? latest ?? new Date().toISOString().slice(0, 10);
+  const statementEndDate = parseStatementDate(requestedTo) ?? statementDate;
+  if (statementEndDate < statementDate) {
+    return <section className="panel empty-state"><h2>Invalid statement range</h2><p>The end date must be on or after the start date.</p><Link className="btn btn-outline" href="/statements">Return to statements</Link></section>;
+  }
   const asOf = params.asOf && !Number.isNaN(Date.parse(params.asOf)) ? new Date(params.asOf).toISOString() : undefined;
-  const statement = await repository.getAccountStatement(scope, { statementDate, asOfBookingTimestamp: asOf });
+  const statement = await repository.getAccountStatement(scope, { statementDate, statementEndDate, asOfBookingTimestamp: asOf });
   const postedImpact = statement.postedRows.reduce((sum, row) => sum + row.availableBalanceImpactCents, 0);
   const holdAvailabilityImpact = statement.holdRows.reduce((sum, row) => sum + row.availableBalanceImpactCents, 0);
 
   return <>
-    <section className="intro statement-intro"><div><p className="eyebrow">Account statement</p><h2>{statementDate}</h2><p className="intro-copy">{asOf ? `Known at ${new Date(asOf).toLocaleString("en-GB", { timeZone: "UTC" })} UTC` : "Current corrected view"}</p></div><Link className="btn btn-outline" href="/statements">Reset view</Link></section>
-    <section className="statement-controls panel"><form><label htmlFor="statement-date">Statement date</label><input id="statement-date" name="date" type="date" defaultValue={statementDate} /><label htmlFor="statement-asof">Known at (optional)</label><input id="statement-asof" name="asOf" type="datetime-local" defaultValue={asOf?.slice(0, 16)} /><button className="btn btn-primary" type="submit">View statement</button></form></section>
+    <section className="intro statement-intro"><div><p className="eyebrow">Account statement</p><h2>{statementDate === statementEndDate ? statementDate : `${statementDate} → ${statementEndDate}`}</h2><p className="intro-copy">{asOf ? `Known at ${new Date(asOf).toLocaleString("en-GB", { timeZone: "UTC" })} UTC` : "Current corrected view"}</p></div><Link className="btn btn-outline" href="/statements">Reset view</Link></section>
+    <section className="statement-controls panel"><form><label htmlFor="statement-from">From<input id="statement-from" name="from" type="date" defaultValue={statementDate} /></label><label htmlFor="statement-to">To<input id="statement-to" name="to" type="date" defaultValue={statementEndDate} /></label><label htmlFor="statement-asof">Known at (optional)<input id="statement-asof" name="asOf" type="datetime-local" defaultValue={asOf?.slice(0, 16)} /></label><button className="btn btn-primary" type="submit">View statement</button></form></section>
 
     <section className="statement-balance-grid" aria-label="Statement balances">
       <div className="panel statement-balance"><span className="eyebrow">Opening ledger</span><strong>{formatUsdCents(statement.openingLedgerBalanceCents)}</strong><small>Available {formatUsdCents(statement.openingAvailableBalanceCents)} · Holds {formatUsdCents(statement.openingHoldsCents)}</small></div>

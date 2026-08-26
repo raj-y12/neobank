@@ -49,4 +49,13 @@ describe("projectAccountStatement", () => {
     expect(empty.openingAvailableBalanceCents).toBe(100_000);
     expect(empty.closingLedgerBalanceCents).toBe(100_000);
   });
+
+  it("projects an inclusive multi-day range with boundary balances", () => {
+    const range = projectAccountStatement(entries, { statementDate: "2026-08-24", statementEndDate: "2026-08-25" });
+    expect(range.openingAvailableBalanceCents).toBe(100_000);
+    expect(range.postedRows.map((row) => row.entryType)).toEqual(["CARD_CLEARING", "CARD_SETTLEMENT_REVERSAL"]);
+    expect(range.holdRows.map((row) => row.entryType)).toEqual(["CARD_AUTHORIZATION_HOLD"]);
+    expect(range.closingAvailableBalanceCents).toBe(100_000);
+    expect(range.closingLedgerBalanceCents).toBe(100_000);
+  });
 });

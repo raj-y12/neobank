@@ -34,6 +34,7 @@ export type AccountStatementRow = {
 
 export type AccountStatement = {
   statementDate: string;
+  statementEndDate: string;
   asOfBookingTimestamp?: string;
   openingLedgerBalanceCents: number;
   openingAvailableBalanceCents: number;
@@ -80,13 +81,14 @@ function balances(entries: StatementJournalEntry[]) {
 
 export function projectAccountStatement(
   entries: StatementJournalEntry[],
-  options: { statementDate: string; asOfBookingTimestamp?: string },
+  options: { statementDate: string; statementEndDate?: string; asOfBookingTimestamp?: string },
 ): AccountStatement {
+  const statementEndDate = options.statementEndDate ?? options.statementDate;
   const visible = entries
     .filter((entry) => !options.asOfBookingTimestamp || entry.bookingTimestamp <= options.asOfBookingTimestamp)
     .sort(sortEntries);
   const beforeDate = visible.filter((entry) => entry.valueDate < options.statementDate);
-  const onDate = visible.filter((entry) => entry.valueDate === options.statementDate);
+  const onDate = visible.filter((entry) => entry.valueDate >= options.statementDate && entry.valueDate <= statementEndDate);
   const opening = balances(beforeDate);
   const closing = balances([...beforeDate, ...onDate]);
 
@@ -115,6 +117,7 @@ export function projectAccountStatement(
 
   return {
     statementDate: options.statementDate,
+    statementEndDate,
     asOfBookingTimestamp: options.asOfBookingTimestamp,
     openingLedgerBalanceCents: opening.ledger,
     openingAvailableBalanceCents: opening.available,

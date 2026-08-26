@@ -22,7 +22,7 @@
 1. Apply Supabase migrations and `supabase/seed.sql`.
 2. Start the app with `npm run dev`.
 3. Open `/onboarding`, `/funding`, `/payments`, `/approvals`, and `/reconciliation`.
-4. Open `/statements` to review the authenticated account-level daily statement. Select a date and, when testing corrections, use the `Known at` control to compare the current corrected view with the historical journal snapshot.
+4. Open `/statements` to review the authenticated account-level statement. Select a date or an inclusive `From`/`To` range and, when testing corrections, use the `Known at` control to compare the current corrected view with the historical journal snapshot.
 5. Use the authenticated business headers documented below for API smoke tests.
 6. For live integrations, attach provider dashboard screenshots and webhook delivery IDs here; simulated runs must retain the `SIMULATED` label. Increase also requires `INCREASE_ACCOUNT_ID`, `INCREASE_FUNDING_ACCOUNT_NUMBER`, `INCREASE_FUNDING_ROUTING_NUMBER`, `INCREASE_RECIPIENT_ACCOUNT_NUMBER`, and `INCREASE_RECIPIENT_ROUTING_NUMBER`.
 

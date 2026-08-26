@@ -19,7 +19,7 @@ export class SupabaseAccountStatementRepository implements AccountStatementRepos
       .select(JOURNAL_SELECT)
       .eq("business_id", scope.businessId)
       .eq("account_id", scope.accountId)
-      .lte("value_date", query.statementDate);
+      .lte("value_date", query.statementEndDate ?? query.statementDate);
     if (query.asOfBookingTimestamp) request = request.lte("created_at", query.asOfBookingTimestamp);
     const { data, error } = await request;
     if (error) throw error;

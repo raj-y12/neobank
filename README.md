@@ -12,7 +12,7 @@ Provider status is intentionally visible: Lithic is the live-sandbox card bounda
 
 Persona currently provides the available live KYC inquiry flow. Full business/director KYB is provider-gated in the available Persona setup, so it is documented as a constraint rather than represented as an implemented capability.
 
-Open `/statements` for the authenticated account-level daily statement. It shows opening/closing ledger and available balances, holds separately, running activity, and current corrected versus historical `known at` views for later journal corrections.
+Open `/statements` for the authenticated account-level statement. Use the one-day date or inclusive `From`/`To` controls to review opening/closing ledger and available balances, holds separately, running activity, and current corrected versus historical `known at` views for later journal corrections.
 
 ## Local development
 
