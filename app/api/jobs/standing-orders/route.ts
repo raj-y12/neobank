@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { APPROVAL_THRESHOLD_CENTS } from "@/src/domain/payment-lifecycle";
+import { standingOrderPaymentStatus } from "@/src/domain/standing-orders";
+import { decryptSensitiveValue } from "@/src/integrations/plaid/client";
 
 function advance(date: string, frequency: "DAILY" | "WEEKLY" | "MONTHLY") {
   const next = new Date(`${date}T00:00:00Z`);
@@ -26,7 +28,8 @@ export async function POST(request: Request) {
     if (!member) throw new Error(`No admin member for standing order ${order.id}`);
     const paymentId = crypto.randomUUID();
     const idempotencyKey = `standing-order:${order.id}:${order.next_run_date}`;
-    const { error: paymentError } = await client.from("payments").insert({ id: paymentId, business_id: order.business_id, account_id: order.account_id, initiator_member_id: member.id, provider: "ACH", amount_cents: order.amount_cents, currency: "USD", rail: "ACH", recipient: order.recipient, status: "APPROVED", idempotency_key: idempotencyKey });
+    const storedRecipient = order.recipient && typeof order.recipient === "object" ? order.recipient as { name?: string; encryptedAccountNumber?: string; encryptedRoutingNumber?: string } : {};
+    const { error: paymentError } = await client.from("payments").insert({ id: paymentId, business_id: order.business_id, account_id: order.account_id, initiator_member_id: member.id, provider: "ACH", amount_cents: order.amount_cents, currency: "USD", rail: "ACH", recipient: { name: storedRecipient.name ?? "Standing order", encryptedAccountNumber: storedRecipient.encryptedAccountNumber, encryptedRoutingNumber: storedRecipient.encryptedRoutingNumber }, status: standingOrderPaymentStatus(order.amount_cents), idempotency_key: idempotencyKey });
     if (paymentError && paymentError.code !== "23505") throw paymentError;
     if (paymentError?.code === "23505") { results.push({ id: order.id, status: "ALREADY_PROCESSED" }); continue; }
     if (order.amount_cents > APPROVAL_THRESHOLD_CENTS) {
@@ -51,7 +54,9 @@ export async function POST(request: Request) {
       if (!providerAccount) throw new Error(`No active Increase provider account for standing order ${order.id}`);
       providerAccountId = providerAccount.provider_account_id;
     }
-    const transfer = await rail.createOutbound({ amountCents: order.amount_cents, recipient: typeof order.recipient === "string" ? order.recipient : order.recipient.name ?? "Standing order", providerAccountId, idempotencyKey: `payment-submit:${paymentId}` });
+    const recipient = typeof order.recipient === "object" && order.recipient ? order.recipient as { name?: string; encryptedAccountNumber?: string; encryptedRoutingNumber?: string } : null;
+    if (!recipient?.encryptedAccountNumber || !recipient.encryptedRoutingNumber) throw new Error(`Standing order ${order.id} is missing encrypted ACH details`);
+    const transfer = await rail.createOutbound({ amountCents: order.amount_cents, recipient: recipient.name ?? "Standing order", accountNumber: decryptSensitiveValue(recipient.encryptedAccountNumber), routingNumber: decryptSensitiveValue(recipient.encryptedRoutingNumber), providerAccountId, idempotencyKey: `payment-submit:${paymentId}` });
     await client.from("payments").update({ provider_payment_id: transfer.providerTransferId, status: "SUBMITTED", updated_at: new Date().toISOString() }).eq("id", paymentId);
     await client.from("standing_order_occurrences").update({ status: "SUBMITTED", payment_id: paymentId, updated_at: new Date().toISOString() }).eq("id", occurrence.id);
     await client.from("standing_orders").update({ next_run_date: advance(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);

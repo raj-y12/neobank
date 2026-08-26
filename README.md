@@ -14,6 +14,8 @@ Persona currently provides the available live KYC inquiry flow. Full business/di
 
 Open `/statements` for the authenticated account-level statement. Use the one-day date or inclusive `From`/`To` controls to review opening/closing ledger and available balances, holds separately, running activity, and current corrected versus historical `known at` views for later journal corrections.
 
+Admins can open `/standing-orders` to create, pause, resume, or cancel recurring ACH payments. Schedules use the same account/routing validation as Send Money; bank details are encrypted at rest, masked in the UI, and decrypted only immediately before the payment rail call. Each schedule shows its next run and occurrence history; payments generated above the approval threshold are labeled as standing orders and enter the normal second-human approval queue.
+
 ## Local development
 
 ```bash

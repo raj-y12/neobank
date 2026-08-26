@@ -2,13 +2,14 @@ import type { MembershipRole } from "./auth";
 
 export type NavigationItem = { href: string; label: string };
 
-const ADMIN_ONLY_PREFIXES = ["/team", "/funding", "/statements", "/reconciliation"] as const;
+const ADMIN_ONLY_PREFIXES = ["/team", "/funding", "/statements", "/reconciliation", "/standing-orders"] as const;
 const ADMIN_NAVIGATION: NavigationItem[] = [
   { href: "/", label: "Overview" },
   { href: "/cards", label: "Cards" },
   { href: "/team", label: "Employees" },
   { href: "/payments", label: "Payments" },
   { href: "/approvals", label: "Approvals" },
+  { href: "/standing-orders", label: "Standing orders" },
   { href: "/reconciliation", label: "Reconciliation" },
 ];
 const MEMBER_NAVIGATION: NavigationItem[] = [

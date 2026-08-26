@@ -5,14 +5,14 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { dollarsToCents } from "@/src/domain/money";
 import { createSupabaseProviderAccountRepository } from "@/src/repositories/supabase-provider-account-repository";
+import { validateAchBankDetails } from "@/src/domain/ach";
 
 export async function POST(request: Request) {
   try {
     const context = await getAuthenticatedScope();
     const body = await request.json() as { amountDollars?: string; recipient?: string; accountNumber?: string; routingNumber?: string; idempotencyKey?: string };
     if (!body.amountDollars || !body.recipient || !body.accountNumber || !body.routingNumber || !body.idempotencyKey) throw new Error("amountDollars, recipient, accountNumber, routingNumber, and idempotencyKey are required");
-    if (!/^\d{4,17}$/.test(body.accountNumber)) throw new Error("Account number must contain 4 to 17 digits");
-    if (!/^\d{9}$/.test(body.routingNumber)) throw new Error("Routing number must contain 9 digits");
+    validateAchBankDetails(body.accountNumber, body.routingNumber);
     const amountCents = dollarsToCents(body.amountDollars);
     const rail = getPaymentRail();
     const providerAccount = rail.mode === "LIVE" ? await createSupabaseProviderAccountRepository().getActiveIncrease(context.businessId, context.accountId) : null;

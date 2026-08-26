@@ -52,4 +52,12 @@ describe("updateSupabaseSession", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("leaves scheduler routes to their bearer-token guard", async () => {
+    authState.claims = null;
+    const response = await updateSupabaseSession(new NextRequest("https://bank.example/api/jobs/standing-orders"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
 });

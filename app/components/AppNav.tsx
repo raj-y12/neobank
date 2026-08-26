@@ -10,7 +10,7 @@ import type { MembershipRole } from "@/src/domain/auth";
 import { BrandMark } from "./BrandMark";
 import { IconCheckCircle, IconDollar, IconHome, IconReceipt, IconUsers } from "./Icon";
 
-const ICONS = { "/": <IconHome />, "/cards": "card" as const, "/team": <IconUsers />, "/payments": <IconDollar />, "/approvals": <IconCheckCircle />, "/reconciliation": <IconReceipt /> };
+const ICONS = { "/": <IconHome />, "/cards": "card" as const, "/team": <IconUsers />, "/payments": <IconDollar />, "/approvals": <IconCheckCircle />, "/standing-orders": <IconReceipt />, "/reconciliation": <IconReceipt /> };
 
 export function AppNav() {
   const pathname = usePathname();

@@ -18,7 +18,13 @@ describe("access policy", () => {
       { href: "/approvals", label: "My requests" },
     ]);
     expect(navigationForRole("ADMIN").map((item) => item.label)).toEqual([
-      "Overview", "Cards", "Employees", "Payments", "Approvals", "Reconciliation",
+      "Overview", "Cards", "Employees", "Payments", "Approvals", "Standing orders", "Reconciliation",
     ]);
+  });
+
+  it("keeps standing-order management admin-only", () => {
+    expect(canAccessPage("ADMIN", "/standing-orders")).toBe(true);
+    expect(canAccessPage("MEMBER", "/standing-orders")).toBe(false);
+    expect(navigationForRole("MEMBER").some((item) => item.href === "/standing-orders")).toBe(false);
   });
 });

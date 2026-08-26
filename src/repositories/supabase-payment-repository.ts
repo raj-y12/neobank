@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Payment } from "../domain/payment-lifecycle";
 import type { PaymentRequestView } from "../domain/payment-request-view";
+import { decryptSensitiveValue } from "../integrations/plaid/client";
 
 type PaymentRow = {
   id: string;
@@ -10,12 +11,15 @@ type PaymentRow = {
   amount_cents: number;
   currency: "USD";
   rail: "ACH";
-  recipient: string | { name?: string; accountNumber?: string; routingNumber?: string };
+  recipient: string | { name?: string; accountNumber?: string; routingNumber?: string; encryptedAccountNumber?: string; encryptedRoutingNumber?: string };
   status: Payment["status"];
 };
 
 function toPayment(data: PaymentRow): Payment {
-  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", recipientBank: typeof data.recipient === "string" || !data.recipient.accountNumber || !data.recipient.routingNumber ? undefined : { accountNumber: data.recipient.accountNumber, routingNumber: data.recipient.routingNumber }, status: data.status };
+  const recipient = typeof data.recipient === "string" ? null : data.recipient;
+  const accountNumber = recipient?.accountNumber ?? (recipient?.encryptedAccountNumber ? decryptSensitiveValue(recipient.encryptedAccountNumber) : undefined);
+  const routingNumber = recipient?.routingNumber ?? (recipient?.encryptedRoutingNumber ? decryptSensitiveValue(recipient.encryptedRoutingNumber) : undefined);
+  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", recipientBank: accountNumber && routingNumber ? { accountNumber, routingNumber } : undefined, status: data.status };
 }
 
 export class SupabasePaymentRepository {

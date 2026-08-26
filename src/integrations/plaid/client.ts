@@ -6,6 +6,25 @@ const PLAID_BASE_URLS: Record<string, string> = {
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
+export function encryptSensitiveValue(value: string) {
+  const secret = process.env.PLAID_TOKEN_ENCRYPTION_KEY;
+  if (!secret) throw new Error("PLAID_TOKEN_ENCRYPTION_KEY is not configured");
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", createHash("sha256").update(secret).digest(), iv);
+  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${ciphertext.toString("base64url")}`;
+}
+
+export function decryptSensitiveValue(value: string) {
+  const secret = process.env.PLAID_TOKEN_ENCRYPTION_KEY;
+  if (!secret) throw new Error("PLAID_TOKEN_ENCRYPTION_KEY is not configured");
+  const [ivEncoded, tagEncoded, ciphertextEncoded] = value.split(".");
+  if (!ivEncoded || !tagEncoded || !ciphertextEncoded) throw new Error("Encrypted value is invalid");
+  const decipher = createDecipheriv("aes-256-gcm", createHash("sha256").update(secret).digest(), Buffer.from(ivEncoded, "base64url"));
+  decipher.setAuthTag(Buffer.from(tagEncoded, "base64url"));
+  return Buffer.concat([decipher.update(Buffer.from(ciphertextEncoded, "base64url")), decipher.final()]).toString("utf8");
+}
+
 function plaidBaseUrl() {
   return PLAID_BASE_URLS[process.env.PLAID_ENV ?? "sandbox"] ?? PLAID_BASE_URLS.sandbox;
 }
@@ -43,26 +62,14 @@ export async function getPlaidItem(accessToken: string) {
   return plaidFetch<{ item: { item_id: string; institution_id?: string | null; institution_name?: string | null }; request_id: string }>("/item/get", { access_token: accessToken });
 }
 
-function encryptionKey() {
-  const secret = process.env.PLAID_TOKEN_ENCRYPTION_KEY;
-  if (!secret) throw new Error("PLAID_TOKEN_ENCRYPTION_KEY is not configured");
-  return createHash("sha256").update(secret).digest();
-}
-
 export function encryptPlaidAccessToken(value: string) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
-  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
-  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${ciphertext.toString("base64url")}`;
+  return encryptSensitiveValue(value);
 }
 
 export function decryptPlaidAccessToken(value: string) {
   if (value.startsWith("SIMULATED:")) return Buffer.from(value.slice("SIMULATED:".length), "base64url").toString("utf8");
-  const [ivEncoded, tagEncoded, ciphertextEncoded] = value.split(".");
-  if (!ivEncoded || !tagEncoded || !ciphertextEncoded) return value;
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivEncoded, "base64url"));
-  decipher.setAuthTag(Buffer.from(tagEncoded, "base64url"));
-  return Buffer.concat([decipher.update(Buffer.from(ciphertextEncoded, "base64url")), decipher.final()]).toString("utf8");
+  if (!value.includes(".")) return value;
+  return decryptSensitiveValue(value);
 }
 
 export async function getPlaidAuthNumbers(accessToken: string) {

@@ -1,3 +1,5 @@
+import { APPROVAL_THRESHOLD_CENTS, type PaymentStatus } from "./payment-lifecycle";
+
 export type StandingOrderOccurrence = {
   standingOrderId: string;
   occurrenceKey: string;
@@ -5,6 +7,8 @@ export type StandingOrderOccurrence = {
 };
 
 export type StandingOrderRunDecision = "RUN" | "ALREADY_PROCESSED" | "INSUFFICIENT_FUNDS";
+export type StandingOrderFrequency = "DAILY" | "WEEKLY" | "MONTHLY";
+export type StandingOrderOccurrenceStatus = "PENDING" | "PENDING_APPROVAL" | "SUBMITTED" | "SKIPPED" | "INSUFFICIENT_FUNDS";
 
 export function createOccurrence(standingOrderId: string, scheduledDate: string): StandingOrderOccurrence {
   if (!standingOrderId || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) throw new Error("Standing order occurrence requires an ID and ISO date");
@@ -17,4 +21,22 @@ export function decideStandingOrderRun(occurrence: StandingOrderOccurrence, inpu
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new Error("Standing order amount must be positive cents");
   if (input.availableCents < input.amountCents) return "INSUFFICIENT_FUNDS";
   return "RUN";
+}
+
+export function standingOrderPaymentStatus(amountCents: number): Extract<PaymentStatus, "APPROVED" | "PENDING_APPROVAL"> {
+  return amountCents > APPROVAL_THRESHOLD_CENTS ? "PENDING_APPROVAL" : "APPROVED";
+}
+
+export function standingOrderFrequencyLabel(frequency: StandingOrderFrequency) {
+  return frequency[0] + frequency.slice(1).toLowerCase();
+}
+
+export function occurrenceStatusLabel(status: StandingOrderOccurrenceStatus) {
+  return status.toLowerCase().replaceAll("_", " ").replace(/^\w/, (character) => character.toUpperCase());
+}
+
+export function standingOrderRecipientName(recipient: unknown) {
+  if (typeof recipient === "string") return recipient;
+  if (recipient && typeof recipient === "object" && "name" in recipient && typeof recipient.name === "string") return recipient.name;
+  return "Unknown recipient";
 }
