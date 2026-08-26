@@ -16,15 +16,13 @@ export async function POST(request: Request) {
     const payment = createPayment({ businessId: context.businessId, accountId: context.accountId, initiatorId: context.memberId, amountCents, currency: "USD", rail: "ACH", recipient: body.recipient, recipientBank: { accountNumber: body.accountNumber, routingNumber: body.routingNumber } });
     const repository = createSupabasePaymentRepository();
     const persisted = await repository.create(payment, body.idempotencyKey);
-    try {
-      await repository.reserveFunds(persisted);
-    } catch (error) {
-      if (persisted.status === "APPROVED" || persisted.status === "PENDING_APPROVAL") {
-        await repository.setStatus(persisted.id, context.businessId, "REJECTED");
-      }
-      throw error;
-    }
     if (persisted.status === "APPROVED") {
+      try {
+        await repository.reserveFunds(persisted);
+      } catch (error) {
+        await repository.setStatus(persisted.id, context.businessId, "REJECTED");
+        throw error;
+      }
       const transfer = await getPaymentRail().createOutbound({ amountCents: persisted.amountCents, recipient: persisted.recipient, ...persisted.recipientBank, idempotencyKey: `payment-submit:${persisted.id}` });
       await repository.setProviderTransfer(persisted.id, context.businessId, transfer.providerTransferId, "SUBMITTED");
       return NextResponse.json({ payment: { ...persisted, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });

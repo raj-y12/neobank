@@ -17,7 +17,10 @@ export default function PaymentsPage() {
       const response = await fetch(`/api/payments/${payment.id}`, { cache: "no-store" });
       if (!response.ok) return;
       const body = await response.json() as { payment?: { id: string; status: PaymentStatus; amountCents: number } };
-      if (body.payment) setPayment(body.payment);
+      if (body.payment) {
+        setPayment(body.payment);
+        setMessage(`${body.payment.status}: ${body.payment.status === "PENDING_APPROVAL" ? "waiting for a second human" : body.payment.status.toLowerCase().replaceAll("_", " ")}`);
+      }
     }, 3000);
     return () => window.clearInterval(timer);
   }, [payment, modalOpen]);

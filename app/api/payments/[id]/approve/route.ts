@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const payment = approvePayment(existing, context.memberId);
     await repository.reserveFunds(payment);
     await repository.addApproval(id, context.memberId, "APPROVED");
-    const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
+    const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, ...payment.recipientBank, idempotencyKey: `payment-submit:${payment.id}` });
     await repository.setProviderTransfer(id, context.businessId, transfer.providerTransferId, "SUBMITTED");
     return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId });
   } catch (error) {
