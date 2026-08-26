@@ -447,16 +447,16 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
   padding: 0;
   animation: fade-up .5s var(--ease-standard) both;
 }
-.auth-brand-lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; color: var(--ink); }
-.auth-brand-lockup strong { font-size: 19px; font-weight: 700; letter-spacing: -.045em; }
-.auth-brand-mark { width: 50px; height: 50px; }
+.auth-brand-lockup { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 38px; color: var(--ink); text-align: center; }
+.auth-brand-lockup strong { color: var(--muted); font-size: 16px; font-weight: 600; letter-spacing: -.02em; }
+.auth-brand-mark { width: 68px; height: 68px; }
 .auth-kicker { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-.auth-heading { margin: 0 0 8px; color: var(--ink); font-size: 32px; font-weight: 600; letter-spacing: -.045em; }
-.auth-card .intro-copy, .auth-create .intro-copy { max-width: 340px; margin: 0 0 24px; color: var(--body-text); font-size: 14px; line-height: 1.5; }
-.auth-form { display: grid; gap: 12px; text-align: left; }
+.auth-heading { margin: 0 0 10px; color: var(--ink); font-size: 36px; font-weight: 650; letter-spacing: -.055em; line-height: 1.05; }
+.auth-card .intro-copy, .auth-create .intro-copy { max-width: 340px; margin: 0 0 28px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.auth-form { display: grid; gap: 14px; text-align: left; }
 .auth-field .input { text-align: left; }
 .auth-form .form-error { max-width: none; margin: -6px 0 0; text-align: left; }
-.auth-switch { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; color: var(--muted); font-size: 12px; }
+.auth-switch { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 24px; color: var(--muted); font-size: 12px; }
 .auth-switch-button { border: 0; padding: 0; background: transparent; color: var(--orange-2); font: inherit; font-weight: 600; cursor: pointer; }
 .auth-switch-button:hover { color: var(--ink); }
 .auth-footer { position: fixed; right: 36px; bottom: 24px; left: 36px; color: var(--muted); font-size: 11px; }
