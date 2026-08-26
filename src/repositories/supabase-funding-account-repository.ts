@@ -45,7 +45,13 @@ export class SupabaseFundingAccountRepository implements FundingAccountRepositor
       }
     }
     if (!accountNumber || !routingNumber) {
-      const numbers = await getPlaidAuthNumbers(decryptPlaidAccessToken(data.provider_access_token));
+      let accessToken: string;
+      try {
+        accessToken = decryptPlaidAccessToken(data.provider_access_token);
+      } catch {
+        throw new Error("Linked bank account can't be read with the current encryption key. Unlink and relink the bank account before adding money.");
+      }
+      const numbers = await getPlaidAuthNumbers(accessToken);
       const { error: updateError } = await this.client.from("linked_funding_accounts").update({ encrypted_account_number: encryptPlaidAccessToken(numbers.accountNumber), encrypted_routing_number: encryptPlaidAccessToken(numbers.routingNumber), account_name: numbers.accountName ?? null, account_mask: numbers.accountMask ?? null, updated_at: new Date().toISOString() }).eq("id", data.id);
       if (updateError) throw updateError;
       return numbers;
