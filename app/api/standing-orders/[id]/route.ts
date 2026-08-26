@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createClient } from "@supabase/supabase-js";
 import { isIsoCalendarDate } from "@/src/domain/standing-orders";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await getAuthenticatedScope();
     if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
+    if (!isUuid(id)) return NextResponse.json({ error: "Standing order not found" }, { status: 404 });
     const body = await request.json() as { status?: string; nextRunDate?: string; insufficientFundsPolicy?: string };
     const update: Record<string, string> = {};
     if (body.status && /^(ACTIVE|PAUSED|CANCELED)$/.test(body.status)) update.status = body.status; else if (body.status) throw new Error("Invalid standing-order status");
