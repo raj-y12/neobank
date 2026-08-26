@@ -36,7 +36,7 @@ export default async function CardDetailPage({ params }: { params: Promise<{ tok
       </section>
       <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} /></section>
       {scope.role === "ADMIN" && <section className="panel card-access-panel" aria-labelledby="card-access-heading">
-        <div className="panel-heading"><div><p className="eyebrow">Card access</p><h3 id="card-access-heading">Delegate this card</h3></div><span className="chip chip-neutral">Admin only</span></div>
+        <div className="panel-heading"><div><p className="eyebrow">Card access</p><h3 id="card-access-heading">Delegate this card</h3></div></div>
         <p className="card-access-copy">Choose the active employee who should be able to use this card.</p>
         <CardDelegateForm cardToken={token} assignedMemberId={assignment.memberId} employees={employeesResult.data ?? []} />
       </section>}

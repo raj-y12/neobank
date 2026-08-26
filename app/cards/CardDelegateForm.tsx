@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconUsers } from "../components/Icon";
 
 type Employee = { id: string; email: string | null; role: string; status: string };
 
@@ -20,5 +21,18 @@ export function CardDelegateForm({ cardToken, assignedMemberId, employees }: { c
     } catch { setMessage("Unable to delegate card. Try again."); }
     finally { setPending(false); }
   }
-  return <div className="form-row card-delegate-row"><label>Delegated to<select className="select" value={memberId} onChange={(event) => setMemberId(event.target.value)} disabled={pending}><option value="">Select employee</option>{employees.filter((employee) => employee.status === "ACTIVE").map((employee) => <option value={employee.id} key={employee.id}>{employee.email ?? employee.id} · {employee.role}</option>)}</select></label><button className="btn btn-outline" onClick={delegate} disabled={!memberId || pending}>{pending ? "Saving…" : "Delegate"}</button>{message && <span className="list-meta" role="status">{message}</span>}</div>;
+  return (
+    <div className="card-delegate-row">
+      <div className="list-icon is-navy"><IconUsers /></div>
+      <div className="card-delegate-field">
+        <label htmlFor="card-delegate-select">Delegated to</label>
+        <select id="card-delegate-select" className="select" value={memberId} onChange={(event) => setMemberId(event.target.value)} disabled={pending}>
+          <option value="">Select employee</option>
+          {employees.filter((employee) => employee.status === "ACTIVE").map((employee) => <option value={employee.id} key={employee.id}>{employee.email ?? employee.id} · {employee.role}</option>)}
+        </select>
+      </div>
+      <button className="btn btn-outline" onClick={delegate} disabled={!memberId || pending}>{pending ? "Saving…" : "Delegate"}</button>
+      {message && <span className="list-meta" role="status">{message}</span>}
+    </div>
+  );
 }
