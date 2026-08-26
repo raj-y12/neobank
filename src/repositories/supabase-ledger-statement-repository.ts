@@ -17,6 +17,7 @@ type CardTransactionReference = {
   id: string;
   provider_transaction_id: string;
   reversal_of_transaction_id: string | null;
+  card_token?: string;
 };
 
 export function collectStatementReferenceIds(transaction: CardTransactionReference, relatedTransactions: CardTransactionReference[]) {
@@ -51,16 +52,27 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
   let referenceIds: string[] | undefined;
   let transactionRelationships = new Map<string, string>();
   if (transactionId) {
+    if (!scope) throw new Error("Authenticated scope is required for card statements");
     const { data: transaction, error: transactionError } = await client
       .from("card_transactions")
-      .select("id,provider_transaction_id,reversal_of_transaction_id")
+      .select("id,provider_transaction_id,reversal_of_transaction_id,card_token")
       .eq("id", transactionId)
-      .single<CardTransactionReference>();
+      .maybeSingle<CardTransactionReference>();
     if (transactionError) throw transactionError;
+    if (!transaction) throw new Error("Card statement not found");
+    const { data: ownedCard, error: ownedCardError } = await client
+      .from("business_cards")
+      .select("card_token")
+      .eq("business_id", scope.businessId)
+      .eq("card_token", transaction.card_token)
+      .maybeSingle<{ card_token: string }>();
+    if (ownedCardError) throw ownedCardError;
+    if (!ownedCard) throw new Error("Card statement not found");
 
     const relatedQuery = client
       .from("card_transactions")
-      .select("id,provider_transaction_id,reversal_of_transaction_id");
+      .select("id,provider_transaction_id,reversal_of_transaction_id,card_token")
+      .eq("card_token", transaction.card_token!);
     const { data: relatedTransactions, error: relatedTransactionsError } = transaction.reversal_of_transaction_id
       ? await relatedQuery.or(`id.eq.${transaction.reversal_of_transaction_id},reversal_of_transaction_id.eq.${transaction.id}`)
       : await relatedQuery.eq("reversal_of_transaction_id", transaction.id);

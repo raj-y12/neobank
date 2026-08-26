@@ -28,3 +28,12 @@ describe("statementReferenceFilters", () => {
     expect(statementReferenceFilters(["tx_1"])).toContain("reversal_of_reference_id.like.tx_1:%");
   });
 });
+
+describe("card statement scope", () => {
+  it("requires authenticated scope for transaction detail", async () => {
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    const { getLedgerStatement } = await import("./supabase-ledger-statement-repository");
+    await expect(getLedgerStatement("tx_1")).rejects.toThrow("Authenticated scope is required");
+  });
+});

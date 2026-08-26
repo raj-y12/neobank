@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatLithicDate, formatUsdCents } from "@/src/integrations/lithic/client";
 import { getLedgerStatement } from "@/src/repositories/supabase-ledger-statement-repository";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { IconChevronLeft } from "../../../components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +21,8 @@ export default async function CardStatementPage({ params, searchParams }: { para
   const { transactionId } = await params;
   const { asOf } = await searchParams;
   const asOfBookingTimestamp = parseAsOf(asOf);
-  const rows = await getLedgerStatement(transactionId, asOfBookingTimestamp, {
-    businessId: process.env.LEDGER_BUSINESS_ID ?? "demo-business",
-    accountId: process.env.LEDGER_ACCOUNT_ID ?? "demo-account",
-  });
+  const scope = await getAuthenticatedScope();
+  const rows = await getLedgerStatement(transactionId, asOfBookingTimestamp, scope);
 
   return (
     <>

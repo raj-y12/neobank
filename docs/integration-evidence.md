@@ -3,7 +3,8 @@
 ## Current labels
 
 - Lithic card issuing: live sandbox adapter in `src/integrations/lithic/client.ts`; webhook receipt is `app/api/webhooks/lithic/route.ts`.
-- Persona KYB/KYC: adapter boundary is present; without `PERSONA_API_KEY`, the UI must display `SIMULATED`.
+- Persona KYC: the available live Persona inquiry flow is supported; without `PERSONA_API_KEY`, the UI must display `SIMULATED`.
+- KYB limitation (decision): full legal-entity and director KYB is provider-gated by the available Persona setup. This is an honest, defensible provider constraint—not an implementation failure—and no evidence claim should imply that full KYB is live.
 - Plaid funding link: server-side Link-token boundary is present; without `PLAID_CLIENT_ID`, `PLAID_SECRET`, and `PLAID_TOKEN_ENCRYPTION_KEY`, the UI displays `PLAID SIMULATED`.
 - ACH payment rail: Increase adapter in `src/integrations/increase/client.ts`, selected when `INCREASE_API_KEY` and `INCREASE_ACCOUNT_ID` are configured; otherwise deterministic simulator in `src/integrations/simulated-ach.ts` is explicitly `SIMULATED`.
 - USDC: deferred by decision; no claim of support.
@@ -21,8 +22,9 @@
 1. Apply Supabase migrations and `supabase/seed.sql`.
 2. Start the app with `npm run dev`.
 3. Open `/onboarding`, `/funding`, `/payments`, `/approvals`, and `/reconciliation`.
-4. Use the authenticated business headers documented below for API smoke tests.
-5. For live integrations, attach provider dashboard screenshots and webhook delivery IDs here; simulated runs must retain the `SIMULATED` label. Increase also requires `INCREASE_ACCOUNT_ID`, `INCREASE_FUNDING_ACCOUNT_NUMBER`, `INCREASE_FUNDING_ROUTING_NUMBER`, `INCREASE_RECIPIENT_ACCOUNT_NUMBER`, and `INCREASE_RECIPIENT_ROUTING_NUMBER`.
+4. Open `/statements` to review the authenticated account-level daily statement. Select a date and, when testing corrections, use the `Known at` control to compare the current corrected view with the historical journal snapshot.
+5. Use the authenticated business headers documented below for API smoke tests.
+6. For live integrations, attach provider dashboard screenshots and webhook delivery IDs here; simulated runs must retain the `SIMULATED` label. Increase also requires `INCREASE_ACCOUNT_ID`, `INCREASE_FUNDING_ACCOUNT_NUMBER`, `INCREASE_FUNDING_ROUTING_NUMBER`, `INCREASE_RECIPIENT_ACCOUNT_NUMBER`, and `INCREASE_RECIPIENT_ROUTING_NUMBER`.
 
 ## Evidence to attach before submission
 
@@ -37,4 +39,4 @@ The local demo authorization boundary requires `x-business-id`, `x-account-id`, 
 
 ## Cut list
 
-USDC/testnet payouts, wires, standing orders, batch payments, native mobile, multiple linked funding accounts, full beneficiary management, and production KYB/KYC evidence are deferred.
+USDC/testnet payouts, wires, standing orders, batch payments, native mobile, multiple linked funding accounts, full beneficiary management, full business/director KYB (provider-gated), and production KYB/KYC evidence are deferred.

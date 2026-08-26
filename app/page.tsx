@@ -36,7 +36,7 @@ export default async function Home() {
               <p className="account-card-sub">USD · Operating · {formatUsdCents(balances.activeHoldsCents)} held</p>
             </div>
             <div className="account-card-actions">
-              <Link className="pill-btn" href="/statements/card/card-4821"><IconReceipt /> Statement</Link>
+              <Link className="pill-btn" href="/statements"><IconReceipt /> Statement</Link>
               <Link className="pill-btn" href="/funding"><IconArrowDown /> Add money</Link>
               <Link className="pill-btn is-primary" href="/payments"><IconArrowUp /> Send</Link>
             </div>
@@ -48,7 +48,7 @@ export default async function Home() {
               <h4>Your ledger will appear here</h4>
               <p>Once funding and card activity are connected, every movement will be shown from the immutable ledger.</p>
             </div> : <LedgerActivity rows={activity} />}
-            <Link className="see-all" href="/statements/card/card-4821">See all transactions <span aria-hidden="true">→</span></Link>
+            <Link className="see-all" href="/statements">See all transactions <span aria-hidden="true">→</span></Link>
           </div>
         </article>
 

@@ -10,6 +10,10 @@ The product is centered on an append-only USD-cents ledger. The demo surfaces on
 
 Provider status is intentionally visible: Lithic is the live-sandbox card boundary; Persona, Plaid, and Increase ACH use live adapters when credentials are configured and otherwise show `SIMULATED`. USDC is deferred.
 
+Persona currently provides the available live KYC inquiry flow. Full business/director KYB is provider-gated in the available Persona setup, so it is documented as a constraint rather than represented as an implemented capability.
+
+Open `/statements` for the authenticated account-level daily statement. It shows opening/closing ledger and available balances, holds separately, running activity, and current corrected versus historical `known at` views for later journal corrections.
+
 ## Local development
 
 ```bash
