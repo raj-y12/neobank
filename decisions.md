@@ -159,3 +159,11 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Why: The API key is an integration credential and the platform account is ours; neither is a user property. The actual mistake would be using global account-number fallbacks to decide which business's money moves. The ledger is already business/account scoped, so the provider boundary needs to follow the same scope.
 - Fix scope: add a provider-account record with `business_id`, `account_id`, Increase account ID, Increase account-number ID, masked display fields, status, and timestamps; encrypt any raw account/routing numbers; make funding and outbound rail calls require the resolved record; remove the `INCREASE_*_ACCOUNT_*` fallbacks from request handling; add tenant-isolation and missing-provider-account tests; migrate the current sandbox values into the demo business record.
 - Cut: This does not make provider credentials user-owned, and it does not put secrets in the browser or ledger tables. If every business intentionally shares one safeguarded Increase account, the provider record can point to the same platform account while still keeping the ownership and audit boundary explicit.
+
+### D-023 — Use live Persona KYC as the available onboarding proof
+
+- Date: 2026-08-26
+- Decision: Use the available live Persona sandbox KYC inquiry to verify the business owner and gate account activation. Label it as KYC/onboarding verification, not as full legal-entity KYB.
+- Constraint: Full business-and-director KYB cannot be completed in this trial because the required provider capability is gated behind business verification or non-self-serve access that is unavailable within the trial window.
+- Why: The trial requires genuine provider integration and honest real-versus-simulated labelling. A working live KYC flow with signed webhooks is stronger and more truthful than simulating KYB or presenting an owner inquiry as business verification.
+- Follow-up: Replace the KYC fallback with a live business and director KYB workflow when provider access is available; retain the same pending, approved, and rejected account gate.

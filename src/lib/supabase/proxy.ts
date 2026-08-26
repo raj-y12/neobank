@@ -33,22 +33,26 @@ export async function updateSupabaseSession(request: NextRequest) {
     if (userId && serviceRoleKey) {
       const admin = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
       const { data: membership } = await admin.from("business_memberships").select("business_id").eq("user_id", userId).maybeSingle<{ business_id: string }>();
-      if (membership) {
-        const [{ data: onboarding }, { data: funding }] = await Promise.all([
-          admin.from("business_onboarding").select("business_status,owner_status").eq("business_id", membership.business_id).maybeSingle<{ business_status: string; owner_status: string }>(),
-          admin.from("linked_funding_accounts").select("id").eq("business_id", membership.business_id).maybeSingle<{ id: string }>(),
-        ]);
-        const requiredRoute = getRequiredRoute({
-          onboardingApproved: onboarding?.business_status === "APPROVED" && onboarding.owner_status === "APPROVED",
-          fundingLinked: Boolean(funding),
-          pathname,
-        });
-        if (requiredRoute) {
-          const redirect = request.nextUrl.clone();
-          redirect.pathname = requiredRoute;
-          redirect.search = "";
-          return NextResponse.redirect(redirect);
-        }
+      if (!membership) {
+        const login = request.nextUrl.clone();
+        login.pathname = "/login";
+        login.searchParams.set("next", pathname);
+        return NextResponse.redirect(login);
+      }
+      const [{ data: onboarding }, { data: funding }] = await Promise.all([
+        admin.from("business_onboarding").select("business_status,owner_status").eq("business_id", membership.business_id).maybeSingle<{ business_status: string; owner_status: string }>(),
+        admin.from("linked_funding_accounts").select("id").eq("business_id", membership.business_id).maybeSingle<{ id: string }>(),
+      ]);
+      const requiredRoute = getRequiredRoute({
+        onboardingApproved: onboarding?.business_status === "APPROVED" && onboarding.owner_status === "APPROVED",
+        fundingLinked: Boolean(funding),
+        pathname,
+      });
+      if (requiredRoute) {
+        const redirect = request.nextUrl.clone();
+        redirect.pathname = requiredRoute;
+        redirect.search = "";
+        return NextResponse.redirect(redirect);
       }
     }
   }
