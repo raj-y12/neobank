@@ -6,10 +6,20 @@ import {
   canTransitionPayment,
   createFundingTransfer,
   createPayment,
+  paymentWasSubmitted,
   rejectPayment,
 } from "./payment-lifecycle";
 
 describe("payment lifecycle", () => {
+  it("recognizes submitted payments across later lifecycle states", () => {
+    expect(paymentWasSubmitted("SUBMITTED")).toBe(true);
+    expect(paymentWasSubmitted("SETTLED")).toBe(true);
+    expect(paymentWasSubmitted("RETURNED")).toBe(true);
+    expect(paymentWasSubmitted("APPROVED")).toBe(false);
+    expect(paymentWasSubmitted("PENDING_APPROVAL")).toBe(false);
+    expect(paymentWasSubmitted("REJECTED")).toBe(false);
+  });
+
   it("can force an agent-submitted payment into human approval", () => {
     const payment = createPayment({
       businessId: "b1",

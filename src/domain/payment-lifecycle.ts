@@ -80,6 +80,10 @@ export function approvalRequirement(payment: Payment): "SECOND_HUMAN" | "DIRECT"
   return payment.amountCents > APPROVAL_THRESHOLD_CENTS ? "SECOND_HUMAN" : "DIRECT";
 }
 
+export function paymentWasSubmitted(status: PaymentStatus) {
+  return status === "SUBMITTED" || status === "SETTLED" || status === "RETURNED";
+}
+
 export function approvePayment(payment: Payment, approverId: string): Payment {
   if (approvalRequirement(payment) === "SECOND_HUMAN" && approverId === payment.initiatorId) {
     throw new Error("Initiator cannot approve payment");

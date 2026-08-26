@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createPayment } from "@/src/domain/payment-lifecycle";
+import { createPayment, paymentWasSubmitted } from "@/src/domain/payment-lifecycle";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
@@ -32,6 +32,12 @@ export async function POST(request: Request) {
       const transfer = await rail.createOutbound({ amountCents: persisted.amountCents, recipient: persisted.recipient, ...persisted.recipientBank, providerAccountId: providerAccount?.providerAccountId, idempotencyKey: `payment-submit:${persisted.id}` });
       await repository.setProviderTransfer(persisted.id, context.businessId, transfer.providerTransferId, "SUBMITTED");
       return NextResponse.json({ payment: { ...persisted, status: "SUBMITTED" }, submitted: true, mode: rail.mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });
+    }
+    if (paymentWasSubmitted(persisted.status)) {
+      return NextResponse.json({ payment: persisted, submitted: true, approvalRequired: false, mode: rail.mode }, { status: 201 });
+    }
+    if (persisted.status === "REJECTED") {
+      return NextResponse.json({ payment: persisted, submitted: false, approvalRequired: false, mode: rail.mode }, { status: 201 });
     }
     return NextResponse.json({ payment: persisted, submitted: false, approvalRequired: true, mode: rail.mode }, { status: 201 });
   } catch (error) {
