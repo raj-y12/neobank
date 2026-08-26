@@ -10,7 +10,7 @@ This document defines the intended shape of the 48-hour Track 3 submission. It i
 
 ## Current remediation plan
 
-This plan supersedes the original 48-hour sequencing for the remaining work. The agent surface is intentionally excluded from this pass. The target is a reviewer-runnable, production-shaped ACH and card-account path with honest integration evidence.
+This plan supersedes the original 48-hour sequencing for the remaining work. The agent surface (`app/api/agent/*`) was already implemented in an earlier pass and is not touched by this remediation — it stays as-is. The target of this pass is a reviewer-runnable, production-shaped ACH and card-account path with honest integration evidence.
 
 ### Phase 0 — Freeze the baseline and remove ambiguity
 
@@ -29,7 +29,7 @@ Verification:
 
 Guardrails:
 
-- Do not add agent work in this plan.
+- Do not modify the existing agent surface in this plan; it is already implemented and out of scope for this remediation.
 - Do not claim live integration status from an environment variable alone; require a provider request or webhook evidence ID.
 
 ### Phase 1 — Make Increase ACH a complete, observable rail
@@ -175,7 +175,7 @@ What to implement:
 
 - Update README and the evidence pack with exact live/simulated labels and environment requirements.
 - Add a complete seed script for business, auth users, memberships, onboarding, linked funding, opening ledger, cards, and employee/card delegation.
-- Add a cut list that explicitly excludes the agent surface for this release.
+- Add a cut list; note the agent surface is implemented (`app/api/agent/*`) and in scope, not cut.
 - Capture provider dashboard screenshots, webhook delivery IDs, request IDs, and representative ledger/payment/reconciliation rows.
 - Run the five-minute reviewer rehearsal against the deployed URL.
 

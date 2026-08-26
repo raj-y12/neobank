@@ -36,7 +36,7 @@ The application is a Next.js web app. Provider credentials belong in local envir
 - Plaid access tokens and account/routing values are encrypted at rest with `PLAID_TOKEN_ENCRYPTION_KEY`.
 - Provider webhooks must be configured in Increase, Lithic, Persona, and Plaid environments and verified with the evidence checklist.
 - Enable Supabase Auth leaked-password protection in Authentication → Password Security before production handoff.
-- Agent routes are intentionally excluded from this remediation release; see [`docs/track-3-plan.md`](docs/track-3-plan.md).
+- Agent routes (`app/api/agent/*`) were implemented in an earlier pass and were not touched by this remediation; see [`docs/track-3-plan.md`](docs/track-3-plan.md).
 
 ## Local demo audit log
 
