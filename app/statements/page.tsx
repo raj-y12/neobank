@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatUsdCents } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseAccountStatementRepository } from "@/src/repositories/supabase-account-statement-repository";
-import { isTransactionsOnlyView, parseStatementDate } from "./statement-controls";
+import { compareStatementRowsLatestFirst, isTransactionsOnlyView, parseStatementDate } from "./statement-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
   const transactionsOnly = isTransactionsOnlyView(params.view);
   const postedImpact = statement.postedRows.reduce((sum, row) => sum + row.availableBalanceImpactCents, 0);
   const holdAvailabilityImpact = statement.holdRows.reduce((sum, row) => sum + row.availableBalanceImpactCents, 0);
-  const allRows = [...statement.postedRows, ...statement.holdRows].sort((a, b) => a.valueDate.localeCompare(b.valueDate) || a.bookingTimestamp.localeCompare(b.bookingTimestamp) || a.journalEntryId.localeCompare(b.journalEntryId));
+  const allRows = [...statement.postedRows, ...statement.holdRows].sort(compareStatementRowsLatestFirst);
 
   return <>
     <section className="intro statement-intro"><div><p className="eyebrow">{transactionsOnly ? "All transactions" : "Account statement"}</p><h2>{statementDate === statementEndDate ? statementDate : `${statementDate} → ${statementEndDate}`}</h2><p className="intro-copy">{asOf ? `Known at ${new Date(asOf).toLocaleString("en-GB", { timeZone: "UTC" })} UTC` : "Current corrected view"}</p></div><Link className="btn btn-outline" href={transactionsOnly ? "/statements" : "/statements?view=transactions"}>{transactionsOnly ? "Statement summary" : "All transactions"}</Link></section>

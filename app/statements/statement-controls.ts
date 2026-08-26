@@ -18,3 +18,9 @@ export function datetimeLocalToIso(value: string | null | undefined) {
 export function isTransactionsOnlyView(value: string | null | undefined) {
   return value === "transactions";
 }
+
+export function compareStatementRowsLatestFirst(a: { valueDate: string; bookingTimestamp: string; journalEntryId: string }, b: { valueDate: string; bookingTimestamp: string; journalEntryId: string }) {
+  return b.valueDate.localeCompare(a.valueDate)
+    || b.bookingTimestamp.localeCompare(a.bookingTimestamp)
+    || b.journalEntryId.localeCompare(a.journalEntryId);
+}
