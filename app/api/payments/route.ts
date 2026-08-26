@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       await repository.setProviderTransfer(persisted.id, context.businessId, transfer.providerTransferId, "SUBMITTED");
       return NextResponse.json({ payment: { ...persisted, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });
     }
-    return NextResponse.json({ payment: persisted, submitted: false, approvalRequired: true }, { status: 201 });
+    return NextResponse.json({ payment: persisted, submitted: false, approvalRequired: true, mode: getPaymentRail().mode }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create payment" }, { status: 400 });
   }

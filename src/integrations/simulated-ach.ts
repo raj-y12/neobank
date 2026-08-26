@@ -13,9 +13,9 @@ export class SimulatedAchRail implements PaymentRail {
 }
 
 export function getPaymentRail(): PaymentRail {
-  // The live Column adapter can be selected once credentials and the account
-  // mapping are configured. Until then this path is intentionally explicit.
-  if (process.env.INCREASE_API_KEY && process.env.INCREASE_ACCOUNT_ID) {
+  // Credentials alone must never enable live money movement. Live rail use is
+  // an explicit deployment decision so local/demo tests remain simulated.
+  if (process.env.PAYMENT_RAIL_MODE === "LIVE" && process.env.INCREASE_API_KEY && process.env.INCREASE_ACCOUNT_ID) {
     return new IncreaseAchRail();
   }
   return new SimulatedAchRail();

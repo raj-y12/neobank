@@ -11,6 +11,7 @@ export default function PaymentsPage() {
   const [message, setMessage] = useState("No payment created yet.");
   const [payment, setPayment] = useState<{ id: string; status: PaymentStatus; amountCents: number } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [railMode, setRailMode] = useState("SIMULATED");
   useEffect(() => {
     if (!payment || !modalOpen || payment.status === "SETTLED" || payment.status === "RETURNED" || payment.status === "REJECTED") return;
     const timer = window.setInterval(async () => {
@@ -29,6 +30,7 @@ export default function PaymentsPage() {
     const body = await response.json();
     if (response.ok) {
       setPayment(body.payment);
+      setRailMode(body.mode ?? "SIMULATED");
       setModalOpen(true);
       setMessage(`${body.payment.status}: ${body.approvalRequired ? "waiting for a second human" : "submitted"}`);
     } else setMessage(body.error);
@@ -44,7 +46,7 @@ export default function PaymentsPage() {
 
       <section className="status-card payment-rail-card">
         <div><strong>Payment rail</strong><p className="list-meta">Your payment will be submitted securely.</p></div>
-        <span className="chip chip-orange">{process.env.NEXT_PUBLIC_INCREASE_MODE ?? "SIMULATED"}</span>
+        <span className="chip chip-orange">{railMode}</span>
       </section>
 
       <section className="panel payment-details-panel">

@@ -138,3 +138,9 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Date: 2026-08-26
 - Decision: The send-money form collects recipient name, account number, routing number, and a dollar amount. The API validates the banking identifiers and converts the dollar string to integer cents before creating the payment or calling the rail.
 - Why: Users think in dollars, while ledger and provider amounts must be exact integer cents. Keeping conversion server-side prevents client rounding or unit mismatches; storing beneficiary details with the payment keeps retries deterministic.
+
+### D-020 — Require explicit live-rail opt-in
+
+- Date: 2026-08-26
+- Decision: Increase credentials never select the live payment rail by themselves. Live money movement requires `PAYMENT_RAIL_MODE=LIVE`; all local and demo environments default to `SIMULATED`.
+- Why: Provider account balances and the product ledger are separate boundaries. Accidental credential discovery must not turn a UI test into a real transfer.
