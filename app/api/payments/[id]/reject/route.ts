@@ -13,6 +13,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     if (!existing) throw new Error("Payment not found in business scope");
     const payment = rejectPayment(existing, context.memberId);
     await repository.addApproval(id, context.memberId, "REJECTED");
+    await repository.releaseFunds(existing);
     await repository.setStatus(id, context.businessId, "REJECTED");
     return NextResponse.json({ payment }, { status: 200 });
   } catch (error) {

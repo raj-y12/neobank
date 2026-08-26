@@ -92,6 +92,15 @@ export class SupabasePaymentRepository {
     if (error) throw error;
   }
 
+  async releaseFunds(payment: Payment) {
+    const { error } = await this.client.rpc("release_payment_funds", {
+      p_business_id: payment.businessId,
+      p_account_id: payment.accountId,
+      p_payment_id: payment.id,
+    });
+    if (error) throw error;
+  }
+
   async addApproval(id: string, approverMemberId: string, decision: "APPROVED" | "REJECTED", note?: string) {
     const { error } = await this.client.from("payment_approvals").insert({ payment_id: id, approver_member_id: approverMemberId, decision, note: note ?? null });
     if (error) throw error;
