@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { formatLithicDate, formatUsdCents } from "@/src/integrations/lithic/client";
 import { getLedgerStatement } from "@/src/repositories/supabase-ledger-statement-repository";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { requirePageAccess } from "@/src/lib/page-authorization";
+import { isUuid } from "@/src/lib/identifiers";
 import { IconChevronLeft } from "../../../components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +26,14 @@ export default async function CardStatementPage({ params, searchParams }: { para
   const asOfBookingTimestamp = parseAsOf(asOf);
   const scope = await getAuthenticatedScope();
   requirePageAccess(scope, "/statements/card");
-  const rows = await getLedgerStatement(transactionId, asOfBookingTimestamp, scope);
+  if (!isUuid(transactionId)) notFound();
+  let rows;
+  try {
+    rows = await getLedgerStatement(transactionId, asOfBookingTimestamp, scope);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Card statement not found") notFound();
+    throw error;
+  }
 
   return (
     <>

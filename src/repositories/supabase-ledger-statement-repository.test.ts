@@ -34,6 +34,13 @@ describe("card statement scope", () => {
     process.env.SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
     const { getLedgerStatement } = await import("./supabase-ledger-statement-repository");
-    await expect(getLedgerStatement("tx_1")).rejects.toThrow("Authenticated scope is required");
+    await expect(getLedgerStatement("00000000-0000-4000-8000-000000000000")).rejects.toThrow("Authenticated scope is required");
+  });
+
+  it("rejects malformed transaction ids before querying Supabase", async () => {
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    const { getLedgerStatement } = await import("./supabase-ledger-statement-repository");
+    await expect(getLedgerStatement("card-4821", undefined, { businessId: "b1", accountId: "a1" })).rejects.toThrow("Card statement not found");
   });
 });

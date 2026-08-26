@@ -18,7 +18,14 @@ export async function updateSupabaseSession(request: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getClaims();
+  let data: { claims: Record<string, unknown> | null } = { claims: null };
+  try {
+    const claimsResult = await supabase.auth.getClaims();
+    data = { claims: claimsResult.data?.claims ?? null };
+  } catch {
+    // Treat an expired or revoked refresh token as a signed-out request.
+    // Protected routes redirect to login below; public routes remain reachable.
+  }
   const pathname = request.nextUrl.pathname;
   const isPublic = pathname === "/login" || pathname === "/docs" || pathname === "/api/auth/signup" || pathname === "/api/mcp" || pathname.startsWith("/api/v1/") || pathname.startsWith("/auth") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/jobs/") || pathname.startsWith("/_next") || pathname.includes(".");
   if (!data?.claims && !isPublic) {

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { projectStatement, type LedgerStatementRow, type StatementJournalEntry } from "../domain/ledger-statement";
 import type { LedgerScope } from "../domain/ledger-balance";
+import { isUuid } from "../lib/identifiers";
 
 type JournalRow = {
   id: string;
@@ -46,6 +47,7 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Supabase ledger storage is not configured");
+  if (transactionId && !isUuid(transactionId)) throw new Error("Card statement not found");
 
   const client = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
