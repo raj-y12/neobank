@@ -58,6 +58,7 @@ export class SupabaseCardReversalRepository implements CardReversalRepository {
         .eq("idempotency_key", input.idempotencyKey)
         .single<IntentRow>();
       if (existingError) throw existingError;
+      if (existing.original_transaction_id !== input.originalTransactionId) throw new Error("Idempotency key was already used with different request data");
       return toIntent(existing);
     }
     if (error) throw error;
@@ -95,9 +96,9 @@ export class SupabaseCardReversalRepository implements CardReversalRepository {
       .from("card_reversal_intents")
       .select("id,original_transaction_id,card_token,expected_amount_cents,provider_return_transaction_id,status,idempotency_key")
       .eq("id", intentId)
-      .single<IntentRow>();
+      .maybeSingle<IntentRow>();
     if (error) throw error;
-    return toIntent(data);
+    return data ? toIntent(data) : null;
   }
 
   async findByProviderReturnTransactionId(providerReturnTransactionId: string) {

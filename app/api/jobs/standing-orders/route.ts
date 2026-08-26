@@ -3,14 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { APPROVAL_THRESHOLD_CENTS } from "@/src/domain/payment-lifecycle";
 import { standingOrderPaymentStatus } from "@/src/domain/standing-orders";
+import { nextStandingOrderDate } from "@/src/domain/standing-orders";
 import { decryptSensitiveValue } from "@/src/integrations/plaid/client";
-
-function advance(date: string, frequency: "DAILY" | "WEEKLY" | "MONTHLY") {
-  const next = new Date(`${date}T00:00:00Z`);
-  next.setUTCDate(next.getUTCDate() + (frequency === "DAILY" ? 1 : frequency === "WEEKLY" ? 7 : 0));
-  if (frequency === "MONTHLY") next.setUTCMonth(next.getUTCMonth() + 1);
-  return next.toISOString().slice(0, 10);
-}
 
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -34,7 +28,7 @@ export async function POST(request: Request) {
     if (paymentError?.code === "23505") { results.push({ id: order.id, status: "ALREADY_PROCESSED" }); continue; }
     if (order.amount_cents > APPROVAL_THRESHOLD_CENTS) {
       await client.from("standing_order_occurrences").update({ status: "PENDING_APPROVAL", payment_id: paymentId, updated_at: new Date().toISOString() }).eq("id", occurrence.id);
-      await client.from("standing_orders").update({ next_run_date: advance(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
+      await client.from("standing_orders").update({ next_run_date: nextStandingOrderDate(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
       results.push({ id: order.id, status: "PENDING_APPROVAL" });
       continue;
     }
@@ -42,7 +36,7 @@ export async function POST(request: Request) {
     if (reserveError) {
       await client.from("standing_order_occurrences").update({ status: "INSUFFICIENT_FUNDS", updated_at: new Date().toISOString() }).eq("id", occurrence.id);
       await client.from("payments").update({ status: "REJECTED", updated_at: new Date().toISOString() }).eq("id", paymentId);
-      await client.from("standing_orders").update({ next_run_date: order.insufficient_funds_policy === "RETRY_NEXT_DAY" ? today : advance(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
+      await client.from("standing_orders").update({ next_run_date: order.insufficient_funds_policy === "RETRY_NEXT_DAY" ? nextStandingOrderDate(today, "DAILY") : nextStandingOrderDate(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
       results.push({ id: order.id, status: "INSUFFICIENT_FUNDS" });
       continue;
     }
@@ -59,7 +53,7 @@ export async function POST(request: Request) {
     const transfer = await rail.createOutbound({ amountCents: order.amount_cents, recipient: recipient.name ?? "Standing order", accountNumber: decryptSensitiveValue(recipient.encryptedAccountNumber), routingNumber: decryptSensitiveValue(recipient.encryptedRoutingNumber), providerAccountId, idempotencyKey: `payment-submit:${paymentId}` });
     await client.from("payments").update({ provider_payment_id: transfer.providerTransferId, status: "SUBMITTED", updated_at: new Date().toISOString() }).eq("id", paymentId);
     await client.from("standing_order_occurrences").update({ status: "SUBMITTED", payment_id: paymentId, updated_at: new Date().toISOString() }).eq("id", occurrence.id);
-    await client.from("standing_orders").update({ next_run_date: advance(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
+    await client.from("standing_orders").update({ next_run_date: nextStandingOrderDate(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
     results.push({ id: order.id, status: "SUBMITTED" });
   }
   return NextResponse.json({ processed: results.length, results });

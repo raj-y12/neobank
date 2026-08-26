@@ -10,14 +10,17 @@ import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-
 import { canViewCard } from "@/src/domain/card-access";
 import { validateReturnLink } from "@/src/domain/card-reversal";
 import { isUuid } from "@/src/lib/identifiers";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const scope = await getAuthenticatedScope();
+    if (!await isBusinessApprovedForBusiness(scope.businessId)) return NextResponse.json({ error: "Business verification must be approved before linking a return" }, { status: 403 });
     if (!isUuid(id)) return NextResponse.json({ error: "Reversal intent not found" }, { status: 404 });
     const reversalRepository = createSupabaseCardReversalRepository();
     const existingIntent = await reversalRepository.getIntent(id);
+    if (!existingIntent) return NextResponse.json({ error: "Reversal intent not found" }, { status: 404 });
     const assignment = await getBusinessCardAssignment(scope.businessId, existingIntent.cardToken);
     if (!assignment || !canViewCard({ role: scope.role, currentMemberId: scope.memberId, assignedMemberId: assignment.memberId })) return NextResponse.json({ error: "Card is outside the authenticated business scope" }, { status: 404 });
     const body = await request.json() as { providerReturnTransactionId?: string; returnCardToken?: string; returnAmountCents?: number };

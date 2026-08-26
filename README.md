@@ -151,7 +151,7 @@ Amounts are integer cents. Payment creation is idempotent when the same `Idempot
 
 The API returns safe card metadata only. PAN, CVV, expiry, and PIN data are not returned by the public REST API or MCP server. Card details are available only through the authenticated web card-detail flow, where Lithic’s secure embed fields render the sensitive values.
 
-Common responses include `401` for missing/invalid authentication, `403` for insufficient membership scope, `404` for an inaccessible resource, `409` for an idempotency or state conflict, and `422` for invalid request data.
+Common responses include `401` for missing/invalid authentication, `403` for insufficient membership scope, `404` for an inaccessible resource, `409` for an idempotency or state conflict, and `400` for invalid request data.
 
 The full contract and request/response schemas are in [docs/public-api.md](docs/public-api.md), [Scalar](/docs), and [OpenAPI](/api/v1/openapi.json).
 

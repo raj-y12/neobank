@@ -4,10 +4,12 @@ import { dollarsToCents } from "@/src/domain/money";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { getPublicApiScope, publicApiError } from "@/src/lib/public-api-auth";
 import { toPublicPayment } from "@/src/lib/public-api-payment";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request) {
   try {
     const scope = await getPublicApiScope(request);
+    if (!await isBusinessApprovedForBusiness(scope.businessId)) return Response.json({ error: "Business verification must be approved before sending money", code: "business_not_approved" }, { status: 403 });
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (!idempotencyKey) return Response.json({ error: "Idempotency-Key header is required", code: "missing_idempotency_key" }, { status: 400 });
     const body = await request.json() as { amountDollars?: string; recipient?: string; accountNumber?: string; routingNumber?: string };

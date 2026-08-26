@@ -35,4 +35,20 @@ describe("SupabaseFundingRepository", () => {
 
     await expect(new SupabaseFundingRepository(client).create(funding(), "sandbox-transfer-retry", "funding-key")).rejects.toThrow("Idempotency key was already used with different request data");
   });
+
+  it("does not return an unpersisted transfer after a duplicate insert", async () => {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      maybeSingle: vi.fn(),
+      insert: vi.fn(),
+    };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.maybeSingle.mockResolvedValue({ data: null, error: null });
+    query.insert.mockResolvedValue({ error: { code: "23505", message: "duplicate key" } });
+
+    await expect(new SupabaseFundingRepository({ from: () => query } as never).create(funding(), "sandbox-transfer-retry", "funding-key"))
+      .rejects.toThrow("Idempotency key was already used with different request data");
+  });
 });

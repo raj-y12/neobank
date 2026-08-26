@@ -5,10 +5,12 @@ import { createSupabasePaymentRepository } from "@/src/repositories/supabase-pay
 import { dollarsToCents } from "@/src/domain/money";
 import { validateAchBankDetails } from "@/src/domain/ach";
 import { toPublicPayment } from "@/src/lib/public-api-payment";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request) {
   try {
     const context = await getAuthenticatedScope();
+    if (!await isBusinessApprovedForBusiness(context.businessId)) return NextResponse.json({ error: "Business verification must be approved before sending money" }, { status: 403 });
     const body = await request.json() as { amountDollars?: string; recipient?: string; accountNumber?: string; routingNumber?: string; idempotencyKey?: string };
     if (!body.amountDollars || !body.recipient || !body.accountNumber || !body.routingNumber || !body.idempotencyKey) throw new Error("amountDollars, recipient, accountNumber, routingNumber, and idempotencyKey are required");
     validateAchBankDetails(body.accountNumber, body.routingNumber);

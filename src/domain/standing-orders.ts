@@ -16,6 +16,22 @@ export function isIsoCalendarDate(value: string) {
   return parsed.toISOString().slice(0, 10) === value;
 }
 
+export function nextStandingOrderDate(date: string, frequency: StandingOrderFrequency) {
+  if (!isIsoCalendarDate(date)) throw new Error("Standing order date must be an ISO date");
+  const current = new Date(`${date}T00:00:00Z`);
+  if (frequency === "DAILY") current.setUTCDate(current.getUTCDate() + 1);
+  if (frequency === "WEEKLY") current.setUTCDate(current.getUTCDate() + 7);
+  if (frequency === "MONTHLY") {
+    const day = current.getUTCDate();
+    const targetMonth = current.getUTCMonth() + 1;
+    const targetYear = current.getUTCFullYear() + Math.floor(targetMonth / 12);
+    const monthIndex = targetMonth % 12;
+    const lastDay = new Date(Date.UTC(targetYear, monthIndex + 1, 0)).getUTCDate();
+    current.setUTCFullYear(targetYear, monthIndex, Math.min(day, lastDay));
+  }
+  return current.toISOString().slice(0, 10);
+}
+
 export function createOccurrence(standingOrderId: string, scheduledDate: string): StandingOrderOccurrence {
   if (!standingOrderId || !isIsoCalendarDate(scheduledDate)) throw new Error("Standing order occurrence requires an ID and ISO date");
   return { standingOrderId, occurrenceKey: `${standingOrderId}:${scheduledDate}`, scheduledDate };

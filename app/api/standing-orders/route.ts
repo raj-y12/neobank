@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { maskAchAccountNumber, validateAchBankDetails } from "@/src/domain/ach";
 import { encryptSensitiveValue } from "@/src/integrations/plaid/client";
 import { isIsoCalendarDate } from "@/src/domain/standing-orders";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
   try {
     const scope = await getAuthenticatedScope();
     if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
+    if (!await isBusinessApprovedForBusiness(scope.businessId)) return NextResponse.json({ error: "Business verification must be approved before creating standing orders" }, { status: 403 });
     const body = await request.json() as { amountCents?: number; recipient?: string; accountNumber?: string; routingNumber?: string; frequency?: string; nextRunDate?: string; insufficientFundsPolicy?: string };
     if (!Number.isSafeInteger(body.amountCents) || (body.amountCents ?? 0) <= 0 || !body.recipient?.trim() || !body.accountNumber || !body.routingNumber || !body.nextRunDate) throw new Error("amountCents, recipient, accountNumber, routingNumber, and nextRunDate are required");
     if (!isIsoCalendarDate(body.nextRunDate)) throw new Error("nextRunDate must be an ISO date");

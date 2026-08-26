@@ -48,7 +48,8 @@ export class SupabasePaymentRepository {
     if (error?.code === "23505") {
       const concurrent = await this.getByIdempotencyKey(payment.businessId, idempotencyKey);
       if (concurrent && !samePaymentRequest(concurrent, payment)) throw new Error("Idempotency key was already used with different request data");
-      return concurrent ?? payment;
+      if (!concurrent) throw new Error("Idempotency key was already used with different request data");
+      return concurrent;
     }
     return payment;
   }

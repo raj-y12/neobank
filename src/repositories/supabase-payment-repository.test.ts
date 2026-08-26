@@ -55,4 +55,27 @@ describe("SupabasePaymentRepository.create", () => {
       status: "PENDING_APPROVAL",
     }, "same-key")).rejects.toThrow("different request data");
   });
+
+  it("does not continue when a duplicate insert cannot be read in this business", async () => {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: async () => ({ data: null, error: null }),
+      insert: async () => ({ error: { code: "23505", message: "duplicate key" } }),
+    };
+    const client = { from: () => query } as never;
+
+    await expect(new SupabasePaymentRepository(client).create({
+      id: "payment-2",
+      businessId: "business-a",
+      accountId: "account-a",
+      initiatorId: "member-a",
+      amountCents: 200,
+      currency: "USD",
+      rail: "ACH",
+      recipient: "Acme",
+      recipientBank: { accountNumber: "1234567890", routingNumber: "021000021" },
+      status: "PENDING_APPROVAL",
+    }, "same-key")).rejects.toThrow("different request data");
+  });
 });

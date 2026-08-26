@@ -11,6 +11,7 @@ import { createSupabaseLedgerRepository } from "../repositories/supabase-ledger-
 import { createSupabasePaymentRepository } from "../repositories/supabase-payment-repository";
 import { getBusinessCardAssignment, listBusinessCardAssignments } from "../repositories/supabase-business-card-repository";
 import { getLithicCard } from "../integrations/lithic/client";
+import { isBusinessApprovedForBusiness } from "../lib/onboarding-gate";
 
 function result(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
@@ -58,6 +59,7 @@ async function makeServer(ctx: McpRequestContext) {
     const amountCents = dollarsToCents(amountDollars);
     const preview = { amountDollars, recipient, rail: "ACH", approval: "human approval required", idempotencyKey };
     if (!confirmed) return result({ requiresConfirmation: true, preview });
+    if (!await isBusinessApprovedForBusiness(scope.businessId)) return result({ error: "Business verification must be approved before sending money", code: "business_not_approved" });
     const payment = createPayment({ businessId: scope.businessId, accountId: scope.accountId, initiatorId: scope.memberId, amountCents, currency: "USD", rail: "ACH", recipient, recipientBank: { accountNumber, routingNumber }, approvalMode: "HUMAN" });
     const repository = createSupabasePaymentRepository();
     const persisted = await repository.create(payment, idempotencyKey);

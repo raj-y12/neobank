@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOccurrence, decideStandingOrderRun, isIsoCalendarDate, occurrenceStatusLabel, standingOrderFrequencyLabel, standingOrderPaymentStatus, standingOrderRecipientName } from "./standing-orders";
+import { createOccurrence, decideStandingOrderRun, isIsoCalendarDate, nextStandingOrderDate, occurrenceStatusLabel, standingOrderFrequencyLabel, standingOrderPaymentStatus, standingOrderRecipientName } from "./standing-orders";
 
 describe("standing orders", () => {
   it("creates a deterministic occurrence identity for a scheduled date", () => {
@@ -25,6 +25,12 @@ describe("standing orders", () => {
   it("puts above-threshold payments into the approval queue", () => {
     expect(standingOrderPaymentStatus(100_001)).toBe("PENDING_APPROVAL");
     expect(standingOrderPaymentStatus(100_000)).toBe("APPROVED");
+  });
+
+  it("advances daily, weekly, and month-end schedules without creating impossible dates", () => {
+    expect(nextStandingOrderDate("2026-08-26", "DAILY")).toBe("2026-08-27");
+    expect(nextStandingOrderDate("2026-08-26", "WEEKLY")).toBe("2026-09-02");
+    expect(nextStandingOrderDate("2026-01-31", "MONTHLY")).toBe("2026-02-28");
   });
 
   it("provides stable labels for the management view", () => {

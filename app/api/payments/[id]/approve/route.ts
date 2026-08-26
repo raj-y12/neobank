@@ -5,11 +5,13 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { createSupabaseProviderAccountRepository } from "@/src/repositories/supabase-provider-account-repository";
 import { isUuid } from "@/src/lib/identifiers";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await getAuthenticatedScope();
     if (context.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
+    if (!await isBusinessApprovedForBusiness(context.businessId)) return NextResponse.json({ error: "Business verification must be approved before approving payments" }, { status: 403 });
     const { id } = await params;
     if (!isUuid(id)) return NextResponse.json({ error: "Payment not found in business scope" }, { status: 404 });
     const repository = createSupabasePaymentRepository();

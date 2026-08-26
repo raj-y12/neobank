@@ -53,12 +53,13 @@ export class SupabaseFundingRepository {
     if (error?.code === "23505") {
       const concurrent = await this.getByIdempotencyKey(funding.businessId, idempotencyKey);
       if (concurrent && !sameFundingRequest(concurrent, funding)) throw new Error("Idempotency key was already used with different request data");
-      return concurrent ?? { ...funding, providerTransferId };
+      if (!concurrent) throw new Error("Idempotency key was already used with different request data");
+      return concurrent;
     }
     return { ...funding, providerTransferId };
   }
 
-  private async getByIdempotencyKey(businessId: string, idempotencyKey: string) {
+  async getByIdempotencyKey(businessId: string, idempotencyKey: string) {
     const { data, error } = await this.client.from("funding_transfers").select(FUNDING_COLUMNS).eq("business_id", businessId).eq("idempotency_key", idempotencyKey).maybeSingle<FundingRow>();
     if (error) throw error;
     return data ? toFunding(data) : null;

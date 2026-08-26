@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
 import { canViewCard } from "@/src/domain/card-access";
 import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
 import { isUuid } from "@/src/lib/identifiers";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
     }
     if (!isUuid(body.originalTransactionId)) return NextResponse.json({ error: "Card transaction not found" }, { status: 404 });
     const scope = await getAuthenticatedScope();
+    if (!await isBusinessApprovedForBusiness(scope.businessId)) return NextResponse.json({ error: "Business verification must be approved before creating a reversal intent" }, { status: 403 });
     const { data: transaction, error: transactionError } = await createSupabaseAdminClient().from("card_transactions").select("card_token").eq("id", body.originalTransactionId).maybeSingle<{ card_token: string }>();
     if (transactionError) throw transactionError;
     const assignment = transaction ? await getBusinessCardAssignment(scope.businessId, transaction.card_token) : null;

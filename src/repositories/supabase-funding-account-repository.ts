@@ -20,6 +20,13 @@ export class SupabaseFundingAccountRepository implements FundingAccountRepositor
     return data ? toAccount(data) : null;
   }
   async save(input: Parameters<FundingAccountRepository["save"]>[0]) {
+    const { data: existing, error: existingError } = await this.client.from("linked_funding_accounts")
+      .select("business_id")
+      .eq("provider", "PLAID")
+      .eq("provider_item_id", input.providerItemId)
+      .maybeSingle<{ business_id: string }>();
+    if (existingError) throw existingError;
+    if (existing && existing.business_id !== input.businessId) throw new Error("Plaid item is already linked to another business");
     const { data, error } = await this.client.from("linked_funding_accounts").upsert({
       business_id: input.businessId, account_id: input.accountId, provider: "PLAID", provider_item_id: input.providerItemId,
       provider_access_token: encryptPlaidAccessToken(input.providerAccessToken), institution_id: input.institutionId ?? null, institution_name: input.institutionName ?? null,
