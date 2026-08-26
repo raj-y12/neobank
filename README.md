@@ -28,6 +28,8 @@ Run checks with `npm test`, `npm run typecheck`, and `npm run build`. Apply `sup
 See [the integration evidence pack](docs/integration-evidence.md) for the smoke flow, required environment variables, and cut list.
 Scheduled recovery and standing-order execution run through an external cron provider; see [the external cron setup](docs/external-crons.md).
 
+The public v1 API is documented in [docs/public-api.md](docs/public-api.md), with interactive Scalar docs at `/docs` and the OpenAPI contract at `/api/v1/openapi.json`.
+
 For current behavior and provider choices, use this README, [decisions.md](decisions.md), and the [integration evidence pack](docs/integration-evidence.md). Historical implementation plans are not operational documentation.
 
 The application is a Next.js web app. Provider credentials belong in local environment variables or Vercel project settings; never commit them.
