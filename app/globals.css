@@ -283,7 +283,7 @@ h4 { margin-bottom: var(--space-3); font-size: var(--text-sm); font-weight: 600;
 .panel { padding: var(--space-5); }
 .panel-heading { justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
 .panel-heading:last-child { margin-bottom: 0; }
-.shell > .panel + .panel, .shell > section + section { margin-top: var(--space-4); }
+.page-transition > .panel + .panel, .page-transition > section + section { margin-top: var(--space-4); }
 .account-card + .metric-grid,
 .account-card + .content-grid,
 .account-card + .panel { margin-top: var(--space-4); }

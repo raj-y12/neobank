@@ -36,7 +36,7 @@ export function TeamClient() {
 
   return <>
     <section className="panel">
-      <h3>Add an employee</h3>
+      <div className="panel-heading"><h3>Add an employee</h3></div>
       <form className="form-row" onSubmit={invite}>
         <label>Employee email<input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="employee@business.com" required /></label>
         <label>Initial password<input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" minLength={8} required /></label>
