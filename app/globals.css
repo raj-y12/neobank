@@ -685,3 +685,69 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
   .footer { align-items: flex-start; gap: var(--space-3); flex-direction: column; }
   .data-table { display: block; overflow-x: auto; }
 }
+
+/* ---- final product pass: shared interaction and responsive details ---- */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.panel-heading h3,
+.widget-card h3 { margin-top: 0; }
+.btn-ghost::after { content: none; }
+.btn:hover:not(:disabled),
+.pill-btn:hover:not(:disabled) { filter: brightness(1.04); }
+.btn:active:not(:disabled),
+.pill-btn:active:not(:disabled),
+.sidebar-tab:active { transform: scale(.985); }
+.btn-outline { border: 1px solid var(--line-strong); background: transparent; }
+.btn-outline:hover:not(:disabled) { border-color: var(--orange); background: var(--orange-soft); color: var(--ink); }
+.empty-icon svg { width: 20px; height: 20px; }
+.card-access-panel { width: min(680px, 100%); margin: var(--space-5) auto 0; }
+.card-access-copy { max-width: 560px; margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-xs); line-height: 1.5; }
+.card-delegate-row { margin-top: var(--space-5); margin-bottom: 0; }
+.card-delegate-row label { flex: 1 1 260px; min-width: 0; }
+.card-delegate-row .list-meta { align-self: center; white-space: nowrap; }
+.sidebar-tab.is-active { box-shadow: inset 2px 0 0 var(--orange); }
+.sidebar-tab[aria-current="page"] .sidebar-tab-icon { color: var(--orange-2); }
+
+.skeleton-list { display: grid; gap: 1px; overflow: hidden; border-radius: var(--radius-md); background: var(--line); }
+.skeleton-list span { display: block; height: 56px; background: linear-gradient(90deg, var(--card-soft) 20%, rgba(255,255,255,.08) 45%, var(--card-soft) 70%); background-size: 220% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+@keyframes skeleton-shimmer { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+
+@media (max-width: 760px) {
+  .app-shell { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .sidebar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    display: block;
+    width: 100%;
+    height: auto;
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgba(10, 12, 18, .94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .sidebar-brand, .nav-user { display: none; }
+  .sidebar-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; width: 100%; margin: 0; }
+  .sidebar-tab,
+  .sidebar-tab:hover,
+  .sidebar-tab.is-active:hover { width: auto; min-height: 54px; justify-content: center; flex-direction: column; gap: 4px; padding: 7px 2px 5px; border-radius: 10px; background: transparent; box-shadow: none; color: var(--muted); font-size: 10px; line-height: 1.1; }
+  .sidebar-tab.is-active { color: var(--ink); background: var(--orange-soft); box-shadow: none; }
+  .sidebar-tab-icon, .sidebar-tab-icon svg { width: 18px; height: 18px; font-size: 17px; }
+  .sidebar-tab-card-chip { width: 18px; height: 13px; }
+  .sidebar-tab-label { max-width: none; opacity: 1; overflow: visible; }
+  .shell { padding-bottom: var(--space-7); }
+  .intro { align-items: flex-start; }
+  .intro h2 { max-width: 70vw; }
+  .account-card-actions { width: 100%; }
+  .account-card-actions .pill-btn { flex: 1 1 auto; justify-content: center; }
+  .panel-heading { align-items: flex-start; }
+  .panel-heading > .chip { flex-shrink: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-list span { animation: none; }
+}

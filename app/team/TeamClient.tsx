@@ -10,12 +10,17 @@ export function TeamClient() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"MEMBER" | "ADMIN">("MEMBER");
   const [message, setMessage] = useState("Loading employees…");
+  const [loading, setLoading] = useState(true);
 
   async function load() {
-    const response = await fetch("/api/employees", { cache: "no-store" });
-    const body = await response.json() as { employees?: Employee[]; error?: string };
-    setEmployees(body.employees ?? []);
-    setMessage(response.ok ? `${body.employees?.length ?? 0} employee(s)` : body.error ?? "Unable to load employees");
+    setLoading(true);
+    try {
+      const response = await fetch("/api/employees", { cache: "no-store" });
+      const body = await response.json() as { employees?: Employee[]; error?: string };
+      setEmployees(body.employees ?? []);
+      setMessage(response.ok ? `${body.employees?.length ?? 0} employee(s)` : body.error ?? "Unable to load employees");
+    } catch { setMessage("Unable to load employees. Try refreshing.");
+    } finally { setLoading(false); }
   }
 
   useEffect(() => { void load(); }, []);
@@ -38,7 +43,7 @@ export function TeamClient() {
     </form>
     <p className="list-meta" role="status">{message}</p>
 
-    {employees.length > 0 && (
+    {loading ? <div className="skeleton-list" aria-label="Loading employees" aria-busy="true"><span /><span /><span /></div> : employees.length > 0 && (
       <table className="data-table">
         <thead><tr><th>Employee</th><th>Role</th><th>Status</th></tr></thead>
         <tbody>

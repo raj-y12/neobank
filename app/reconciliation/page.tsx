@@ -8,11 +8,16 @@ export default function ReconciliationPage() {
   const [breaks, setBreaks] = useState<Break[]>([]);
   const [message, setMessage] = useState("No file loaded.");
   const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
   async function load() {
-    const response = await fetch("/api/agent/reconciliation-breaks", { cache: "no-store" });
-    const body = await response.json();
-    setBreaks(body.breaks ?? []);
-    setMessage(response.ok ? `${body.breaks?.length ?? 0} break(s) loaded` : body.error);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/agent/reconciliation-breaks", { cache: "no-store" });
+      const body = await response.json();
+      setBreaks(body.breaks ?? []);
+      setMessage(response.ok ? `${body.breaks?.length ?? 0} break(s) loaded` : body.error);
+    } catch { setMessage("Unable to load reconciliation breaks. Try refreshing.");
+    } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
   async function uploadFile() {
@@ -54,7 +59,7 @@ export default function ReconciliationPage() {
             <button className="btn btn-primary" onClick={plantBreak}>Add test break</button>
           </div>
         </div>
-        {breaks.length === 0 ? <div className="empty-state"><h4>No breaks</h4><p>{message}</p></div> : (
+        {loading ? <div className="skeleton-list" aria-label="Loading reconciliation breaks" aria-busy="true"><span /><span /><span /></div> : breaks.length === 0 ? <div className="empty-state"><h4>No breaks</h4><p>{message}</p></div> : (
           <table className="data-table">
             <thead><tr><th>Break</th><th>Reference</th><th>Amount</th><th>Age</th><th>Status</th><th /></tr></thead>
             <tbody>

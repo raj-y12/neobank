@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PaymentStatus } from "@/src/domain/payment-lifecycle";
+import { IconClose } from "../components/Icon";
 
 export default function PaymentsPage() {
   const [recipient, setRecipient] = useState("Northstar Supplies");
@@ -12,6 +13,7 @@ export default function PaymentsPage() {
   const [payment, setPayment] = useState<{ id: string; status: PaymentStatus; amountCents: number } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [railMode, setRailMode] = useState(process.env.NEXT_PUBLIC_INCREASE_MODE ?? "SIMULATED");
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
     if (!payment || !modalOpen || payment.status === "SETTLED" || payment.status === "RETURNED" || payment.status === "REJECTED") return;
     const timer = window.setInterval(async () => {
@@ -26,14 +28,18 @@ export default function PaymentsPage() {
     return () => window.clearInterval(timer);
   }, [payment, modalOpen]);
   async function createPayment() {
-    const response = await fetch("/api/payments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recipient, accountNumber, routingNumber, amountDollars: amount, idempotencyKey: `payment-${crypto.randomUUID()}` }) });
-    const body = await response.json();
-    if (response.ok) {
-      setPayment(body.payment);
-      setRailMode(body.mode ?? "SIMULATED");
-      setModalOpen(true);
-      setMessage(`${body.payment.status}: ${body.approvalRequired ? "waiting for a second human" : "submitted"}`);
-    } else setMessage(body.error);
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/payments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recipient, accountNumber, routingNumber, amountDollars: amount, idempotencyKey: `payment-${crypto.randomUUID()}` }) });
+      const body = await response.json();
+      if (response.ok) {
+        setPayment(body.payment);
+        setRailMode(body.mode ?? "SIMULATED");
+        setModalOpen(true);
+        setMessage(`${body.payment.status}: ${body.approvalRequired ? "waiting for a second human" : "submitted"}`);
+      } else setMessage(body.error);
+    } catch { setMessage("Unable to send payment. Check your connection and try again.");
+    } finally { setSubmitting(false); }
   }
   return (
     <>
@@ -57,12 +63,12 @@ export default function PaymentsPage() {
           <label>Routing number<input className="input" value={routingNumber} onChange={(event) => setRoutingNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
           <label>Amount in dollars<span className="currency-input"><span aria-hidden="true">$</span><input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></span></label>
         </div>
-        <button className="btn btn-primary" onClick={createPayment}>Send payment</button>
+        <button className="btn btn-primary" onClick={createPayment} disabled={submitting}>{submitting ? "Sending…" : "Send payment"}</button>
         <p className="list-meta" role="status">{message}</p>
       </section>
       {modalOpen && payment && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModalOpen(false)}>
         <section className="transaction-modal payment-status-modal" role="dialog" aria-modal="true" aria-labelledby="payment-status-title">
-          <div className="modal-header"><div><p className="modal-context">Payment status</p><h3 id="payment-status-title">{statusTitle(payment.status)}</h3></div><button className="modal-close" aria-label="Close payment status" onClick={() => setModalOpen(false)}>×</button></div>
+          <div className="modal-header"><div><p className="modal-context">Payment status</p><h3 id="payment-status-title">{statusTitle(payment.status)}</h3></div><button className="modal-close" aria-label="Close payment status" onClick={() => setModalOpen(false)}><IconClose /></button></div>
           <div className="modal-summary"><div><span className="detail-label">Current state</span><div className="modal-chips"><span className={`chip ${statusTone(payment.status)}`}>{payment.status.replaceAll("_", " ")}</span></div></div><div className="modal-amount"><span className="detail-label">Amount</span><strong>${(payment.amountCents / 100).toFixed(2)}</strong></div></div>
           <p className="modal-note">{statusMessage(payment.status)}</p>
           {(payment.status === "SUBMITTED" || payment.status === "APPROVED" || payment.status === "PENDING_APPROVAL") && <div className="payment-status-track"><span className="is-complete">Created</span><span className={payment.status === "PENDING_APPROVAL" ? "is-current" : "is-complete"}>{payment.status === "PENDING_APPROVAL" ? "Approval required" : "Submitted"}</span><span>Settled</span></div>}

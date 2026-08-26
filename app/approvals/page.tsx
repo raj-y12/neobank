@@ -7,11 +7,16 @@ type Approval = { id: string; amount_cents: number; recipient: { name?: string }
 export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [message, setMessage] = useState("Loading approval queue…");
+  const [loading, setLoading] = useState(true);
   async function load() {
-    const response = await fetch("/api/approvals", { cache: "no-store" });
-    const body = await response.json();
-    setApprovals(body.approvals ?? []);
-    setMessage(response.ok ? `${body.approvals?.length ?? 0} payment(s) awaiting approval` : body.error);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/approvals", { cache: "no-store" });
+      const body = await response.json();
+      setApprovals(body.approvals ?? []);
+      setMessage(response.ok ? `${body.approvals?.length ?? 0} payment(s) awaiting approval` : body.error);
+    } catch { setMessage("Unable to load approvals. Try refreshing.");
+    } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
   async function approve(id: string) {
@@ -39,7 +44,7 @@ export default function ApprovalsPage() {
         <div className="table-toolbar">
           <div><h3>{approvals.length} waiting</h3></div>
         </div>
-        {approvals.length === 0 ? <div className="empty-state"><h4>No pending approvals</h4><p>{message}</p></div> : (
+        {loading ? <div className="skeleton-list" aria-label="Loading approvals" aria-busy="true"><span /><span /><span /></div> : approvals.length === 0 ? <div className="empty-state"><h4>No pending approvals</h4><p>{message}</p></div> : (
           <table className="data-table">
             <thead><tr><th>Recipient</th><th>Initiated by</th><th>Status</th><th>Amount</th><th /></tr></thead>
             <tbody>

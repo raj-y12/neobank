@@ -43,11 +43,11 @@ export default async function Home() {
 
           <div className="account-card-transactions">
             {activity.length === 0 ? <div className="empty-state">
-              <div className="empty-icon">↗</div>
+              <div className="empty-icon"><IconArrowUp /></div>
               <h4>Your ledger will appear here</h4>
               <p>Once funding and card activity are connected, every movement will be shown from the immutable ledger.</p>
             </div> : <LedgerActivity rows={activity} />}
-            <Link className="see-all" href="/statements/card/card-4821">See all transactions →</Link>
+            <Link className="see-all" href="/statements/card/card-4821">See all transactions <span aria-hidden="true">→</span></Link>
           </div>
         </article>
 

@@ -61,6 +61,7 @@ export function AppNav() {
           <Link
             key={tab.href}
             href={tab.href}
+            aria-current={pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? "page" : undefined}
             className={`sidebar-tab${pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? " is-active" : ""}`}
           >
             {tab.icon === "card" ? <span className="sidebar-tab-card-chip" aria-hidden="true" /> : <span className="sidebar-tab-icon" aria-hidden="true">{tab.icon}</span>}
