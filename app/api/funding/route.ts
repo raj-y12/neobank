@@ -30,8 +30,8 @@ export async function POST(request: Request) {
     const funding = createFundingTransfer({ businessId: scope.businessId, accountId: scope.accountId, linkedFundingAccountId: linkedAccount.id, amountCents: body.amountCents, rail: "ACH" });
     const providerAccount = rail.mode === "LIVE" ? await createSupabaseProviderAccountRepository().getActiveIncrease(scope.businessId, scope.accountId) : null;
     if (rail.mode === "LIVE" && !providerAccount) throw new Error("Configure an active Increase account for this business before adding money");
-    const source = await createSupabaseFundingAccountRepository().getAchSource(scope.businessId);
-    const transfer = await rail.createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, providerAccountId: providerAccount?.providerAccountId, accountNumberId: providerAccount?.providerAccountNumberId ?? undefined, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
+    const source = rail.mode === "LIVE" ? await createSupabaseFundingAccountRepository().getAchSource(scope.businessId) : undefined;
+    const transfer = await rail.createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, providerAccountId: providerAccount?.providerAccountId, accountNumberId: providerAccount?.providerAccountNumberId ?? undefined, accountNumber: source?.accountNumber, routingNumber: source?.routingNumber });
     const persisted = await repository.create(funding, transfer.providerTransferId, body.idempotencyKey);
     return NextResponse.json({ mode: rail.mode, funding: persisted }, { status: 201 });
   } catch (error) {
