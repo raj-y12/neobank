@@ -1,6 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/jobs/lithic-recovery", "schedule": "*/5 * * * *" },
-    { "path": "/api/jobs/standing-orders", "schedule": "0 7 * * *" }
-  ]
-}

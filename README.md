@@ -20,6 +20,7 @@ npm run dev
 Run checks with `npm test`, `npm run typecheck`, and `npm run build`. Apply `supabase/migrations/*.sql` followed by `supabase/seed.sql` for the demo data. The seed includes the approved business, onboarding verification, encrypted simulated Plaid account, settled inbound funding, pending maker-checker payment, assigned simulated card, and opening/funding ledger entries. It does not create Auth users: create the owner through `/login`, then use the admin Team flow to provision employees.
 
 See [the integration evidence pack](docs/integration-evidence.md) for the smoke flow, required environment variables, and cut list.
+Scheduled recovery and standing-order execution run through an external cron provider; see [the external cron setup](docs/external-crons.md).
 
 The application is a Next.js web app. Provider credentials belong in local environment variables or Vercel project settings; never commit them.
 
