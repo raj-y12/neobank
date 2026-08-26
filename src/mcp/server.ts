@@ -10,7 +10,6 @@ import { createSupabaseLedgerRepository } from "../repositories/supabase-ledger-
 import { createSupabasePaymentRepository } from "../repositories/supabase-payment-repository";
 import { getBusinessCardAssignment, listBusinessCardAssignments } from "../repositories/supabase-business-card-repository";
 import { getLithicCard } from "../integrations/lithic/client";
-import { MCP_TOOL_NAMES } from "./tool-scope";
 
 function result(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
