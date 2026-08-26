@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBearerToken } from "./public-api-auth";
+import { getBearerToken, publicApiError } from "./public-api-auth";
 
 describe("public API authentication", () => {
   it("extracts a bearer token case-insensitively", () => {
@@ -16,5 +16,15 @@ describe("public API authentication", () => {
     });
 
     expect(getBearerToken(request)).toBeNull();
+  });
+
+  it("returns 409 for an idempotency payload conflict", async () => {
+    const response = publicApiError(new Error("Idempotency key was already used with different request data"));
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "Idempotency key was already used with different request data",
+      code: "idempotency_conflict",
+    });
   });
 });
