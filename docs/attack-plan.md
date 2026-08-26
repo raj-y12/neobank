@@ -1,12 +1,14 @@
 # Track 3 — T+2h Attack Plan
 
+Status: historical planning document. Current behavior and provider choices are defined in `README.md`, `decisions.md`, and `docs/integration-evidence.md`.
+
 ## Scope we will own end to end
 
-We will build a deployed US business-current-account experience around three flows:
+The implemented Track 3 experience is organized around three flows:
 
 ### 1. Onboarding and funding
 
-- A business submits KYB information.
+- A business submits onboarding/KYC information.
 - The account remains pending until the business is approved.
 - An approved business receives an active USD account.
 - The business links an external bank and funds the account.
@@ -31,13 +33,13 @@ We will build a deployed US business-current-account experience around three flo
 
 | Capability | Initial choice | Status | Fallback or scope note |
 | --- | --- | --- | --- |
-| Card issuing | Lithic sandbox | Live | Stripe Issuing if Lithic setup blocks progress |
-| KYB/KYC | Persona sandbox | Live | Middesk if Persona setup blocks progress |
+| Card issuing | Lithic sandbox | Live when configured | No alternate provider is part of the current implementation |
+| Onboarding verification | Persona sandbox KYC | Live when configured | Full legal-entity KYB is deferred/provider-gated |
 | External-bank funding | Plaid Sandbox | Live target | Same adapter boundary; use a clearly labelled simulator if setup is a time risk |
-| Payment rail | Column sandbox | Live | Internal simulator remains the fallback; Column provides delayed settlement, returns, reversals, webhooks, and reports |
+| Payment rail | Increase sandbox | Live when explicitly enabled | Internal simulator is the default fallback; live mode requires `PAYMENT_RAIL_MODE=LIVE` and a scoped provider account |
 | USDC payout | Circle or Bridge testnet | Stretch | Cut if it threatens the core flow |
 
-The two mandatory live integrations will be card issuing and KYB/KYC; Column will provide an additional live payment-rail sandbox integration. Plaid is the live target for bank linking, subject to smoke testing. Every integration will be labelled honestly as live or simulated in the README and evidence pack.
+The available live integrations are Lithic card issuing, Persona owner KYC, Plaid bank linking, and Increase ACH when configured. Full legal-entity KYB remains deferred/provider-gated. Every integration will be labelled honestly as live or simulated in the README and evidence pack.
 
 ## System invariants we will protect
 
@@ -62,7 +64,7 @@ The two mandatory live integrations will be card issuing and KYB/KYC; Column wil
 5. Replay a webhook and verify it creates no second economic effect.
 6. Attempt self-approval and verify it is rejected.
 7. Remove a scheme-file row and verify a reconciliation break appears.
-8. Stop issuing webhooks temporarily and show the customer sees a pending/unknown state rather than a false balance.
+8. Stop issuing webhooks temporarily and show that the customer sees a stale available balance until the provider retries; the app has no real-time fallback for an event it never received.
 
 ## Cut list v0
 

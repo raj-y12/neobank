@@ -1,6 +1,6 @@
 # External cron jobs
 
-The scheduled jobs are intentionally run by an external cron provider. Configure both jobs against the production deployment:
+The scheduled jobs are intentionally run by an external cron provider. They are required for production, but deployment/configuration must be confirmed before claiming the recovery path is operational. Configure both jobs against the production deployment:
 
 | Job | Method | URL | Schedule |
 | --- | --- | --- | --- |

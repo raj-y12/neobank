@@ -1,6 +1,6 @@
 # Track 3 — P1 Onboarding, Funding, and Payment Controls
 
-Status: scoped, ready to implement
+Status: implemented; retained as historical scope and acceptance criteria
 
 ## Goal
 
@@ -20,7 +20,7 @@ settlement webhook posts the credit to our ledger
 outbound payment above $1,000 enters maker-checker approval
 ```
 
-This plan implements the decisions recorded in `decisions.md` as D-021. It does not attempt to complete reconciliation, standing orders, the agent surface, USDC, or the full historical statement experience.
+This plan records the original P1 scope. The implemented system and current provider choices are documented in `README.md`, `decisions.md`, and `docs/integration-evidence.md`.
 
 Authentication is deliberately minimal for the trial: Supabase email/password login, persistent cookie sessions, and two seeded demo memberships (`ADMIN` and `MEMBER`). Full user administration is out of scope.
 
@@ -38,7 +38,7 @@ Authentication is deliberately minimal for the trial: Supabase email/password lo
 - The payment initiator cannot approve their own payment.
 - Insufficient funds reject before provider submission.
 - Agent-created payment requests use the same human approval queue.
-- Persona and Lithic are the primary live sandbox integrations. Plaid and Column remain adapter-backed and may be simulated only if sandbox access blocks the core path.
+- Persona and Lithic are live-sandbox boundaries when configured. Plaid provides bank linking, and Increase provides ACH; both have explicit simulated/configuration fallbacks.
 
 ## Provider documentation baseline
 
@@ -47,7 +47,7 @@ Use the providers' documented flows and preserve the adapter boundaries:
 - Persona webhooks and inquiry status: [Persona Webhooks](https://docs.withpersona.com/webhooks), [Persona inquiry status](https://docs.withpersona.com/accessing-inquiry-status), and [Persona Hosted Flow API tutorial](https://docs.withpersona.com/tutorial-hosted-flow-unique-api).
 - Plaid Link: create a `link_token`, complete Link, exchange the `public_token` through `/item/public_token/exchange`, and persist the resulting `access_token` and `item_id`: [Plaid Link overview](https://plaid.com/docs/link/), [Plaid Link API](https://plaid.com/docs/api/link/).
 - Plaid sandbox fallback: use `/sandbox/public_token/create` only for sandbox setup or automated testing: [Plaid Sandbox API](https://plaid.com/docs/api/sandbox/).
-- Column ACH: use the ACH transfer API with integer cents and provider transfer identifiers: [Column Create an ACH transfer](https://docs.column.com/api/ach-transfer/create-an-ach-transfer/), [Column API reference](https://docs.column.com/api/).
+- Increase ACH: use the ACH transfer API with integer cents and provider transfer identifiers. Live movement requires explicit live mode and a business/account-scoped provider account; see `docs/integration-evidence.md`.
 
 Do not invent provider endpoints or put provider access tokens in browser code.
 
@@ -131,7 +131,7 @@ The user can still view the onboarding state and retry or inspect a rejected ver
 - Automatic balance polling.
 - Production institution edge cases.
 
-## Phase 3 — Column funding adapter
+## Phase 3 — Increase funding adapter
 
 ### Implement
 
@@ -140,7 +140,7 @@ The user can still view the onboarding state and retry or inspect a rejected ver
   - retrieve transfer
   - receive transfer event
   - return/recall event
-- Add the Column adapter behind that interface.
+- Add the Increase adapter behind that interface.
 - Create an internal funding record before provider submission.
 - Use integer cents for every request and ledger entry.
 - Add a funding screen with:
@@ -149,7 +149,7 @@ The user can still view the onboarding state and retry or inspect a rejected ver
   - pending transfer state
   - settled state
   - returned state
-- Add a Column webhook route with:
+- Add an Increase webhook route with:
   - signature verification if supported by the configured event mechanism
   - provider-event inbox
   - idempotency
@@ -177,7 +177,7 @@ FUNDING_INITIATED
 
 ### Fallback
 
-If Column sandbox access blocks progress, implement a simulator behind the same payment-rail interface. Label it `simulated` in the README and decision log; do not present it as live.
+If Increase live configuration is unavailable, use the simulator behind the same payment-rail interface. Label it `SIMULATED` in the README and evidence pack; do not present it as live.
 
 ## Phase 4 — Outbound payment and maker-checker
 
@@ -197,7 +197,7 @@ If Column sandbox access blocks progress, implement a simulator behind the same 
   - reason or note
 - Enforce that initiator and approver are different humans.
 - Add the approval queue screen.
-- Add the Column outbound transfer adapter call only after approval.
+- Add the Increase outbound transfer adapter call only after approval.
 - Add delayed settlement and return handling using the same provider-event and ledger patterns as funding.
 
 ### Acceptance checks

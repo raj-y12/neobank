@@ -1,6 +1,6 @@
 # Slice 1 — Card Lifecycle
 
-Status: scoped, ready to implement
+Status: implemented; retained as historical scope and acceptance criteria
 
 ## Goal
 
@@ -10,7 +10,7 @@ Prove the hardest Track 3 behavior on the deployed web app:
 $50 authorization → hold → $73.40 clearing → hold release → return/reversal
 ```
 
-The account will be seeded as already approved and funded. Persona, Plaid, Column ACH, approvals, and standing orders are out of this slice.
+The account was seeded as already approved and funded. Persona, Plaid, Increase ACH, approvals, and standing orders were out of this slice.
 
 ## What the user will see
 
@@ -114,14 +114,14 @@ Exit condition: the full scenario works on the Vercel deployment, not only local
 - One seeded business, one user, one virtual card.
 - Our IDs are authoritative for internal relationships.
 - Lithic IDs are retained as external references.
-- A valid provider return without a reliable original reference is posted immediately and shown as `UNMATCHED_RETURN`; it is not auto-linked. A later explicit link updates only the relationship and never posts a second credit (D-020).
+- A provider return is a new transaction. It must be explicitly linked to the original settlement before the reversal is posted; an unmatched return is parked rather than discarded. Linking later replays the stored return and posts exactly once (D-016/D-017).
 - No ASA enrollment or custom authorization decisioning in this slice unless Lithic Sandbox requires it for the account.
 
 ## Not in Slice 1
 
 - Persona onboarding.
 - Plaid linking.
-- Column ACH.
+- Increase ACH.
 - Outbound payment approvals.
 - Standing orders.
 - USDC.

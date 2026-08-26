@@ -1,12 +1,12 @@
 # Track 3 — Neobank Build Plan
 
-Status: remediation plan, prepared 2026-08-25
+Status: historical remediation plan; implementation completed. Use `README.md`, `decisions.md`, and `docs/integration-evidence.md` for current behavior.
 
 The sendable T+2h scope is captured in [`attack-plan.md`](attack-plan.md). This document contains the fuller build sequence behind it.
 
 Slice 1 is scoped separately in [`slice-1-plan.md`](slice-1-plan.md).
 
-This document defines the intended shape of the 48-hour Track 3 submission. It is a scope and sequencing document, not a substitute for the timestamped decision log in [`decisions.md`](../decisions.md).
+This document records the intended shape and sequencing of the 48-hour Track 3 submission. It is historical scope documentation, not an operational runbook or a substitute for the timestamped decision log in [`decisions.md`](../decisions.md).
 
 ## Current remediation plan
 
@@ -18,7 +18,7 @@ What to implement:
 
 - Record the current baseline: `npm test`, `npm run typecheck`, `npm run build`, deployed URL, current Vercel environment modes, and provider dashboard references.
 - Treat `origin/main` as the integration branch and preserve unrelated working-tree files.
-- Replace stale documentation references to Column/demo headers with Increase/Supabase Auth behavior.
+- Keep current documentation aligned with Increase, Persona KYC, Plaid linking, Lithic, and Supabase Auth behavior.
 - Define one canonical business/account scope for the demo and one repeatable seed path.
 
 Verification:
@@ -62,7 +62,7 @@ Guardrails:
 What to implement:
 
 - Reconcile the migration and seed schema around encrypted Plaid access tokens and encrypted account/routing numbers.
-- Remove stale seed columns and add a complete linked-bank seed/test path.
+- Keep the linked-bank seed and schema aligned with the current encrypted Plaid account model.
 - Keep the Plaid access token encrypted at rest and never return it to the browser or logs.
 - Ensure Add Money always creates cents correctly, records a pending transfer, and changes available balance only after settlement.
 - Add a clear pending/settled/returned funding history to the funding/account surfaces.
@@ -111,7 +111,7 @@ What to implement:
 - Diff provider rows against ledger/payment/funding references and amounts.
 - Persist missing-provider, missing-ledger, amount-mismatch, duplicate, and aged breaks.
 - Add break resolution with notes and audit history; resolution must not edit the ledger.
-- Remove or clearly isolate the current “Plant demo break” control from the reviewer path.
+- Reconciliation breaks are created by imported file differences; the current reviewer path has no synthetic break injector.
 
 Verification:
 
@@ -201,7 +201,7 @@ Keep commits small and reviewable:
 
 Demonstrate a deployed US business-current-account product in which:
 
-1. A business passes KYB before its account becomes active.
+1. A business completes the available Persona owner-KYC/onboarding verification before its account becomes active; full legal-entity KYB is deferred/provider-gated.
 2. The business funds its account from a linked external bank.
 3. A sandbox card is issued to a team member.
 4. A card authorization creates a hold without changing the ledger balance.
@@ -291,10 +291,10 @@ Each important screen needs default, loading, empty, error, and at least one edg
 
 The initial provider targets are:
 
-- Card issuing: live sandbox integration; Lithic or Stripe Issuing.
-- KYB/KYC: live sandbox integration; Persona or Middesk.
+- Card issuing: Lithic live sandbox integration.
+- Onboarding verification: Persona owner-KYC sandbox integration; full legal-entity KYB is deferred/provider-gated.
 - Open banking: Plaid Sandbox where setup permits; otherwise a clearly labelled simulator.
-- Payment rail: live or simulated behind the same adapter interface.
+- Payment rail: Increase live or simulated behind the same adapter interface; live mode requires explicit opt-in and scoped provider configuration.
 - USDC: live testnet strongly preferred, but not allowed to endanger the core loop.
 
 Every integration must be labelled `live` or `simulated` in the README and evidence pack.

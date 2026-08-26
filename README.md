@@ -28,6 +28,8 @@ Run checks with `npm test`, `npm run typecheck`, and `npm run build`. Apply `sup
 See [the integration evidence pack](docs/integration-evidence.md) for the smoke flow, required environment variables, and cut list.
 Scheduled recovery and standing-order execution run through an external cron provider; see [the external cron setup](docs/external-crons.md).
 
+For current behavior and provider choices, use this README, [decisions.md](decisions.md), and the [integration evidence pack](docs/integration-evidence.md). Historical implementation plans are not operational documentation.
+
 The application is a Next.js web app. Provider credentials belong in local environment variables or Vercel project settings; never commit them.
 
 ## Production-readiness notes
@@ -35,6 +37,7 @@ The application is a Next.js web app. Provider credentials belong in local envir
 - Increase is the ACH rail when its account and counterparty configuration are present; otherwise the UI must label the deterministic simulator.
 - Plaid access tokens and account/routing values are encrypted at rest with `PLAID_TOKEN_ENCRYPTION_KEY`.
 - Provider webhooks must be configured in Increase, Lithic, Persona, and Plaid environments and verified with the evidence checklist.
+- A Lithic return is a new provider transaction and must be explicitly linked to its original settlement before the reversal is posted. The reversal keeps the settlement value date and the later booking/knowledge timestamp for `Known at` statements.
 - Enable Supabase Auth leaked-password protection in Authentication → Password Security before production handoff.
 - Agent routes (`app/api/agent/*`) were implemented in an earlier pass and were not touched by this remediation; see [`docs/track-3-plan.md`](docs/track-3-plan.md).
 
