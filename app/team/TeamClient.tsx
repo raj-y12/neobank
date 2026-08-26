@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { IconClose } from "../components/Icon";
 
 type Employee = { id: string; firstName: string | null; lastName: string | null; email: string | null; role: "ADMIN" | "MEMBER"; status: string };
 
@@ -12,6 +14,7 @@ export function TeamClient() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"MEMBER" | "ADMIN">("MEMBER");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -32,8 +35,10 @@ export function TeamClient() {
     event.preventDefault();
     const response = await fetch("/api/employees", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ firstName, lastName, email, role, password }) });
     const body = await response.json() as { employee?: Employee; initialPassword?: string; error?: string };
-    setInviteMessage(response.ok ? `Login created for ${email}. Share the initial password securely: ${body.initialPassword}` : body.error ?? "Unable to create employee login");
-    if (response.ok) { setFirstName(""); setLastName(""); setEmail(""); setPassword(""); await load(); }
+    if (response.ok) {
+      setInviteMessage(`Login created for ${email}. Share the initial password securely: ${body.initialPassword}`);
+      setFirstName(""); setLastName(""); setEmail(""); setPassword(""); await load();
+    } else setErrorMessage(body.error ?? "Unable to create employee login");
   }
 
   return <>
@@ -69,5 +74,15 @@ export function TeamClient() {
         </table>
       )}
     </section>
+
+    {errorMessage && typeof document !== "undefined" && createPortal(
+      <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setErrorMessage("")}>
+        <div className="error-modal" role="alertdialog" aria-modal="true">
+          <p>{errorMessage}</p>
+          <div className="error-modal-icon" aria-hidden="true"><IconClose /></div>
+        </div>
+      </div>,
+      document.body,
+    )}
   </>;
 }

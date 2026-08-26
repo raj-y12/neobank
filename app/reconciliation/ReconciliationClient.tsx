@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { IconClose } from "../components/Icon";
 
 type Break = { id: string; break_type: string; provider_reference: string; expected_amount_cents?: number; actual_amount_cents?: number; status: string; ageBucket: string };
 
 export default function ReconciliationPage() {
   const [breaks, setBreaks] = useState<Break[]>([]);
   const [message, setMessage] = useState("No file loaded.");
+  const [errorMessage, setErrorMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   async function load() {
@@ -15,30 +18,31 @@ export default function ReconciliationPage() {
       const response = await fetch("/api/agent/reconciliation-breaks", { cache: "no-store" });
       const body = await response.json();
       setBreaks(body.breaks ?? []);
-      setMessage(response.ok ? `${body.breaks?.length ?? 0} break(s) loaded` : body.error);
-    } catch { setMessage("Unable to load reconciliation breaks. Try refreshing.");
+      if (response.ok) setMessage(`${body.breaks?.length ?? 0} break(s) loaded`);
+      else setErrorMessage(body.error);
+    } catch { setErrorMessage("Unable to load reconciliation breaks. Try refreshing.");
     } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
   async function uploadFile() {
-    if (!file) { setMessage("Choose an Increase transaction CSV first."); return; }
+    if (!file) { setErrorMessage("Choose an Increase transaction CSV first."); return; }
     const response = await fetch("/api/reconciliation", { method: "POST", headers: { "content-type": "text/csv", "x-file-reference": file.name }, body: await file.text() });
     const body = await response.json();
-    setMessage(response.ok ? `Imported ${file.name}: ${body.breakCount} break(s)` : body.error);
-    if (response.ok) void load();
+    if (response.ok) { setMessage(`Imported ${file.name}: ${body.breakCount} break(s)`); void load(); }
+    else setErrorMessage(body.error);
   }
   async function plantBreak() {
     const response = await fetch("/api/reconciliation", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileReference: `increase-demo-${Date.now()}`, providerRows: [{ referenceId: `increase-missing-${Date.now()}`, amountCents: 280000 }], ledgerRows: [] }) });
     const body = await response.json();
-    setMessage(response.ok ? `Planted ${body.breakCount} break(s)` : body.error);
-    if (response.ok) void load();
+    if (response.ok) { setMessage(`Planted ${body.breakCount} break(s)`); void load(); }
+    else setErrorMessage(body.error);
   }
   const openCount = breaks.filter((item) => item.status === "OPEN").length;
   async function resolve(id: string) {
     const response = await fetch(`/api/reconciliation/${id}`, { method: "PATCH" });
     const body = await response.json();
-    setMessage(response.ok ? "Break resolved without editing the ledger" : body.error);
-    if (response.ok) void load();
+    if (response.ok) { setMessage("Break resolved without editing the ledger"); void load(); }
+    else setErrorMessage(body.error);
   }
   return (
     <>
@@ -78,6 +82,16 @@ export default function ReconciliationPage() {
         )}
         <p className="list-meta" role="status">{message}</p>
       </section>
+
+      {errorMessage && typeof document !== "undefined" && createPortal(
+        <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setErrorMessage("")}>
+          <div className="error-modal" role="alertdialog" aria-modal="true">
+            <p>{errorMessage}</p>
+            <div className="error-modal-icon" aria-hidden="true"><IconClose /></div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }
