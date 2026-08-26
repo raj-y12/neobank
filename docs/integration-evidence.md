@@ -17,6 +17,32 @@
 - Supabase: application RLS gaps were closed in migration `20260825220000_harden_application_rls`; the security advisor should show only the dashboard-controlled leaked-password warning until that setting is enabled.
 - Auth: employee provisioning is direct and intentionally returns the initial password once because email delivery is not configured. A forced password-change/reset flow remains a production handoff item.
 
+## Captured provider evidence
+
+The following sanitized screenshots were captured from the provider sandboxes on 2026-08-26. They contain no API keys, webhook secrets, PAN/CVV values, or full bank details.
+
+### Increase
+
+- [Account page](evidence/increase-01-account.jpg)
+- [Transactions list](evidence/increase-02-transactions.jpg)
+- [Inbound ACH funding timeline](evidence/increase-03-inbound-ach-timeline.jpg)
+- [Outbound ACH payment timeline](evidence/increase-04-outbound-ach-timeline.jpg)
+- [Transaction event record](evidence/increase-05-event-record.jpg)
+
+The event capture shows an Increase event ID. A separate webhook-delivery ID still needs to be retained for a live rehearsal if the submission requires delivery-level evidence.
+
+### Persona
+
+- [Sandbox KYC inquiries](evidence/persona-01-inquiries.jpg)
+- [Enabled Persona webhook](evidence/persona-02-webhooks.jpg)
+
+### Lithic
+
+- [Sandbox card inventory](evidence/lithic-01-cards.jpg)
+- [Authorization and settlement activity](evidence/lithic-02-activity.jpg)
+
+The Lithic console does not expose the application’s member-card delegation page; capture that separately from the Corgi web app when completing the final submission pack.
+
 ## Reviewer smoke sequence
 
 1. Apply Supabase migrations and `supabase/seed.sql`.
@@ -28,9 +54,10 @@
 
 ## Evidence to attach before submission
 
-- Increase: account page, an Add Money ACH transfer showing the Increase debit, and webhook/event delivery for settlement or return. Include one outbound payment transfer as separate evidence.
+- Increase: [account page](evidence/increase-01-account.jpg), [Add Money ACH transfer showing the Increase debit](evidence/increase-03-inbound-ach-timeline.jpg), [event record](evidence/increase-05-event-record.jpg), and [outbound payment transfer](evidence/increase-04-outbound-ach-timeline.jpg). Add the provider webhook-delivery ID for the final live rehearsal.
 - Plaid: Link success, `/api/funding/exchange` response without secrets, and the linked-account row showing encrypted storage.
-- Lithic: card inventory page after sync, delegation page, and one authorization/settlement webhook event.
+- Lithic: [card inventory](evidence/lithic-01-cards.jpg), the application delegation page, and one [authorization/settlement activity capture](evidence/lithic-02-activity.jpg). Add the provider webhook event for the final live rehearsal.
+- Persona: [KYC inquiry results](evidence/persona-01-inquiries.jpg) and [enabled webhook configuration](evidence/persona-02-webhooks.jpg).
 - Supabase: security advisor result after leaked-password protection is enabled, plus the migration list showing the RLS hardening migration.
 
 ## Authentication evidence
