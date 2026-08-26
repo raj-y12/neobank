@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PaymentStatus } from "@/src/domain/payment-lifecycle";
 import { IconClose } from "../components/Icon";
 
@@ -9,7 +10,7 @@ export default function PaymentsPage() {
   const [accountNumber, setAccountNumber] = useState("");
   const [routingNumber, setRoutingNumber] = useState("");
   const [amount, setAmount] = useState("1240.00");
-  const [message, setMessage] = useState("No payment created yet.");
+  const [errorMessage, setErrorMessage] = useState("");
   const [payment, setPayment] = useState<{ id: string; status: PaymentStatus; amountCents: number } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [railMode, setRailMode] = useState(process.env.NEXT_PUBLIC_INCREASE_MODE ?? "SIMULATED");
@@ -20,10 +21,7 @@ export default function PaymentsPage() {
       const response = await fetch(`/api/payments/${payment.id}`, { cache: "no-store" });
       if (!response.ok) return;
       const body = await response.json() as { payment?: { id: string; status: PaymentStatus; amountCents: number } };
-      if (body.payment) {
-        setPayment(body.payment);
-        setMessage(`${body.payment.status}: ${body.payment.status === "PENDING_APPROVAL" ? "waiting for a second human" : body.payment.status.toLowerCase().replaceAll("_", " ")}`);
-      }
+      if (body.payment) setPayment(body.payment);
     }, 3000);
     return () => window.clearInterval(timer);
   }, [payment, modalOpen]);
@@ -36,9 +34,8 @@ export default function PaymentsPage() {
         setPayment(body.payment);
         setRailMode(body.mode ?? "SIMULATED");
         setModalOpen(true);
-        setMessage(`${body.payment.status}: ${body.approvalRequired ? "waiting for a second human" : "submitted"}`);
-      } else setMessage(body.error);
-    } catch { setMessage("Unable to send payment. Check your connection and try again.");
+      } else setErrorMessage(body.error);
+    } catch { setErrorMessage("Unable to send payment. Check your connection and try again.");
     } finally { setSubmitting(false); }
   }
   return (
@@ -64,7 +61,6 @@ export default function PaymentsPage() {
           <label>Amount in dollars<span className="currency-input"><span aria-hidden="true">$</span><input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></span></label>
         </div>
         <button className="btn btn-primary" onClick={createPayment} disabled={submitting}>{submitting ? "Sending…" : "Send payment"}</button>
-        <p className="list-meta" role="status">{message}</p>
       </section>
       {modalOpen && payment && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModalOpen(false)}>
         <section className="transaction-modal payment-status-modal" role="dialog" aria-modal="true" aria-labelledby="payment-status-title">
@@ -74,6 +70,16 @@ export default function PaymentsPage() {
           {(payment.status === "SUBMITTED" || payment.status === "APPROVED" || payment.status === "PENDING_APPROVAL") && <div className="payment-status-track"><span className="is-complete">Created</span><span className={payment.status === "PENDING_APPROVAL" ? "is-current" : "is-complete"}>{payment.status === "PENDING_APPROVAL" ? "Approval required" : "Submitted"}</span><span>Settled</span></div>}
         </section>
       </div>}
+
+      {errorMessage && typeof document !== "undefined" && createPortal(
+        <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setErrorMessage("")}>
+          <div className="error-modal" role="alertdialog" aria-modal="true">
+            <p>{errorMessage}</p>
+            <div className="error-modal-icon" aria-hidden="true"><IconClose /></div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

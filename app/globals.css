@@ -473,6 +473,8 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .data-table td { padding: var(--space-4) var(--space-3); border-top: 1px solid var(--line); }
 .data-table tr { transition: background-color .15s var(--ease-standard); }
 .data-table tr:hover td { background: var(--card-soft); }
+.data-table tr:hover td:first-child { border-top-left-radius: var(--radius-sm); border-bottom-left-radius: var(--radius-sm); }
+.data-table tr:hover td:last-child { border-top-right-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); }
 .data-table .table-avatar { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-right: var(--space-3); border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: var(--text-2xs); font-weight: 700; vertical-align: middle; }
 .table-status { font-weight: 600; }
 .table-status.status-approved { color: var(--green); }
