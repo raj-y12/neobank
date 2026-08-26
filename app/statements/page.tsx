@@ -20,9 +20,9 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
   if (params.asOf && Number.isNaN(Date.parse(params.asOf))) {
     return <section className="panel empty-state"><h2>Invalid knowledge timestamp</h2><p>Choose a valid ISO timestamp for the historical view.</p><Link className="btn btn-outline" href="/statements">Return to statements</Link></section>;
   }
-  const latest = await repository.getLatestStatementDate(scope);
-  const statementDate = parseStatementDate(requestedFrom) ?? latest ?? new Date().toISOString().slice(0, 10);
-  const statementEndDate = parseStatementDate(requestedTo) ?? statementDate;
+  const [latest, earliest] = await Promise.all([repository.getLatestStatementDate(scope), repository.getEarliestStatementDate(scope)]);
+  const statementDate = parseStatementDate(requestedFrom) ?? (isTransactionsOnlyView(params.view) ? earliest : latest) ?? new Date().toISOString().slice(0, 10);
+  const statementEndDate = parseStatementDate(requestedTo) ?? (isTransactionsOnlyView(params.view) ? latest : statementDate) ?? statementDate;
   if (statementEndDate < statementDate) {
     return <section className="panel empty-state"><h2>Invalid statement range</h2><p>The end date must be on or after the start date.</p><Link className="btn btn-outline" href="/statements">Return to statements</Link></section>;
   }

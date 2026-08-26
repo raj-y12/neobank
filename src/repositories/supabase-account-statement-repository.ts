@@ -39,6 +39,19 @@ export class SupabaseAccountStatementRepository implements AccountStatementRepos
     if (error) throw error;
     return data?.value_date ?? null;
   }
+
+  async getEarliestStatementDate(scope: LedgerScope) {
+    const client = configuredClient();
+    const { data, error } = await client.from("journal_entries")
+      .select("value_date")
+      .eq("business_id", scope.businessId)
+      .eq("account_id", scope.accountId)
+      .order("value_date", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ value_date: string }>();
+    if (error) throw error;
+    return data?.value_date ?? null;
+  }
 }
 
 export function createSupabaseAccountStatementRepository() {

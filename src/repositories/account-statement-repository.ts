@@ -6,6 +6,7 @@ export type StatementQuery = { statementDate: string; statementEndDate?: string;
 export interface AccountStatementRepository {
   getAccountStatement(scope: LedgerScope, query: StatementQuery): Promise<AccountStatement>;
   getLatestStatementDate(scope: LedgerScope): Promise<string | null>;
+  getEarliestStatementDate(scope: LedgerScope): Promise<string | null>;
 }
 
 export type PersistedJournalRow = {
