@@ -74,6 +74,15 @@ export async function getLithicCard(token: string) {
   return lithicFetch<LithicCard>(`/cards/${encodeURIComponent(token)}`);
 }
 
+export async function createLithicCardEmbedSession(input: { cardToken: string; targetOrigin: string }) {
+  const session = await lithicFetch<{ session: string }>(`/cards/${encodeURIComponent(input.cardToken)}/embed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "CARD_EMBED", target_origin: input.targetOrigin }),
+  });
+  return session.session;
+}
+
 export async function createLithicVirtualCard(input: { spendLimit: number; spendLimitDuration: string }) {
   return lithicFetch<LithicCard>("/cards", {
     method: "POST",

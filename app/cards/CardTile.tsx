@@ -3,7 +3,8 @@ import { formatUsdCents, type LithicCard } from "@/src/integrations/lithic/clien
 
 const THEMES = ["theme-orange", "theme-violet", "theme-teal", "theme-rose", "theme-azure", "theme-olive"];
 
-function themeFor(token: string) {
+export function cardThemeFor(token: string, cardColor?: string | null) {
+  if (cardColor && THEMES.includes(`theme-${cardColor}`)) return `theme-${cardColor}`;
   let hash = 0;
   for (let i = 0; i < token.length; i++) hash = (hash * 31 + token.charCodeAt(i)) >>> 0;
   return THEMES[hash % THEMES.length];
@@ -11,7 +12,7 @@ function themeFor(token: string) {
 
 export function CardTile({ card, href, delegatedTo, cardColor }: { card: LithicCard; href?: string; delegatedTo?: string | null; cardColor?: string | null }) {
   const isActive = card.state === "OPEN";
-  const theme = cardColor && THEMES.includes(`theme-${cardColor}`) ? `theme-${cardColor}` : themeFor(card.token);
+  const theme = cardThemeFor(card.token, cardColor);
   const content = (
     <>
       <div className="card-tile-top">

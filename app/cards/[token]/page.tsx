@@ -6,9 +6,10 @@ import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-
 import { canViewCard } from "@/src/domain/card-access";
 import { listInternalCardTransactions } from "@/src/repositories/supabase-card-transaction-reader";
 import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
-import { CardTile } from "../CardTile";
+import { CardTile, cardThemeFor } from "../CardTile";
 import { CardDelegateForm } from "../CardDelegateForm";
 import { TransactionActivity } from "./TransactionActivity";
+import { CardDetailsReveal } from "./CardDetailsReveal";
 import { IconChevronLeft } from "../../components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function CardDetailPage({ params }: { params: Promise<{ tok
   return (
     <div className="card-detail-column">
       <Link className="back-link" href="/cards"><IconChevronLeft /> Cards</Link>
-      <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} delegatedTo={assignment.employeeName ?? assignment.employeeEmail} cardColor={assignment.cardColor} /></section>
+      <section className="card-detail-hero" aria-label="Card details"><CardDetailsReveal cardToken={token} themeClass={cardThemeFor(card.token, assignment.cardColor)}><CardTile card={card} delegatedTo={assignment.employeeName ?? assignment.employeeEmail} cardColor={assignment.cardColor} /></CardDetailsReveal></section>
       {scope.role === "ADMIN" && <CardDelegateForm cardToken={token} assignedMemberId={assignment.memberId} employees={(employeesResult.data ?? []).map((employee) => ({ id: employee.id, firstName: employee.first_name, lastName: employee.last_name, email: employee.email, role: employee.role, status: employee.status }))} />}
       <section className="panel panel-flat">
         <div className="panel-heading"><div><h3>Recent activity</h3></div><span className="chip chip-neutral">{recentTransactions.length}</span></div>
