@@ -10,8 +10,14 @@ export type StandingOrderRunDecision = "RUN" | "ALREADY_PROCESSED" | "INSUFFICIE
 export type StandingOrderFrequency = "DAILY" | "WEEKLY" | "MONTHLY";
 export type StandingOrderOccurrenceStatus = "PENDING" | "PENDING_APPROVAL" | "SUBMITTED" | "SKIPPED" | "INSUFFICIENT_FUNDS";
 
+export function isIsoCalendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return parsed.toISOString().slice(0, 10) === value;
+}
+
 export function createOccurrence(standingOrderId: string, scheduledDate: string): StandingOrderOccurrence {
-  if (!standingOrderId || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) throw new Error("Standing order occurrence requires an ID and ISO date");
+  if (!standingOrderId || !isIsoCalendarDate(scheduledDate)) throw new Error("Standing order occurrence requires an ID and ISO date");
   return { standingOrderId, occurrenceKey: `${standingOrderId}:${scheduledDate}`, scheduledDate };
 }
 

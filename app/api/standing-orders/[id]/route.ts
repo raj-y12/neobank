@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createClient } from "@supabase/supabase-js";
+import { isIsoCalendarDate } from "@/src/domain/standing-orders";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +12,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const update: Record<string, string> = {};
     if (body.status && /^(ACTIVE|PAUSED|CANCELED)$/.test(body.status)) update.status = body.status; else if (body.status) throw new Error("Invalid standing-order status");
     if (body.nextRunDate) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(body.nextRunDate)) throw new Error("nextRunDate must be an ISO date");
+      if (!isIsoCalendarDate(body.nextRunDate)) throw new Error("nextRunDate must be an ISO date");
       update.next_run_date = body.nextRunDate;
     }
     if (body.insufficientFundsPolicy && /^(SKIP|RETRY_NEXT_DAY)$/.test(body.insufficientFundsPolicy)) update.insufficient_funds_policy = body.insufficientFundsPolicy; else if (body.insufficientFundsPolicy) throw new Error("Invalid insufficient-funds policy");

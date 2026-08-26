@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOccurrence, decideStandingOrderRun, occurrenceStatusLabel, standingOrderFrequencyLabel, standingOrderPaymentStatus, standingOrderRecipientName } from "./standing-orders";
+import { createOccurrence, decideStandingOrderRun, isIsoCalendarDate, occurrenceStatusLabel, standingOrderFrequencyLabel, standingOrderPaymentStatus, standingOrderRecipientName } from "./standing-orders";
 
 describe("standing orders", () => {
   it("creates a deterministic occurrence identity for a scheduled date", () => {
@@ -8,6 +8,11 @@ describe("standing orders", () => {
       occurrenceKey: "so-1:2026-08-26",
       scheduledDate: "2026-08-26",
     });
+  });
+
+  it("rejects impossible calendar dates", () => {
+    expect(isIsoCalendarDate("2026-02-30")).toBe(false);
+    expect(() => createOccurrence("so-1", "2026-02-30")).toThrow("ISO date");
   });
 
   it("runs an occurrence once and parks it when funds are insufficient", () => {
