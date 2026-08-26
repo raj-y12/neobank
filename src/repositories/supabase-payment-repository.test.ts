@@ -19,6 +19,21 @@ describe("SupabasePaymentRepository.listForMember", () => {
   });
 });
 
+describe("SupabasePaymentRepository.getProviderTransferId", () => {
+  it("reads only the provider reference for an owned payment", async () => {
+    const filters: Array<[string, string]> = [];
+    const query = {
+      select: () => query,
+      eq: (field: string, value: string) => { filters.push([field, value]); return query; },
+      maybeSingle: async () => ({ data: { provider_payment_id: "sim-out-payment-submit:payment-1" }, error: null }),
+    };
+    const client = { from: () => query } as never;
+
+    await expect(new SupabasePaymentRepository(client).getProviderTransferId("payment-1", "business-a")).resolves.toBe("sim-out-payment-submit:payment-1");
+    expect(filters).toEqual([["id", "payment-1"], ["business_id", "business-a"]]);
+  });
+});
+
 describe("SupabasePaymentRepository.create", () => {
   it("rejects a reused idempotency key when the request changes", async () => {
     const query = {

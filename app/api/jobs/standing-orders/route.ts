@@ -5,6 +5,7 @@ import { APPROVAL_THRESHOLD_CENTS } from "@/src/domain/payment-lifecycle";
 import { standingOrderPaymentStatus } from "@/src/domain/standing-orders";
 import { nextStandingOrderDate } from "@/src/domain/standing-orders";
 import { decryptSensitiveValue } from "@/src/integrations/plaid/client";
+import { isBusinessApprovedForBusiness } from "@/src/lib/onboarding-gate";
 
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -15,6 +16,10 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const results: Array<{ id: string; status: string }> = [];
   for (const order of orders ?? []) {
+    if (!await isBusinessApprovedForBusiness(order.business_id)) {
+      results.push({ id: order.id, status: "BUSINESS_NOT_APPROVED" });
+      continue;
+    }
     const { data: occurrence, error: claimError } = await client.rpc("claim_standing_order_occurrence", { p_standing_order_id: order.id, p_scheduled_date: order.next_run_date });
     if (claimError) throw claimError;
     if (occurrence.status !== "PENDING") { results.push({ id: order.id, status: "ALREADY_PROCESSED" }); continue; }

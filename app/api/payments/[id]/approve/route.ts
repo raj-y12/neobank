@@ -18,6 +18,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!await repository.memberBelongsToBusiness(context.memberId, context.businessId)) throw new Error("Approver is not a member of this business");
     const existing = await repository.get(id, context.businessId);
     if (!existing) throw new Error("Payment not found in business scope");
+    if (existing.status === "SUBMITTED" || existing.status === "SETTLED" || existing.status === "RETURNED") {
+      const providerTransferId = await repository.getProviderTransferId(id, context.businessId);
+      return NextResponse.json({ payment: existing, submitted: true, mode: getPaymentRail().mode, providerTransferId }, { status: 200 });
+    }
     const payment = approvePayment(existing, context.memberId);
     const rail = getPaymentRail();
     const providerAccount = rail.mode === "LIVE" ? await createSupabaseProviderAccountRepository().getActiveIncrease(context.businessId, context.accountId) : null;

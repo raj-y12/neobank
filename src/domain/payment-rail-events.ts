@@ -1,3 +1,5 @@
+import { canTransitionFunding, canTransitionPayment, type FundingStatus, type PaymentStatus } from "./payment-lifecycle";
+
 export type PaymentRailEventStatus = "SUBMITTED" | "SETTLED" | "RETURNED";
 
 export type PaymentRailLifecycleEvent = {
@@ -36,4 +38,61 @@ export function reducePaymentRailEvents(events: readonly PaymentRailLifecycleEve
   }
 
   return result;
+}
+
+export type PaymentRailTransition<T extends PaymentRailLifecycleEvent = PaymentRailLifecycleEvent> = {
+  event: T;
+  fromStatus: PaymentStatus;
+  toStatus: PaymentStatus;
+};
+
+/**
+ * Replays provider events until no event can advance the current payment.
+ * This lets a previously parked settlement/return apply when a later delivery
+ * supplies its prerequisite SUBMITTED event.
+ */
+export function replayPaymentRailLifecycle<T extends PaymentRailLifecycleEvent>(initialStatus: PaymentStatus, events: readonly T[]) {
+  let status = initialStatus;
+  const transitions: PaymentRailTransition<T>[] = [];
+  let advanced = true;
+  while (advanced) {
+    advanced = false;
+    for (const event of orderPaymentRailEvents(events)) {
+      const canSubmit = event.status === "SUBMITTED" && status === "APPROVED";
+      const canAdvance = event.status !== "SUBMITTED" && canTransitionPayment(status, event.status);
+      if (!canSubmit && !canAdvance) continue;
+      const fromStatus = status;
+      status = event.status;
+      transitions.push({ event, fromStatus, toStatus: status });
+      advanced = true;
+    }
+  }
+  return { status, transitions };
+}
+
+export type FundingRailTransition<T extends PaymentRailLifecycleEvent = PaymentRailLifecycleEvent> = {
+  event: T;
+  fromStatus: FundingStatus;
+  toStatus: FundingStatus;
+};
+
+/** Replays inbound funding events while preserving the PENDING/SETTLED/RETURNED state machine. */
+export function replayFundingRailLifecycle<T extends PaymentRailLifecycleEvent>(initialStatus: FundingStatus, events: readonly T[]) {
+  let status = initialStatus;
+  const transitions: FundingRailTransition<T>[] = [];
+  let advanced = true;
+  while (advanced) {
+    advanced = false;
+    for (const event of orderPaymentRailEvents(events)) {
+      const canAdvance = event.status === "SETTLED"
+        ? canTransitionFunding(status, "SETTLED")
+        : event.status === "RETURNED" && canTransitionFunding(status, "RETURNED");
+      if (!canAdvance) continue;
+      const fromStatus = status;
+      status = event.status === "SETTLED" ? "SETTLED" : "RETURNED";
+      transitions.push({ event, fromStatus, toStatus: status });
+      advanced = true;
+    }
+  }
+  return { status, transitions };
 }

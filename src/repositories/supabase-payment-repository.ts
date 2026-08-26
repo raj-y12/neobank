@@ -112,6 +112,12 @@ export class SupabasePaymentRepository {
     if (error) throw error;
   }
 
+  async getProviderTransferId(id: string, businessId: string) {
+    const { data, error } = await this.client.from("payments").select("provider_payment_id").eq("id", id).eq("business_id", businessId).maybeSingle<{ provider_payment_id: string | null }>();
+    if (error) throw error;
+    return data?.provider_payment_id ?? null;
+  }
+
   async reserveFunds(payment: Payment) {
     const { error } = await this.client.rpc("reserve_payment_funds", {
       p_business_id: payment.businessId,

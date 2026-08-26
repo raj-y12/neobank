@@ -13,6 +13,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     const repository = createSupabasePaymentRepository();
     const existing = await repository.get(id, context.businessId);
     if (!existing) throw new Error("Payment not found in business scope");
+    if (existing.status === "REJECTED") return NextResponse.json({ payment: existing }, { status: 200 });
     const payment = rejectPayment(existing, context.memberId);
     await repository.addApproval(id, context.memberId, "REJECTED");
     await repository.releaseFunds(existing);
