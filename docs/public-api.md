@@ -28,3 +28,7 @@ curl -X POST https://your-host.example/api/v1/payments \
 ```
 
 Cards return assignment metadata only. PAN, CVV, and provider credentials are never exposed by the public API.
+
+## MCP
+
+The remote MCP endpoint is `/api/mcp` and uses the same Supabase bearer token. It exposes account summary, card metadata, payment status, payment creation with an explicit confirmation step, and reconciliation breaks. Card PAN/CVV reveal remains web-only through Lithic’s secure UI.
