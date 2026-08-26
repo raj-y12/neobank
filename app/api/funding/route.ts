@@ -24,8 +24,8 @@ export async function POST(request: Request) {
     const funding = createFundingTransfer({ businessId: scope.businessId, accountId: scope.accountId, linkedFundingAccountId: linkedAccount.id, amountCents: body.amountCents, rail: "ACH" });
     const source = await createSupabaseFundingAccountRepository().getAchSource(scope.businessId);
     const transfer = await rail.createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, providerAccountId: providerAccount?.providerAccountId, accountNumberId: providerAccount?.providerAccountNumberId ?? undefined, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
-    await createSupabaseFundingRepository().create(funding, transfer.providerTransferId, body.idempotencyKey);
-    return NextResponse.json({ mode: rail.mode, funding: { ...funding, providerTransferId: transfer.providerTransferId } }, { status: 201 });
+    const persisted = await createSupabaseFundingRepository().create(funding, transfer.providerTransferId, body.idempotencyKey);
+    return NextResponse.json({ mode: rail.mode, funding: persisted }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create funding" }, { status: 400 });
   }
