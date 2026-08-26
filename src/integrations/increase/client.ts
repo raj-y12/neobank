@@ -21,36 +21,34 @@ export class IncreaseAchRail implements PaymentRail {
     return body;
   }
 
-  private async createTransfer(input: { amountCents: number; idempotencyKey: string; accountNumber: string; routingNumber: string; statementDescriptor: string }): Promise<RailTransfer> {
-    const accountId = process.env.INCREASE_ACCOUNT_ID;
-    if (!accountId) throw new Error("Increase credentials are not configured");
+  private async createTransfer(input: { amountCents: number; idempotencyKey: string; providerAccountId?: string; accountNumber: string; routingNumber: string; statementDescriptor: string }): Promise<RailTransfer> {
+    const accountId = input.providerAccountId;
+    if (!accountId) throw new Error("No active Increase provider account is configured for this business");
     const transfer = await this.request<IncreaseAchTransfer>("/ach_transfers", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: JSON.stringify({ account_id: accountId, account_number: input.accountNumber, routing_number: input.routingNumber, amount: input.amountCents, statement_descriptor: input.statementDescriptor }) });
     return { providerTransferId: transfer.id, status: "PENDING" };
   }
 
-  private async accountNumberId(accountNumber?: string, routingNumber?: string) {
-    if (process.env.INCREASE_ACCOUNT_NUMBER_ID) return process.env.INCREASE_ACCOUNT_NUMBER_ID;
-    const accountId = process.env.INCREASE_ACCOUNT_ID;
-    if (!accountId) throw new Error("INCREASE_ACCOUNT_ID is not configured");
+  private async accountNumberId(input: { providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }) {
+    if (input.accountNumberId) return input.accountNumberId;
+    const accountId = input.providerAccountId;
+    if (!accountId) throw new Error("No active Increase provider account is configured for this business");
     const response = await this.request<{ data: IncreaseAccountNumber[] }>(`/account_numbers?${new URLSearchParams({ account_id: accountId })}`);
-    const match = response.data.find((item) => item.status !== "disabled" && (!accountNumber || item.account_number === accountNumber) && (!routingNumber || item.routing_number === routingNumber));
-    if (!match) throw new Error("No active Increase account number matches the configured funding account");
+    const match = response.data.find((item) => item.status !== "disabled" && (!input.accountNumber || item.account_number === input.accountNumber) && (!input.routingNumber || item.routing_number === input.routingNumber));
+    if (!match) throw new Error("No active Increase account number is configured for this business");
     return match.id;
   }
 
-  async createInbound(input: { amountCents: number; idempotencyKey: string; accountNumber?: string; routingNumber?: string }) {
+  async createInbound(input: { amountCents: number; idempotencyKey: string; providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }) {
     if (process.env.INCREASE_ENV !== "production") {
-      const accountNumberId = await this.accountNumberId(process.env.INCREASE_ACCOUNT_NUMBER, process.env.INCREASE_ACCOUNT_ROUTING_NUMBER);
+      const accountNumberId = await this.accountNumberId(input);
       const transfer = await this.request<IncreaseAchTransfer>("/simulations/inbound_ach_transfers", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: JSON.stringify({ account_number_id: accountNumberId, amount: Math.abs(input.amountCents) }) });
       return { providerTransferId: transfer.id, status: "PENDING" as const };
     }
-    const accountNumber = input.accountNumber ?? process.env.INCREASE_FUNDING_ACCOUNT_NUMBER;
-    const routingNumber = input.routingNumber ?? process.env.INCREASE_FUNDING_ROUTING_NUMBER;
-    return this.createTransfer({ amountCents: -Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, accountNumber: accountNumber ?? "", routingNumber: routingNumber ?? "", statementDescriptor: "Neobank funding" });
+    return this.createTransfer({ amountCents: -Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, providerAccountId: input.providerAccountId, accountNumber: input.accountNumber ?? "", routingNumber: input.routingNumber ?? "", statementDescriptor: "Neobank funding" });
   }
 
-  createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; accountNumber?: string; routingNumber?: string }) {
-    return this.createTransfer({ amountCents: Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, accountNumber: input.accountNumber ?? process.env.INCREASE_RECIPIENT_ACCOUNT_NUMBER ?? "", routingNumber: input.routingNumber ?? process.env.INCREASE_RECIPIENT_ROUTING_NUMBER ?? "", statementDescriptor: input.recipient.slice(0, 200) });
+  createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; providerAccountId?: string; accountNumber?: string; routingNumber?: string }) {
+    return this.createTransfer({ amountCents: Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, providerAccountId: input.providerAccountId, accountNumber: input.accountNumber ?? "", routingNumber: input.routingNumber ?? "", statementDescriptor: input.recipient.slice(0, 200) });
   }
 
   retrieveTransfer(providerTransferId: string) {

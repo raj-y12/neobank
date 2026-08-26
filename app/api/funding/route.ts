@@ -6,6 +6,7 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-onboarding-repository";
 import { createSupabaseFundingAccountRepository } from "@/src/repositories/supabase-funding-account-repository";
 import { createSupabaseFundingRepository } from "@/src/repositories/supabase-funding-repository";
+import { createSupabaseProviderAccountRepository } from "@/src/repositories/supabase-provider-account-repository";
 
 export async function POST(request: Request) {
   try {
@@ -16,11 +17,14 @@ export async function POST(request: Request) {
     if (!isBusinessApproved(onboarding)) return NextResponse.json({ error: "Business verification must be approved before funding" }, { status: 403 });
     const linkedAccount = await createSupabaseFundingAccountRepository().get(scope.businessId);
     if (!linkedAccount) throw new Error("Link a bank account before adding money");
+    const rail = getPaymentRail();
+    const providerAccount = rail.mode === "LIVE" ? await createSupabaseProviderAccountRepository().getActiveIncrease(scope.businessId, scope.accountId) : null;
+    if (rail.mode === "LIVE" && !providerAccount) throw new Error("Configure an active Increase account for this business before adding money");
     const funding = createFundingTransfer({ businessId: scope.businessId, accountId: scope.accountId, linkedFundingAccountId: linkedAccount.id, amountCents: body.amountCents, rail: "ACH" });
     const source = await createSupabaseFundingAccountRepository().getAchSource(scope.businessId);
-    const transfer = await getPaymentRail().createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
+    const transfer = await rail.createInbound({ amountCents: funding.amountCents, idempotencyKey: body.idempotencyKey, providerAccountId: providerAccount?.providerAccountId, accountNumberId: providerAccount?.providerAccountNumberId ?? undefined, accountNumber: source.accountNumber, routingNumber: source.routingNumber });
     await createSupabaseFundingRepository().create(funding, transfer.providerTransferId, body.idempotencyKey);
-    return NextResponse.json({ mode: getPaymentRail().mode, funding: { ...funding, providerTransferId: transfer.providerTransferId } }, { status: 201 });
+    return NextResponse.json({ mode: rail.mode, funding: { ...funding, providerTransferId: transfer.providerTransferId } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create funding" }, { status: 400 });
   }

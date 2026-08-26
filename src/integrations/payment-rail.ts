@@ -5,6 +5,6 @@ export type RailTransfer = {
 
 export interface PaymentRail {
   readonly mode: "LIVE" | "SIMULATED";
-  createInbound(input: { amountCents: number; idempotencyKey: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer>;
-  createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer>;
+  createInbound(input: { amountCents: number; idempotencyKey: string; providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer>;
+  createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer>;
 }

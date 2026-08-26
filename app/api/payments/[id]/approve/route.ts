@@ -3,6 +3,7 @@ import { approvePayment } from "@/src/domain/payment-lifecycle";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
+import { createSupabaseProviderAccountRepository } from "@/src/repositories/supabase-provider-account-repository";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,11 +15,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const existing = await repository.get(id, context.businessId);
     if (!existing) throw new Error("Payment not found in business scope");
     const payment = approvePayment(existing, context.memberId);
+    const rail = getPaymentRail();
+    const providerAccount = rail.mode === "LIVE" ? await createSupabaseProviderAccountRepository().getActiveIncrease(context.businessId, context.accountId) : null;
+    if (rail.mode === "LIVE" && !providerAccount) throw new Error("Configure an active Increase account for this business before sending money");
     await repository.reserveFunds(payment);
     await repository.addApproval(id, context.memberId, "APPROVED");
-    const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, ...payment.recipientBank, idempotencyKey: `payment-submit:${payment.id}` });
+    const transfer = await rail.createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, ...payment.recipientBank, providerAccountId: providerAccount?.providerAccountId, idempotencyKey: `payment-submit:${payment.id}` });
     await repository.setProviderTransfer(id, context.businessId, transfer.providerTransferId, "SUBMITTED");
-    return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId });
+    return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: rail.mode, providerTransferId: transfer.providerTransferId });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to approve payment" }, { status: 400 });
   }

@@ -3,10 +3,10 @@ import { IncreaseAchRail } from "./increase/client";
 
 export class SimulatedAchRail implements PaymentRail {
   readonly mode = "SIMULATED" as const;
-  async createInbound(input: { amountCents: number; idempotencyKey: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer> {
+  async createInbound(input: { amountCents: number; idempotencyKey: string; providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer> {
     return { providerTransferId: `sim-in-${input.idempotencyKey}`, status: "PENDING" };
   }
-  async createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer> {
+  async createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; providerAccountId?: string; accountNumberId?: string; accountNumber?: string; routingNumber?: string }): Promise<RailTransfer> {
     if (input.amountCents <= 0 || !input.recipient) throw new Error("Invalid ACH transfer");
     return { providerTransferId: `sim-out-${input.idempotencyKey}`, status: "PENDING" };
   }

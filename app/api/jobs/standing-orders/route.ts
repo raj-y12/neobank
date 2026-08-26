@@ -43,7 +43,15 @@ export async function POST(request: Request) {
       results.push({ id: order.id, status: "INSUFFICIENT_FUNDS" });
       continue;
     }
-    const transfer = await getPaymentRail().createOutbound({ amountCents: order.amount_cents, recipient: typeof order.recipient === "string" ? order.recipient : order.recipient.name ?? "Standing order", idempotencyKey: `payment-submit:${paymentId}` });
+    const rail = getPaymentRail();
+    let providerAccountId: string | undefined;
+    if (rail.mode === "LIVE") {
+      const { data: providerAccount, error: providerAccountError } = await client.from("provider_accounts").select("provider_account_id").eq("business_id", order.business_id).eq("account_id", order.account_id).eq("provider", "INCREASE").eq("status", "ACTIVE").maybeSingle<{ provider_account_id: string }>();
+      if (providerAccountError) throw providerAccountError;
+      if (!providerAccount) throw new Error(`No active Increase provider account for standing order ${order.id}`);
+      providerAccountId = providerAccount.provider_account_id;
+    }
+    const transfer = await rail.createOutbound({ amountCents: order.amount_cents, recipient: typeof order.recipient === "string" ? order.recipient : order.recipient.name ?? "Standing order", providerAccountId, idempotencyKey: `payment-submit:${paymentId}` });
     await client.from("payments").update({ provider_payment_id: transfer.providerTransferId, status: "SUBMITTED", updated_at: new Date().toISOString() }).eq("id", paymentId);
     await client.from("standing_order_occurrences").update({ status: "SUBMITTED", payment_id: paymentId, updated_at: new Date().toISOString() }).eq("id", occurrence.id);
     await client.from("standing_orders").update({ next_run_date: advance(order.next_run_date, order.frequency), updated_at: new Date().toISOString() }).eq("id", order.id);
