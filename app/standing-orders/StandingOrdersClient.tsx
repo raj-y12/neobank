@@ -18,7 +18,6 @@ export default function StandingOrdersClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [formError, setFormError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const load = useCallback(async () => {
@@ -35,13 +34,13 @@ export default function StandingOrdersClient() {
   useEffect(() => { void load(); }, [load]);
 
   async function createOrder(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSaving(true); setFormError(""); setMessage("");
+    event.preventDefault(); setSaving(true); setMessage("");
     try {
       const response = await fetch("/api/standing-orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amountCents: dollarsToCents(form.amount), recipient: form.recipient.trim(), accountNumber: form.accountNumber, routingNumber: form.routingNumber, frequency: form.frequency, nextRunDate: form.nextRunDate, insufficientFundsPolicy: form.policy }) });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Unable to create standing order");
       setForm(initialForm); setMessage("Standing order created"); await load();
-    } catch (caught) { setFormError(caught instanceof Error ? caught.message : "Unable to create standing order"); }
+    } catch (caught) { setErrorMessage(caught instanceof Error ? caught.message : "Unable to create standing order"); }
     finally { setSaving(false); }
   }
 
@@ -64,7 +63,6 @@ export default function StandingOrdersClient() {
         <label>First run<input className="input" type="date" value={form.nextRunDate} onChange={(event) => setForm({ ...form, nextRunDate: event.target.value })} required /></label>
         <label>If funds are short<select className="select" value={form.policy} onChange={(event) => setForm({ ...form, policy: event.target.value as typeof form.policy })}><option value="SKIP">Skip this run</option><option value="RETRY_NEXT_DAY">Retry tomorrow</option></select></label>
         <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "Creating…" : "Create standing order"}</button>
-        {formError && <p className="form-error" role="alert">{formError}</p>}
       </form>
     </section>
     {message && <p className="list-meta" role="status">{message}</p>}
