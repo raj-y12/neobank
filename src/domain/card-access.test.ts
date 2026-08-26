@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewCard, filterVisibleCards, employeeEmailForCard } from "./card-access";
+import { canIssueCards, canViewCard, filterVisibleCards, employeeEmailForCard } from "./card-access";
 
 describe("canViewCard", () => {
   it("allows admins to view every business card", () => {
@@ -10,6 +10,13 @@ describe("canViewCard", () => {
     expect(canViewCard({ role: "MEMBER", currentMemberId: "employee", assignedMemberId: "employee" })).toBe(true);
     expect(canViewCard({ role: "MEMBER", currentMemberId: "employee", assignedMemberId: "other" })).toBe(false);
     expect(canViewCard({ role: "MEMBER", currentMemberId: "employee", assignedMemberId: null })).toBe(false);
+  });
+});
+
+describe("canIssueCards", () => {
+  it("allows admins but not members to issue cards", () => {
+    expect(canIssueCards("ADMIN")).toBe(true);
+    expect(canIssueCards("MEMBER")).toBe(false);
   });
 });
 

@@ -1,7 +1,7 @@
 import { listLithicCards } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { listBusinessCardAssignments } from "@/src/repositories/supabase-business-card-repository";
-import { employeeEmailForCard, filterVisibleCards } from "@/src/domain/card-access";
+import { canIssueCards, employeeEmailForCard, filterVisibleCards } from "@/src/domain/card-access";
 import { CardTile } from "./CardTile";
 import { IssueCardButton } from "./IssueCardButton";
 
@@ -20,7 +20,7 @@ export default async function CardsPage() {
     <>
       <section className="intro">
         <div><h2>Cards</h2><p className="intro-copy">Manage cards issued to your team.</p></div>
-        <IssueCardButton />
+        {canIssueCards(scope.role) && <IssueCardButton />}
       </section>
       {cards.length === 0 ? (
         <section className="panel section-panel">
