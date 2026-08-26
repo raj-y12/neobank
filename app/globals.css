@@ -514,7 +514,7 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .footer { justify-content: space-between; padding: var(--space-6) var(--space-2) 0; color: var(--muted); font-size: var(--text-2xs); }
 
 /* ---- transaction detail modal ---- */
-.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: stretch end; padding: 12px; background: rgba(0, 0, 0, .64); backdrop-filter: blur(10px); animation: modal-backdrop-in 180ms ease-out both; }
+.modal-backdrop { position: fixed; z-index: 40; inset: 0; display: grid; place-items: stretch end; padding: 12px; background: rgba(0, 0, 0, .64); backdrop-filter: blur(10px); animation: modal-backdrop-in 180ms ease-out both; }
 .modal-backdrop.is-centered { place-items: center; }
 .error-modal { display: grid; justify-items: center; gap: var(--space-4); width: min(340px, 90%); padding: var(--space-6) var(--space-5); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 28px 100px rgba(0, 0, 0, .5); text-align: center; animation: modal-panel-in 240ms var(--ease-standard) both; }
 .error-modal p { margin: 0; color: var(--ink); font-size: var(--text-md); font-weight: 500; }
