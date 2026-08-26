@@ -18,7 +18,7 @@ vi.mock("@supabase/supabase-js", () => ({
         select: () => query,
         eq: () => query,
         maybeSingle: async () => ({ data: null, error: null }),
-        insert: (value: unknown) => table === "reconciliation_files"
+        insert: () => table === "reconciliation_files"
           ? query
           : Promise.resolve({ error: null }),
         single: async () => ({ data: { id: "file-a" }, error: null }),
