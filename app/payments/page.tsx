@@ -22,21 +22,21 @@ export default function PaymentsPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <h3>Payment details</h3>
-        <div className="form-row">
-          <label>Recipient<input className="input" value={recipient} onChange={(event) => setRecipient(event.target.value)} /></label>
-          <label>Amount in dollars<input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-          <label>Account number<input className="input" value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
-          <label>Routing number<input className="input" value={routingNumber} onChange={(event) => setRoutingNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
-          <button className="btn btn-primary" onClick={createPayment}>Send payment</button>
-        </div>
-        <p className="list-meta" role="status">{message}</p>
-      </section>
-
-      <section className="status-card">
+      <section className="status-card payment-rail-card">
         <div><strong>Payment rail</strong><p className="list-meta">Your payment will be submitted securely.</p></div>
         <span className="chip chip-orange">{process.env.NEXT_PUBLIC_INCREASE_MODE ?? "SIMULATED"}</span>
+      </section>
+
+      <section className="panel payment-details-panel">
+        <h3>Payment details</h3>
+        <div className="form-row payment-form-row">
+          <label>Recipient<input className="input" value={recipient} onChange={(event) => setRecipient(event.target.value)} /></label>
+          <label>Account number<input className="input" value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+          <label>Routing number<input className="input" value={routingNumber} onChange={(event) => setRoutingNumber(event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+          <label>Amount in dollars<span className="currency-input"><span aria-hidden="true">$</span><input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></span></label>
+        </div>
+        <button className="btn btn-primary" onClick={createPayment}>Send payment</button>
+        <p className="list-meta" role="status">{message}</p>
       </section>
     </>
   );
