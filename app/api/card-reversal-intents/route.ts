@@ -4,6 +4,7 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseAdminClient } from "@/src/lib/supabase/admin";
 import { canViewCard } from "@/src/domain/card-access";
 import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
     if (!body.originalTransactionId || !body.idempotencyKey) {
       return NextResponse.json({ error: "originalTransactionId and idempotencyKey are required" }, { status: 400 });
     }
+    if (!isUuid(body.originalTransactionId)) return NextResponse.json({ error: "Card transaction not found" }, { status: 404 });
     const scope = await getAuthenticatedScope();
     const { data: transaction, error: transactionError } = await createSupabaseAdminClient().from("card_transactions").select("card_token").eq("id", body.originalTransactionId).maybeSingle<{ card_token: string }>();
     if (transactionError) throw transactionError;

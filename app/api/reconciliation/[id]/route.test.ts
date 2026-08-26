@@ -4,6 +4,10 @@ vi.mock("@/src/lib/auth-scope", () => ({
   getAuthenticatedScope: async () => ({ userId: "user-a", memberId: "member-a", businessId: "business-a", accountId: "account-a", role: "ADMIN", email: "admin@example.com" }),
 }));
 
+vi.mock("@/src/lib/identifiers", () => ({
+  isUuid: (value: string) => value !== "not-a-uuid",
+}));
+
 const query = vi.hoisted(() => {
   const value = {} as {
     update: () => typeof value;

@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { processPaymentRailEvent } from "@/app/api/webhooks/payment-rail/route";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await getAuthenticatedScope();
     if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
+    if (!isUuid(id)) return NextResponse.json({ error: "Funding transfer not found" }, { status: 404 });
     const body = await request.json() as { action?: "SETTLE" | "RETURN" };
     if (body.action !== "SETTLE" && body.action !== "RETURN") return NextResponse.json({ error: "action must be SETTLE or RETURN" }, { status: 400 });
     const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });

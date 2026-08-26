@@ -4,12 +4,14 @@ import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { createSupabaseProviderAccountRepository } from "@/src/repositories/supabase-provider-account-repository";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await getAuthenticatedScope();
     if (context.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
+    if (!isUuid(id)) return NextResponse.json({ error: "Payment not found in business scope" }, { status: 404 });
     const repository = createSupabasePaymentRepository();
     if (!await repository.memberBelongsToBusiness(context.memberId, context.businessId)) throw new Error("Approver is not a member of this business");
     const existing = await repository.get(id, context.businessId);

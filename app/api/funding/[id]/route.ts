@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await getAuthenticatedScope();
     if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
+    if (!isUuid(id)) return NextResponse.json({ error: "Funding transfer not found" }, { status: 404 });
     const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data, error } = await client.from("funding_transfers").select("id,status,settled_at,returned_at").eq("id", id).eq("business_id", scope.businessId).eq("account_id", scope.accountId).maybeSingle();
     if (error) throw error;

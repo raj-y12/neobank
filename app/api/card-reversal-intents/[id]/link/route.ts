@@ -9,11 +9,13 @@ import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
 import { canViewCard } from "@/src/domain/card-access";
 import { validateReturnLink } from "@/src/domain/card-reversal";
+import { isUuid } from "@/src/lib/identifiers";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const scope = await getAuthenticatedScope();
+    if (!isUuid(id)) return NextResponse.json({ error: "Reversal intent not found" }, { status: 404 });
     const reversalRepository = createSupabaseCardReversalRepository();
     const existingIntent = await reversalRepository.getIntent(id);
     const assignment = await getBusinessCardAssignment(scope.businessId, existingIntent.cardToken);
