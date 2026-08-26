@@ -11,7 +11,7 @@ export default function PaymentsPage() {
   const [message, setMessage] = useState("No payment created yet.");
   const [payment, setPayment] = useState<{ id: string; status: PaymentStatus; amountCents: number } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [railMode, setRailMode] = useState("SIMULATED");
+  const [railMode, setRailMode] = useState(process.env.NEXT_PUBLIC_INCREASE_MODE ?? "SIMULATED");
   useEffect(() => {
     if (!payment || !modalOpen || payment.status === "SETTLED" || payment.status === "RETURNED" || payment.status === "REJECTED") return;
     const timer = window.setInterval(async () => {
