@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datetimeLocalToIso, parseStatementDate } from "./statement-controls";
+import { datetimeLocalToIso, isTransactionsOnlyView, parseStatementDate } from "./statement-controls";
 
 describe("statement controls", () => {
   it("accepts real UTC calendar dates and rejects malformed dates", () => {
@@ -11,5 +11,10 @@ describe("statement controls", () => {
   it("converts datetime-local values to an exact ISO cutoff", () => {
     expect(datetimeLocalToIso("2026-08-26T23:59")).toBe("2026-08-26T23:59:00.000Z");
     expect(datetimeLocalToIso("bad")).toBeNull();
+  });
+
+  it("recognizes the list-only transactions view", () => {
+    expect(isTransactionsOnlyView("transactions")).toBe(true);
+    expect(isTransactionsOnlyView(undefined)).toBe(false);
   });
 });

@@ -48,7 +48,7 @@ export default async function Home() {
               <h4>Your ledger will appear here</h4>
               <p>Once funding and card activity are connected, every movement will be shown from the immutable ledger.</p>
             </div> : <LedgerActivity rows={activity} />}
-            <Link className="see-all" href="/statements">See all transactions <span aria-hidden="true">→</span></Link>
+            <Link className="see-all" href="/statements?view=transactions">See all transactions <span aria-hidden="true">→</span></Link>
           </div>
         </article>
 

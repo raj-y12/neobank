@@ -14,3 +14,7 @@ export function datetimeLocalToIso(value: string | null | undefined) {
   if (hour > 23 || minute > 59) return null;
   return new Date(`${date}T${timePart}:00.000Z`).toISOString();
 }
+
+export function isTransactionsOnlyView(value: string | null | undefined) {
+  return value === "transactions";
+}
