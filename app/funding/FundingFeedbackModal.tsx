@@ -43,9 +43,10 @@ export function fundingFailureMessage(operation: "CREATE" | "SETTLE" | "RETURN",
   return "Increase couldn't settle this transfer. Close this message, create a fresh transfer, and try again.";
 }
 
-export function FundingFeedbackModal({ feedback, onClose }: { feedback: FundingFeedback; onClose: () => void }) {
+export function FundingFeedbackModal({ feedback, onClose, onSimulateSettlement, onSimulateReturn }: { feedback: FundingFeedback; onClose: () => void; onSimulateSettlement?: () => void; onSimulateReturn?: () => void }) {
   const content = fundingFeedbackContent(feedback);
   const busy = feedback.status === "CREATING" || feedback.status === "SETTLING" || feedback.status === "RETURNING";
+  const canSimulate = (feedback.status === "PENDING" || feedback.status === "WAITING") && onSimulateSettlement && onSimulateReturn;
   return (
     <section className="transaction-modal payment-status-modal" role="dialog" aria-modal="true" aria-labelledby="funding-status-title" aria-busy={busy || undefined}>
       <div className="modal-header">
@@ -57,6 +58,12 @@ export function FundingFeedbackModal({ feedback, onClose }: { feedback: FundingF
         <div className="modal-amount"><span className="detail-label">Amount</span><strong>{usd(feedback.amountCents)}</strong></div>
       </div>
       <p className="modal-note" role={feedback.status === "ERROR" ? "alert" : "status"}>{content.message}</p>
+      {canSimulate && (
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onSimulateSettlement} disabled={busy}>Simulate settlement</button>
+          <button className="btn btn-outline" onClick={onSimulateReturn} disabled={busy}>Simulate return</button>
+        </div>
+      )}
     </section>
   );
 }
