@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { IconClose } from "../components/Icon";
 
 type Approval = { id: string; amount_cents: number; recipient: { name?: string } | string; initiator_member_id: string; status: string };
 
 export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [message, setMessage] = useState("Loading approval queue…");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   async function load() {
     setLoading(true);
@@ -22,14 +25,14 @@ export default function ApprovalsPage() {
   async function approve(id: string) {
     const response = await fetch(`/api/payments/${id}/approve`, { method: "POST" });
     const body = await response.json();
-    setMessage(response.ok ? `Submitted to ${body.mode} rail as ${body.providerTransferId}` : body.error);
-    if (response.ok) void load();
+    if (response.ok) { setMessage(`Submitted to ${body.mode} rail as ${body.providerTransferId}`); void load(); }
+    else setErrorMessage(body.error);
   }
   async function reject(id: string) {
     const response = await fetch(`/api/payments/${id}/reject`, { method: "POST" });
     const body = await response.json();
-    setMessage(response.ok ? "Payment rejected" : body.error);
-    if (response.ok) void load();
+    if (response.ok) { setMessage("Payment rejected"); void load(); }
+    else setErrorMessage(body.error);
   }
   return (
     <>
@@ -65,6 +68,16 @@ export default function ApprovalsPage() {
         )}
         <p className="list-meta" role="status">{message}</p>
       </section>
+
+      {errorMessage && typeof document !== "undefined" && createPortal(
+        <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setErrorMessage("")}>
+          <div className="error-modal" role="alertdialog" aria-modal="true">
+            <p>{errorMessage}</p>
+            <div className="error-modal-icon" aria-hidden="true"><IconClose /></div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }
