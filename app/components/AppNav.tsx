@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/browser";
-import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
 import { IconCheckCircle, IconDollar, IconHome, IconReceipt, IconUsers } from "./Icon";
 
 const TABS = [
@@ -19,19 +18,18 @@ const TABS = [
 export function AppNav() {
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
-  const [showNavigation, setShowNavigation] = useState(false);
+  const isPublicPath = pathname === "/login" || pathname === "/onboarding";
+  const [showNavigation, setShowNavigation] = useState(!isPublicPath);
 
   useEffect(() => {
     const client = createBrowserSupabaseClient();
+    let disposed = false;
     const loadStatus = async () => {
       const { data } = await client.auth.getUser();
       const nextEmail = data.user?.email ?? null;
+      if (disposed) return;
       setEmail(nextEmail);
-      if (!nextEmail) { setShowNavigation(false); return; }
-      const response = await fetch("/api/navigation-status", { cache: "no-store" });
-      if (!response.ok) return;
-      const status = await response.json() as { authenticated: boolean; onboardingApproved: boolean; fundingLinked: boolean };
-      setShowNavigation(shouldShowAppNavigation(status));
+      setShowNavigation(Boolean(nextEmail));
     };
     void loadStatus();
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
@@ -42,6 +40,7 @@ export function AppNav() {
     window.addEventListener("focus", loadStatus);
     window.addEventListener("corgi:setup-changed", loadStatus);
     return () => {
+      disposed = true;
       listener.subscription.unsubscribe();
       window.removeEventListener("focus", loadStatus);
       window.removeEventListener("corgi:setup-changed", loadStatus);

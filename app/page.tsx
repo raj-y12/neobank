@@ -1,7 +1,6 @@
 import { CountUp } from "./components/CountUp";
 import { LedgerActivity } from "./components/LedgerActivity";
 import Link from "next/link";
-import { openingBalance } from "@/src/domain/ledger";
 import { formatUsdCents } from "@/src/integrations/lithic/client";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { getLedgerActivity } from "@/src/repositories/supabase-ledger-statement-repository";
@@ -13,17 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const scope = await getAuthenticatedScope();
   const ledger = createSupabaseLedgerRepository();
-  const openingBalanceCents = Number(process.env.LEDGER_OPENING_BALANCE_CENTS ?? 100_000);
-  const valueDate = new Date().toISOString().slice(0, 10);
-  await ledger.record(openingBalance(openingBalanceCents, valueDate), "seed:opening-balance:v1");
-  const balances = await ledger.getBalances({
-    businessId: scope.businessId,
-    accountId: scope.accountId,
-  });
-  const activity = await getLedgerActivity(8, {
-    businessId: scope.businessId,
-    accountId: scope.accountId,
-  });
+  const ledgerScope = { businessId: scope.businessId, accountId: scope.accountId };
+  const [balances, activity] = await Promise.all([
+    ledger.getBalances(ledgerScope),
+    getLedgerActivity(8, ledgerScope),
+  ]);
 
   return (
     <>

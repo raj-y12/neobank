@@ -510,8 +510,8 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .footer { justify-content: space-between; padding: var(--space-6) var(--space-2) 0; color: var(--muted); font-size: var(--text-2xs); }
 
 /* ---- transaction detail modal ---- */
-.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: stretch end; padding: 12px; background: rgba(0, 0, 0, .64); backdrop-filter: blur(10px); }
-.transaction-modal { width: min(440px, 100%); height: 100%; max-height: none; overflow: auto; border-radius: var(--radius-lg); padding: var(--space-5); background: var(--card); box-shadow: 0 28px 100px rgba(0, 0, 0, .5); }
+.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: stretch end; padding: 12px; background: rgba(0, 0, 0, .64); backdrop-filter: blur(10px); animation: modal-backdrop-in 180ms ease-out both; }
+.transaction-modal { width: min(440px, 100%); height: 100%; max-height: none; overflow: auto; border-radius: var(--radius-lg); padding: var(--space-5); background: var(--card); box-shadow: 0 28px 100px rgba(0, 0, 0, .5); animation: modal-panel-in 240ms var(--ease-standard) both; will-change: transform, opacity; }
 .modal-header, .modal-summary, .related-row { display: flex; align-items: center; }
 .modal-header { justify-content: space-between; gap: var(--space-4); }
 .modal-header h3 { margin: 0; font-size: var(--text-xl); font-weight: 600; line-height: 1.1; }
@@ -587,7 +587,7 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 
 @media (max-width: 620px) {
   .modal-backdrop { align-items: end; padding: 8px; }
-  .transaction-modal { width: 100%; height: auto; max-height: calc(100vh - 16px); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-5); }
+  .transaction-modal { width: 100%; height: auto; max-height: calc(100vh - 16px); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-5); animation-name: modal-sheet-in; }
   .modal-summary { align-items: flex-start; flex-direction: column; }
   .modal-amount { text-align: left; }
   .detail-grid { grid-template-columns: 1fr 1.25fr; }
@@ -598,28 +598,25 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
   .transaction-amount { font-size: var(--text-xs); }
 }
 
-/* ---- entrance motion ---- */
+/* ---- route and overlay motion ---- */
 
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes page-enter {
+  from { opacity: .35; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-.account-card, .metric-card, .panel, .widget-card, .intro, .card-tile {
-  animation: fade-up .5s var(--ease-standard) both;
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.intro { animation-delay: 0ms; }
-.account-card { animation-delay: 40ms; }
-.metric-grid .metric-card:nth-child(1) { animation-delay: 80ms; }
-.metric-grid .metric-card:nth-child(2) { animation-delay: 140ms; }
-.metric-grid .metric-card:nth-child(3) { animation-delay: 200ms; }
-.content-grid .panel:nth-child(1) { animation-delay: 240ms; }
-.content-grid .panel:nth-child(2) { animation-delay: 300ms; }
-section.panel { animation-delay: 240ms; }
-.card-tile-grid .card-tile:nth-child(1) { animation-delay: 60ms; }
-.card-tile-grid .card-tile:nth-child(2) { animation-delay: 120ms; }
-.card-tile-grid .card-tile:nth-child(3) { animation-delay: 180ms; }
-.card-tile-grid .card-tile:nth-child(4) { animation-delay: 240ms; }
+@keyframes modal-panel-in {
+  from { opacity: .6; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes modal-sheet-in {
+  from { opacity: .6; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transition { animation: page-enter 180ms var(--ease-standard) both; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

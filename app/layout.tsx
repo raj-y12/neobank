@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppNav } from "./components/AppNav";
+import { PageTransition } from "./components/PageTransition";
 
 export const metadata: Metadata = {
   title: "Corgi | Business banking",
@@ -17,7 +18,7 @@ export default function RootLayout({
       <body>
         <div className="app-shell">
           <AppNav />
-          <main className="shell">{children}</main>
+          <main className="shell"><PageTransition>{children}</PageTransition></main>
         </div>
       </body>
     </html>
