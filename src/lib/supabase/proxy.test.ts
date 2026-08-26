@@ -60,4 +60,12 @@ describe("updateSupabaseSession", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("leaves the MCP endpoint to its bearer-token guard", async () => {
+    authState.claims = null;
+    const response = await updateSupabaseSession(new NextRequest("https://bank.example/api/mcp"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
 });
