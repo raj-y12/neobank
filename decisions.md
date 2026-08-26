@@ -119,15 +119,6 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Decision: Every clearing receives an event-specific journal reference and value date. A return is allocated oldest-first across the original transaction's still-reversible clearing entries, producing one immutable correction per capture.
 - Why: A transaction can have multiple captures on different dates. A single mutable transaction value date cannot reproduce corrected history or prevent a retry from reversing a different capture.
 
-## Current open items
-
-- Enable Supabase leaked-password protection.
-- Add forced employee password change and password reset.
-- Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
-- Add a scheduled recovery worker to replay parked card clearings after the 15-minute force-post grace.
-- Replace global Increase account-number fallbacks with business/account-scoped provider-account records before multi-tenant or production use.
-- Keep USDC, wires, batch payments, and native mobile out of this release. Standing-order persistence is now specified, but its authenticated API and scheduler remain follow-up work.
-
 ### D-018 — Make standing-order occurrences idempotent before scheduling
 
 - Date: 2026-08-26
@@ -157,7 +148,7 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Date: 2026-08-26
 - Decision: Keep the Increase API key and our platform-level Increase account ID in Vercel secrets. Do not attach those credentials to a user. Store the Increase account and account-number identifiers that receive or send a business's money in Supabase, scoped to the business and ledger account, and resolve them from the authenticated scope before calling Increase.
 - Why: The API key is an integration credential and the platform account is ours; neither is a user property. The actual mistake would be using global account-number fallbacks to decide which business's money moves. The ledger is already business/account scoped, so the provider boundary needs to follow the same scope.
-- Fix scope: add a provider-account record with `business_id`, `account_id`, Increase account ID, Increase account-number ID, masked display fields, status, and timestamps; encrypt any raw account/routing numbers; make funding and outbound rail calls require the resolved record; remove the `INCREASE_*_ACCOUNT_*` fallbacks from request handling; add tenant-isolation and missing-provider-account tests; migrate the current sandbox values into the demo business record.
+- Result: Provider-account records are now scoped by `business_id` and `account_id`. Live funding and outbound calls require the active scoped record, and the old global account-number fallbacks are no longer used to decide which business's money moves.
 - Cut: This does not make provider credentials user-owned, and it does not put secrets in the browser or ledger tables. If every business intentionally shares one safeguarded Increase account, the provider record can point to the same platform account while still keeping the ownership and audit boundary explicit.
 
 ### D-023 — Use live Persona KYC as the available onboarding proof
@@ -167,3 +158,32 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Constraint: Full business-and-director KYB cannot be completed in this trial because the required provider capability is gated behind business verification or non-self-serve access that is unavailable within the trial window.
 - Why: The trial requires genuine provider integration and honest real-versus-simulated labelling. A working live KYC flow with signed webhooks is stronger and more truthful than simulating KYB or presenting an owner inquiry as business verification.
 - Follow-up: Replace the KYC fallback with a live business and director KYB workflow when provider access is available; retain the same pending, approved, and rejected account gate.
+
+### D-024 — Keep statements useful without turning them into one giant page
+
+- Date: 2026-08-26
+- Decision: `/statements` opens on the statement summary and shows every transaction in the selected range, including posted entries and active holds. The separate All transactions view keeps only the date controls and transaction list. Both views show the latest transaction first.
+- Why: I want the normal statement page to explain the balances, but I also want a reviewer to open All transactions and scan the actual activity without working through the reconciliation sections.
+- Running balance: It is still calculated in ledger order. Even though the rows are displayed latest first, each row shows the available balance immediately after that transaction happened.
+
+### D-025 — Use the Increase ACH amount the sandbox actually expects
+
+- Date: 2026-08-26
+- Decision: Add Money sends a positive integer-cent amount to Increase's standard `/ach_transfers` endpoint. Settlement and return are separate lifecycle actions. We do not flip the amount negative in our adapter.
+- Why: In the Increase sandbox, the positive ACH transfer is the flow that takes the amount from the configured Increase account and lets the settlement simulation complete. Negating it was based on the wrong assumption and made the demo behavior misleading.
+- Result: Entering `$500.00` creates a `50000`-cent transfer, and only a confirmed settlement adds `$500.00` to the product ledger.
+
+### D-026 — Send signed-out reviewers to login
+
+- Date: 2026-08-26
+- Decision: If somebody opens a protected page without a valid Supabase session or complete membership, redirect them to `/login`.
+- Why: The page may work perfectly once authenticated, but a reviewer seeing a server-error screen will reasonably call the deployment broken.
+
+## Current open items
+
+- Enable Supabase leaked-password protection.
+- Add forced employee password change and password reset.
+- Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
+- Confirm the external cron jobs are configured in the deployed environment for Lithic recovery and standing-order execution.
+- Replace the owner KYC fallback with full business and director KYB when Persona makes that provider capability available.
+- Keep USDC, wires, batch payments, and native mobile out of this release.
