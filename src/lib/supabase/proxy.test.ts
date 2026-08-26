@@ -76,4 +76,12 @@ describe("updateSupabaseSession", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("keeps Scalar API docs public", async () => {
+    authState.claims = null;
+    const response = await updateSupabaseSession(new NextRequest("https://bank.example/docs"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
 });
