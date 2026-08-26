@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewCard, filterVisibleCards } from "./card-access";
+import { canViewCard, filterVisibleCards, employeeEmailForCard } from "./card-access";
 
 describe("canViewCard", () => {
   it("allows admins to view every business card", () => {
@@ -28,5 +28,19 @@ describe("filterVisibleCards", () => {
     expect(filterVisibleCards(cards, { role: "MEMBER", currentMemberId: "employee" })).toEqual([
       { cardToken: "assigned-to-current-member", memberId: "employee" },
     ]);
+  });
+});
+
+describe("employeeEmailForCard", () => {
+  it("returns the assigned employee email for a card token", () => {
+    expect(employeeEmailForCard([
+      { cardToken: "card-1", memberId: "member-1", employeeEmail: "owner@example.com" },
+    ], "card-1")).toBe("owner@example.com");
+  });
+
+  it("returns null only when the card has no assignment or email", () => {
+    expect(employeeEmailForCard([
+      { cardToken: "card-1", memberId: "member-1", employeeEmail: null },
+    ], "card-1")).toBeNull();
   });
 });

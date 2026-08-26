@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { IconClose, IconUsers } from "../components/Icon";
+import { formatEmployeeName } from "@/src/domain/team";
 
-type Employee = { id: string; email: string | null; role: string; status: string };
+type Employee = { id: string; firstName: string | null; lastName: string | null; email: string | null; role: string; status: string };
 
 export function CardDelegateForm({ cardToken, assignedMemberId, employees }: { cardToken: string; assignedMemberId: string | null; employees: Employee[] }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export function CardDelegateForm({ cardToken, assignedMemberId, employees }: { c
   return (
     <>
       <button className="btn btn-outline btn-block" onClick={() => setOpen(true)}>
-        <IconUsers /> {assignedEmployee ? `Delegated to ${assignedEmployee.email ?? assignedEmployee.id}` : "Delegate this card"}
+        <IconUsers /> {assignedEmployee ? formatEmployeeName(assignedEmployee) : "Delegate this card"}
       </button>
 
       {open && typeof document !== "undefined" && createPortal(
@@ -44,7 +45,7 @@ export function CardDelegateForm({ cardToken, assignedMemberId, employees }: { c
               <label htmlFor="card-delegate-select">Delegated to</label>
               <select id="card-delegate-select" className="select" value={memberId} onChange={(event) => setMemberId(event.target.value)} disabled={pending}>
                 <option value="">Select employee</option>
-                {employees.filter((employee) => employee.status === "ACTIVE").map((employee) => <option value={employee.id} key={employee.id}>{employee.email ?? employee.id} · {employee.role}</option>)}
+                {employees.filter((employee) => employee.status === "ACTIVE").map((employee) => <option value={employee.id} key={employee.id}>{formatEmployeeName(employee)} · {employee.role}</option>)}
               </select>
             </div>
             <div className="modal-actions">

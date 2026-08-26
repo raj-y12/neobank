@@ -13,12 +13,12 @@ export async function POST(request: Request) {
     if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const onboarding = await createSupabaseOnboardingRepository().get(scope.businessId);
     if (!isBusinessApproved(onboarding)) return NextResponse.json({ error: "Business verification must be approved before issuing a card" }, { status: 403 });
-    const input = parseCardIssueInput(await request.json() as { memberId?: string; limit?: string; duration?: string });
+    const input = parseCardIssueInput(await request.json() as { memberId?: string; limit?: string; duration?: string; color?: string });
     const { data: employee, error: employeeError } = await createSupabaseAdminClient().from("business_members").select("id").eq("id", input.memberId).eq("business_id", scope.businessId).eq("status", "ACTIVE").maybeSingle();
     if (employeeError) throw employeeError;
     if (!employee) return NextResponse.json({ error: "Employee is not active in this business" }, { status: 400 });
     const card = await createLithicVirtualCard({ spendLimit: input.spendLimit, spendLimitDuration: input.spendLimitDuration });
-    await createBusinessCard({ businessId: scope.businessId, cardToken: card.token, memberId: input.memberId });
+    await createBusinessCard({ businessId: scope.businessId, cardToken: card.token, memberId: input.memberId, cardColor: input.cardColor });
     return NextResponse.json({ card }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to issue card";

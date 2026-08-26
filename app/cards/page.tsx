@@ -1,7 +1,7 @@
 import { listLithicCards } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { listBusinessCardAssignments } from "@/src/repositories/supabase-business-card-repository";
-import { filterVisibleCards } from "@/src/domain/card-access";
+import { employeeEmailForCard, filterVisibleCards } from "@/src/domain/card-access";
 import { CardTile } from "./CardTile";
 import { IssueCardButton } from "./IssueCardButton";
 
@@ -28,7 +28,7 @@ export default async function CardsPage() {
         </section>
       ) : (
         <section className="card-tile-grid section-panel" aria-label="Issued cards">
-          {cards.map((card) => <CardTile key={card.token} card={card} href={`/cards/${card.token}`} />)}
+          {cards.map((card) => { const assignment = visibleAssignments.find((item) => item.cardToken === card.token); return <CardTile key={card.token} card={card} href={`/cards/${card.token}`} delegatedTo={assignment?.employeeName ?? employeeEmailForCard(visibleAssignments, card.token)} cardColor={assignment?.cardColor} />; })}
         </section>
       )}
     </>

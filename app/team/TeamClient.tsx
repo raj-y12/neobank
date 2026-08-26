@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-type Employee = { id: string; email: string | null; role: "ADMIN" | "MEMBER"; status: string };
+type Employee = { id: string; firstName: string | null; lastName: string | null; email: string | null; role: "ADMIN" | "MEMBER"; status: string };
 
 export function TeamClient() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"MEMBER" | "ADMIN">("MEMBER");
   const [inviteMessage, setInviteMessage] = useState("");
@@ -28,16 +30,18 @@ export function TeamClient() {
 
   async function invite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const response = await fetch("/api/employees", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, role, password }) });
+    const response = await fetch("/api/employees", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ firstName, lastName, email, role, password }) });
     const body = await response.json() as { employee?: Employee; initialPassword?: string; error?: string };
     setInviteMessage(response.ok ? `Login created for ${email}. Share the initial password securely: ${body.initialPassword}` : body.error ?? "Unable to create employee login");
-    if (response.ok) { setEmail(""); setPassword(""); await load(); }
+    if (response.ok) { setFirstName(""); setLastName(""); setEmail(""); setPassword(""); await load(); }
   }
 
   return <>
     <section className="panel">
       <div className="panel-heading"><h3>Add an employee</h3></div>
       <form className="form-row" onSubmit={invite}>
+        <label>First name<input className="input" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Ada" required /></label>
+        <label>Last name<input className="input" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Lovelace" required /></label>
         <label>Employee email<input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="employee@business.com" required /></label>
         <label>Initial password<input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" minLength={8} required /></label>
         <label>Role<select className="select" value={role} onChange={(event) => setRole(event.target.value as "MEMBER" | "ADMIN")}><option value="MEMBER">Member</option><option value="ADMIN">Admin</option></select></label>
@@ -56,7 +60,7 @@ export function TeamClient() {
           <tbody>
             {employees.map((employee) => (
               <tr key={employee.id}>
-                <td><span className="table-avatar">{(employee.email ?? "?").slice(0, 1).toUpperCase()}</span>{employee.email ?? employee.id}</td>
+                <td><span className="table-avatar">{(employee.firstName ?? employee.email ?? "?").slice(0, 1).toUpperCase()}</span>{[employee.firstName, employee.lastName].filter(Boolean).join(" ") || employee.email || employee.id}</td>
                 <td>{employee.role}</td>
                 <td><span className={`table-status status-${employee.status.toLowerCase()}`}>{employee.status}</span></td>
               </tr>

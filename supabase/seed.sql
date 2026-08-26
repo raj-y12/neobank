@@ -1,5 +1,5 @@
 insert into public.businesses (id, legal_name, status) values ('demo-business', 'Northstar Labs, Inc.', 'APPROVED') on conflict (id) do update set status = excluded.status;
-insert into public.business_members (id, business_id, role) values ('member-raj', 'demo-business', 'ADMIN'), ('member-aya', 'demo-business', 'MEMBER') on conflict (id) do nothing;
+insert into public.business_members (id, business_id, first_name, last_name, role) values ('member-raj', 'demo-business', 'Raj', 'Yendamuri', 'ADMIN'), ('member-aya', 'demo-business', 'Aya', 'Chen', 'MEMBER') on conflict (id) do update set first_name = excluded.first_name, last_name = excluded.last_name;
 insert into public.onboarding_verifications (business_id, provider, provider_reference, subject_type, status) values
   ('demo-business', 'persona', 'inq_demo_business', 'BUSINESS', 'APPROVED'),
   ('demo-business', 'persona', 'inq_demo_owner', 'OWNER', 'APPROVED')

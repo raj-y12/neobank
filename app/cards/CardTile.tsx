@@ -9,9 +9,9 @@ function themeFor(token: string) {
   return THEMES[hash % THEMES.length];
 }
 
-export function CardTile({ card, href, delegatedTo }: { card: LithicCard; href?: string; delegatedTo?: string | null }) {
+export function CardTile({ card, href, delegatedTo, cardColor }: { card: LithicCard; href?: string; delegatedTo?: string | null; cardColor?: string | null }) {
   const isActive = card.state === "OPEN";
-  const theme = themeFor(card.token);
+  const theme = cardColor && THEMES.includes(`theme-${cardColor}`) ? `theme-${cardColor}` : themeFor(card.token);
   const content = (
     <>
       <div className="card-tile-top">
@@ -23,7 +23,7 @@ export function CardTile({ card, href, delegatedTo }: { card: LithicCard; href?:
         <div>
           <p className="card-tile-kind">{card.type} card</p>
           <p className="card-tile-brand">CORGI</p>
-          <p className="card-tile-holder">{delegatedTo ? `Delegated to ${delegatedTo}` : "Unassigned"}</p>
+          <p className="card-tile-holder">{delegatedTo ?? "Unassigned"}</p>
         </div>
         <p className="card-tile-limit">
           Limit
@@ -34,6 +34,6 @@ export function CardTile({ card, href, delegatedTo }: { card: LithicCard; href?:
   );
 
   const className = `card-tile ${theme}${isActive ? "" : " is-inactive"}`;
-  const ariaLabel = `${card.type} card ending ${card.last_four}, ${card.state.toLowerCase()}, ${delegatedTo ? `delegated to ${delegatedTo}` : "unassigned"}`;
+  const ariaLabel = `${card.type} card ending ${card.last_four}, ${card.state.toLowerCase()}, ${delegatedTo ?? "unassigned"}`;
   return href ? <Link className={className} href={href} aria-label={ariaLabel}>{content}</Link> : <article className={className} aria-label={ariaLabel}>{content}</article>;
 }

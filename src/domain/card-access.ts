@@ -10,3 +10,10 @@ export function filterVisibleCards<T extends { memberId: string | null }>(
 ) {
   return cards.filter((card) => canViewCard({ ...viewer, assignedMemberId: card.memberId }));
 }
+
+export function employeeEmailForCard(
+  assignments: Array<{ cardToken: string; employeeEmail: string | null; memberId?: string | null }>,
+  cardToken: string,
+) {
+  return assignments.find((assignment) => assignment.cardToken === cardToken)?.employeeEmail ?? null;
+}

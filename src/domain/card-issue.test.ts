@@ -3,10 +3,11 @@ import { parseCardIssueInput } from "./card-issue";
 
 describe("parseCardIssueInput", () => {
   it("normalizes an assigned card limit from dollars to cents", () => {
-    expect(parseCardIssueInput({ memberId: "member-1", limit: "125.50", duration: "MONTHLY" })).toEqual({
+    expect(parseCardIssueInput({ memberId: "member-1", limit: "125.50", duration: "MONTHLY", color: "orange" })).toEqual({
       memberId: "member-1",
       spendLimit: 12550,
       spendLimitDuration: "MONTHLY",
+      cardColor: "orange",
     });
   });
 
@@ -17,5 +18,10 @@ describe("parseCardIssueInput", () => {
 
   it("rejects unsupported durations", () => {
     expect(() => parseCardIssueInput({ memberId: "member-1", limit: "10", duration: "DAILY" })).toThrow("Unsupported limit duration");
+  });
+
+  it("accepts a supported card color", () => {
+    expect(parseCardIssueInput({ memberId: "member-1", limit: "10", duration: "FOREVER", color: "violet" }).cardColor).toBe("violet");
+    expect(() => parseCardIssueInput({ memberId: "member-1", limit: "10", duration: "FOREVER", color: "black" })).toThrow("Unsupported card color");
   });
 });
