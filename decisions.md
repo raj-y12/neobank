@@ -125,6 +125,7 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Add forced employee password change and password reset.
 - Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
 - Add a scheduled recovery worker to replay parked card clearings after the 15-minute force-post grace.
+- Replace global Increase account-number fallbacks with business/account-scoped provider-account records before multi-tenant or production use.
 - Keep USDC, wires, batch payments, and native mobile out of this release. Standing-order persistence is now specified, but its authenticated API and scheduler remain follow-up work.
 
 ### D-018 — Make standing-order occurrences idempotent before scheduling
@@ -150,3 +151,11 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Date: 2026-08-26
 - Decision: In `SIMULATED` mode, funding SETTLE/RETURN actions replay the internal payment-rail webhook path with a deterministic synthetic event ID. Increase simulation endpoints are reachable only in explicit `LIVE` mode.
 - Why: A demo must exercise the same ledger and idempotency behavior without touching the Increase sandbox or depending on provider credentials.
+
+### D-022 — Keep Increase credentials global, but resolve provider accounts per business
+
+- Date: 2026-08-26
+- Decision: Keep the Increase API key and our platform-level Increase account ID in Vercel secrets. Do not attach those credentials to a user. Store the Increase account and account-number identifiers that receive or send a business's money in Supabase, scoped to the business and ledger account, and resolve them from the authenticated scope before calling Increase.
+- Why: The API key is an integration credential and the platform account is ours; neither is a user property. The actual mistake would be using global account-number fallbacks to decide which business's money moves. The ledger is already business/account scoped, so the provider boundary needs to follow the same scope.
+- Fix scope: add a provider-account record with `business_id`, `account_id`, Increase account ID, Increase account-number ID, masked display fields, status, and timestamps; encrypt any raw account/routing numbers; make funding and outbound rail calls require the resolved record; remove the `INCREASE_*_ACCOUNT_*` fallbacks from request handling; add tenant-isolation and missing-provider-account tests; migrate the current sandbox values into the demo business record.
+- Cut: This does not make provider credentials user-owned, and it does not put secrets in the browser or ledger tables. If every business intentionally shares one safeguarded Increase account, the provider record can point to the same platform account while still keeping the ownership and audit boundary explicit.
