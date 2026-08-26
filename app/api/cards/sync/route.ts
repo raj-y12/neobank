@@ -12,7 +12,7 @@ export async function POST() {
     return NextResponse.json({ created, total: cards.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to sync cards";
-    const status = message.includes("Admin role required") ? 403 : 500;
+    const status = message.includes("ADMIN role required") ? 403 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
