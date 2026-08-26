@@ -11,6 +11,7 @@ export type ProviderEventInsertResult = {
 
 export type StoredProviderEvent = ProviderEventRecord & {
   receivedAt: string;
+  processingVersion: number;
 };
 
 export interface ProviderEventRepository {
@@ -18,4 +19,5 @@ export interface ProviderEventRepository {
   listForTransaction(provider: string, providerTransactionId: string): Promise<StoredProviderEvent[]>;
   park(event: ProviderEventRecord & { providerTransactionId: string }): Promise<void>;
   markMatched(provider: string, providerEventId: string): Promise<void>;
+  listAgedParked(provider: string, before: string): Promise<Array<{ providerTransactionId: string }>>;
 }

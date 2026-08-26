@@ -106,10 +106,29 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Decision: The seed includes clearly simulated funding, payment, card, and ledger rows. Live provider evidence must come from provider dashboards and webhook delivery records.
 - Why: A reviewer should be able to run the demo without mistaking seed data for live integration proof.
 
+### D-016 — Promote unmatched card clearings after a fixed grace period
+
+- Date: 2026-08-26
+- Decision: Identify Lithic lifecycle events by their event token, not webhook delivery ID. A clearing without an authorization is parked for 15 minutes from first receipt; on deterministic replay after that boundary it is treated as a zero-hold force-post.
+- Why: The transaction webhook does not provide a reliable force-post discriminator. Immediate posting would misclassify ordinary out-of-order delivery, while indefinite parking would omit real financial activity. The fixed grace makes retries and review behavior reproducible.
+- Operational gap: Promotion currently occurs on webhook replay or recovery processing; a scheduled recovery worker is still required before production.
+
+### D-017 — Allocate card returns to immutable captures oldest-first
+
+- Date: 2026-08-26
+- Decision: Every clearing receives an event-specific journal reference and value date. A return is allocated oldest-first across the original transaction's still-reversible clearing entries, producing one immutable correction per capture.
+- Why: A transaction can have multiple captures on different dates. A single mutable transaction value date cannot reproduce corrected history or prevent a retry from reversing a different capture.
+
 ## Current open items
 
 - Enable Supabase leaked-password protection.
 - Add forced employee password change and password reset.
 - Capture Increase, Plaid, Lithic, Persona, and webhook evidence for the submission pack.
-- Extend the card transaction projection for explicit incremental authorizations, multiple captures, expiry, over-capture, and partial capture scenarios.
-- Keep USDC, wires, standing orders, batch payments, and native mobile out of this release.
+- Add a scheduled recovery worker to replay parked card clearings after the 15-minute force-post grace.
+- Keep USDC, wires, batch payments, and native mobile out of this release. Standing-order persistence is now specified, but its authenticated API and scheduler remain follow-up work.
+
+### D-018 — Make standing-order occurrences idempotent before scheduling
+
+- Date: 2026-08-26
+- Decision: A standing-order occurrence is keyed by `standing_order_id:scheduled_date`; insufficient funds are recorded as an explicit skipped outcome, with retry policy stored on the order.
+- Why: A scheduler may retry after a timeout or run on more than one instance. The unique occurrence key prevents duplicate payments, while an explicit outcome preserves an auditable decision instead of silently dropping a run.

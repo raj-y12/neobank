@@ -5,4 +5,5 @@ export interface CardReversalRepository {
   linkReturn(input: { intentId: string; providerReturnTransactionId: string; returnCardToken: string; returnAmountCents: number }): Promise<CardReversalIntent>;
   findByProviderReturnTransactionId(providerReturnTransactionId: string): Promise<CardReversalIntent | null>;
   markPosted(intentId: string): Promise<void>;
+  completeReturnLink(input: { intentId: string; providerReturnTransactionId: string }): Promise<CardReversalIntent>;
 }

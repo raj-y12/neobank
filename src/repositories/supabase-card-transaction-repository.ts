@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { InternalTransactionProjection } from "../domain/lithic-transaction-projection";
+import type { PlannedLithicEvent } from "../domain/lithic-lifecycle";
 import { mergeHoldState } from "../domain/card-holds";
 import type { CardTransactionRepository } from "./card-transaction-repository";
 
@@ -15,77 +15,99 @@ function transactionStatusRank(status: string) {
 export class SupabaseCardTransactionRepository implements CardTransactionRepository {
   constructor(private readonly client: SupabaseClient) {}
 
-  async project(projection: InternalTransactionProjection, payload: unknown) {
-    const transaction = projection.transaction;
-    const { data: existingTransaction, error: existingTransactionError } = await this.client
-      .from("card_transactions")
-      .select("id,status")
-      .eq("provider", transaction.provider)
-      .eq("provider_transaction_id", transaction.providerTransactionId)
-      .maybeSingle<{ id: string; status: string }>();
-    if (existingTransactionError) throw existingTransactionError;
-    const mergedStatus = existingTransaction && transactionStatusRank(existingTransaction.status) > transactionStatusRank(transaction.status)
-      ? existingTransaction.status
-      : transaction.status;
-    const { data: transactionRow, error: transactionError } = await this.client
-      .from("card_transactions")
-      .upsert({
-        provider: transaction.provider,
-        provider_transaction_id: transaction.providerTransactionId,
-        card_token: transaction.cardToken,
-        status: mergedStatus,
-        authorization_amount_cents: transaction.authorizationAmountCents,
-        settled_amount_cents: transaction.settledAmountCents,
-        reversal_of_transaction_id: transaction.reversalOfTransactionId ?? null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "provider,provider_transaction_id" })
-      .select("id")
-      .single<TransactionRow>();
-
+  async projectLifecycle(event: PlannedLithicEvent) {
+    const { data: existing, error: existingError } = await this.client.from("card_transactions")
+      .select("id,status,authorization_amount_cents,settled_amount_cents")
+      .eq("provider", "lithic").eq("provider_transaction_id", event.transactionId)
+      .maybeSingle<{ id: string; status: string; authorization_amount_cents: number | null; settled_amount_cents: number | null }>();
+    if (existingError) throw existingError;
+    const mergedStatus = existing && transactionStatusRank(existing.status) > transactionStatusRank(event.transactionStatus) ? existing.status : event.transactionStatus;
+    const authorizationAmountCents = event.type === "AUTHORIZATION" || event.type === "AUTHORIZATION_ADVICE"
+      ? event.remainingHoldCents + event.cumulativeSettledCents
+      : existing?.authorization_amount_cents ?? null;
+    const { data: transaction, error: transactionError } = await this.client.from("card_transactions").upsert({
+      provider: "lithic",
+      provider_transaction_id: event.transactionId,
+      card_token: event.cardToken,
+      status: mergedStatus,
+      authorization_amount_cents: authorizationAmountCents,
+      settled_amount_cents: Math.max(existing?.settled_amount_cents ?? 0, event.cumulativeSettledCents),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "provider,provider_transaction_id" }).select("id").single<TransactionRow>();
     if (transactionError) throw transactionError;
 
-    const { data: eventRow, error: eventError } = await this.client
-      .from("card_transaction_events")
-      .insert({
-        transaction_id: transactionRow.id,
-        provider: transaction.provider,
-        provider_event_id: projection.event.providerEventId,
-        event_type: projection.event.eventType,
-        occurred_at: projection.event.occurredAt,
-        hold_amount_cents: projection.event.holdAmountCents,
-        settlement_amount_cents: projection.event.settlementAmountCents,
-        payload,
-      })
-      .select("id")
-      .single<EventRow>();
-
-    if (eventError?.code === "23505") return;
+    let { data: eventRow, error: eventError } = await this.client.from("card_transaction_events").insert({
+      transaction_id: transaction.id,
+      provider: "lithic",
+      provider_event_id: event.semanticEventId,
+      event_type: event.type,
+      occurred_at: event.occurredAt,
+      hold_amount_cents: event.remainingHoldCents,
+      settlement_amount_cents: event.settlementDeltaCents,
+      payload: event.providerPayload,
+    }).select("id").single<EventRow>();
+    if (eventError?.code === "23505") {
+      const duplicate = await this.client.from("card_transaction_events").select("id")
+        .eq("provider", "lithic").eq("provider_event_id", event.semanticEventId).single<EventRow>();
+      if (duplicate.error) throw duplicate.error;
+      eventRow = duplicate.data;
+      eventError = null;
+    }
     if (eventError) throw eventError;
 
-    if (projection.hold) {
-      const { data: existingHold, error: existingHoldError } = await this.client
-        .from("card_holds")
-        .select("amount_cents,status,released_at,release_event_id")
-        .eq("transaction_id", transactionRow.id)
-        .maybeSingle<{ amount_cents: number; status: "ACTIVE" | "RELEASED"; released_at: string | null; release_event_id: string | null }>();
-      if (existingHoldError) throw existingHoldError;
-      const mergedHold = mergeHoldState(
-        existingHold ? { amountCents: existingHold.amount_cents, status: existingHold.status } : null,
-        { amountCents: projection.hold.amountCents, status: projection.hold.status },
-      );
-      const released = mergedHold.status === "RELEASED";
-      const { error: holdError } = await this.client
-        .from("card_holds")
-        .upsert({
-          transaction_id: transactionRow.id,
-          amount_cents: mergedHold.amountCents,
-          status: mergedHold.status,
-          released_at: released ? existingHold?.released_at ?? new Date().toISOString() : null,
-          release_event_id: released ? existingHold?.release_event_id ?? eventRow.id : null,
-        }, { onConflict: "transaction_id" });
-
+    const { data: existingHold, error: holdReadError } = await this.client.from("card_holds")
+      .select("amount_cents,status,released_at,release_event_id").eq("transaction_id", transaction.id)
+      .maybeSingle<{ amount_cents: number; status: "ACTIVE" | "RELEASED"; released_at: string | null; release_event_id: string | null }>();
+    if (holdReadError) throw holdReadError;
+    if (event.remainingHoldCents > 0 || existingHold) {
+      const incoming = { amountCents: event.remainingHoldCents || existingHold?.amount_cents || event.holdReleaseCents, status: event.remainingHoldCents > 0 ? "ACTIVE" as const : "RELEASED" as const };
+      const merged = mergeHoldState(existingHold ? { amountCents: existingHold.amount_cents, status: existingHold.status } : null, incoming);
+      const released = merged.status === "RELEASED";
+      const { error: holdError } = await this.client.from("card_holds").upsert({
+        transaction_id: transaction.id,
+        amount_cents: merged.amountCents,
+        status: merged.status,
+        released_at: released ? existingHold?.released_at ?? new Date().toISOString() : null,
+        release_event_id: released ? existingHold?.release_event_id ?? eventRow!.id : null,
+      }, { onConflict: "transaction_id" });
       if (holdError) throw holdError;
     }
+  }
+
+  async findProviderTransactionId(transactionId: string) {
+    const { data, error } = await this.client
+      .from("card_transactions")
+      .select("provider_transaction_id")
+      .eq("id", transactionId)
+      .maybeSingle<{ provider_transaction_id: string }>();
+    if (error) throw error;
+    return data?.provider_transaction_id ?? null;
+  }
+
+  async linkReversal(providerReturnTransactionId: string, originalTransactionId: string) {
+    const { error } = await this.client.from("card_transactions")
+      .update({ reversal_of_transaction_id: originalTransactionId })
+      .eq("provider", "lithic")
+      .eq("provider_transaction_id", providerReturnTransactionId);
+    if (error) throw error;
+  }
+
+  async getLifecycleBaseline(providerTransactionId: string) {
+    const { data: transaction, error } = await this.client.from("card_transactions")
+      .select("id,authorization_amount_cents,settled_amount_cents")
+      .eq("provider", "lithic").eq("provider_transaction_id", providerTransactionId)
+      .maybeSingle<{ id: string; authorization_amount_cents: number | null; settled_amount_cents: number | null }>();
+    if (error) throw error;
+    if (!transaction) return { remainingHoldCents: 0, cumulativeSettledSigned: 0, hasAuthorization: false };
+    const { data: hold, error: holdError } = await this.client.from("card_holds").select("amount_cents,status")
+      .eq("transaction_id", transaction.id).maybeSingle<{ amount_cents: number; status: "ACTIVE" | "RELEASED" }>();
+    if (holdError) throw holdError;
+    const remainingHoldCents = hold?.status === "ACTIVE" ? hold.amount_cents : 0;
+    return {
+      remainingHoldCents,
+      cumulativeSettledSigned: -(transaction.settled_amount_cents ?? 0),
+      hasAuthorization: remainingHoldCents > 0 || Boolean(transaction.authorization_amount_cents),
+    };
   }
 }
 

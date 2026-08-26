@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageBucket, diffReconciliation, parseReconciliationCsv } from "./reconciliation";
+import { ageBucket, diffReconciliation, journalRowsForTransfers, parseReconciliationCsv } from "./reconciliation";
 
 describe("reconciliation", () => {
   it("finds missing, extra, and amount-mismatched rows", () => {
@@ -14,9 +14,14 @@ describe("reconciliation", () => {
   });
 
   it("assigns operational aging buckets", () => {
-    expect(ageBucket("2026-08-24T00:00:00Z")).toBe("0-1d");
-    expect(ageBucket("2026-08-20T00:00:00Z")).toBe("4-7d");
-    expect(ageBucket("2026-08-10T00:00:00Z")).toBe("8d+");
+    const now = new Date("2026-08-25T00:00:00Z");
+    expect(ageBucket("2026-08-24T00:00:00Z", now)).toBe("0-1d");
+    expect(ageBucket("2026-08-20T00:00:00Z", now)).toBe("4-7d");
+    expect(ageBucket("2026-08-10T00:00:00Z", now)).toBe("8d+");
+  });
+
+  it("uses the supplied current time rather than a deployment date", () => {
+    expect(ageBucket("2026-09-01T00:00:00Z", new Date("2026-09-10T00:00:00Z"))).toBe("8d+");
   });
 
   it("parses a header-driven Increase reconciliation CSV", () => {
@@ -29,5 +34,15 @@ describe("reconciliation", () => {
   it("rejects missing or invalid reconciliation CSV columns", () => {
     expect(() => parseReconciliationCsv("reference,amount\ntransfer_1,5\n")).toThrow("provider_reference");
     expect(() => parseReconciliationCsv("provider_reference,amount_cents\ntransfer_1,nope\n")).toThrow("amount_cents");
+  });
+
+  it("projects settled transfer truth from journal postings", () => {
+    expect(journalRowsForTransfers([
+      { referenceId: "funding-1", entryType: "FUNDING_SETTLEMENT", postings: [{ accountCode: "CUSTOMER_AVAILABLE", debitCents: 0, creditCents: 500 }] },
+      { referenceId: "payment-1", entryType: "PAYMENT_SETTLEMENT", postings: [{ accountCode: "SAFEGUARDED_CASH", debitCents: 0, creditCents: 300 }] },
+    ])).toEqual([
+      { referenceId: "funding-1", amountCents: 500 },
+      { referenceId: "payment-1", amountCents: -300 },
+    ]);
   });
 });

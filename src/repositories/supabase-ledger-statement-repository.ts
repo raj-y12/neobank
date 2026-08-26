@@ -32,6 +32,15 @@ export function resolveReversalReferenceId(journalReversalOfReferenceId: string 
   return journalReversalOfReferenceId ?? (referenceId ? transactionRelationships.get(referenceId) ?? null : null);
 }
 
+export function statementReferenceFilters(referenceIds: string[]) {
+  return referenceIds.flatMap((referenceId) => [
+    `reference_id.eq.${referenceId}`,
+    `reversal_of_reference_id.eq.${referenceId}`,
+    `reference_id.like.${referenceId}:%`,
+    `reversal_of_reference_id.like.${referenceId}:%`,
+  ]).join(",");
+}
+
 export async function getLedgerStatement(transactionId?: string, asOfBookingTimestamp?: string, scope?: LedgerScope): Promise<LedgerStatementRow[]> {
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -71,11 +80,7 @@ export async function getLedgerStatement(transactionId?: string, asOfBookingTime
     .select("id,entry_type,value_date,booking_date,created_at,reference_id,reversal_of_reference_id,journal_postings(account_code,debit_cents,credit_cents)");
 
   if (referenceIds) {
-    const filters = referenceIds.flatMap((referenceId) => [
-      `reference_id.eq.${referenceId}`,
-      `reversal_of_reference_id.eq.${referenceId}`,
-    ]).join(",");
-    query = query.or(filters);
+    query = query.or(statementReferenceFilters(referenceIds));
   }
 
   if (asOfBookingTimestamp) query = query.lte("created_at", asOfBookingTimestamp);

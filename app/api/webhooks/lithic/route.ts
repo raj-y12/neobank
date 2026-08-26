@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyLithicWebhook } from "@/src/integrations/lithic/webhook-verification";
-import { projectLithicTransaction } from "@/src/domain/lithic-transaction-projection";
-import { authorizeHold, clearCardSettlement, releaseAuthorizationHold, reverseCardSettlement } from "@/src/domain/ledger";
+import type { LithicTransactionPayload } from "@/src/domain/lithic-lifecycle";
+import { processLithicLifecycle } from "@/src/services/lithic-lifecycle-service";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { createSupabaseProviderEventRepository } from "@/src/repositories/supabase-provider-event-repository";
 import { createSupabaseCardReversalRepository } from "@/src/repositories/supabase-card-reversal-repository";
-import { reconcileCardEvents } from "@/src/domain/card-event-ordering";
-import { settlementReversalIdempotencyKey } from "@/src/domain/card-return";
 
 export async function POST(request: Request) {
   const secret = process.env.LITHIC_WEBHOOK_SECRET;
@@ -54,64 +52,32 @@ export async function POST(request: Request) {
       const payload = assertLithicTransactionPayload(event);
       const linkedIntent = await reversalRepository.findByProviderReturnTransactionId(payload.token);
       const providerEvents = await repository.listForTransaction("lithic", payload.token);
-      const cardEvents = providerEvents.map((providerEvent) => ({
-        providerEventId: providerEvent.providerEventId,
-        transactionId: payload.token,
-        eventType: latestEventType(providerEvent.payload),
-        occurredAt: latestEventCreated(providerEvent.payload),
-      }));
-      const { ready } = reconcileCardEvents(cardEvents);
-      const readyIds = new Set(ready.map((readyEvent) => readyEvent.providerEventId));
-      for (const parkedEvent of cardEvents.filter((candidate) => !readyIds.has(candidate.providerEventId))) {
-        const storedParkedEvent = providerEvents.find((candidate) => candidate.providerEventId === parkedEvent.providerEventId);
-        if (storedParkedEvent) await repository.park({ ...storedParkedEvent, providerTransactionId: payload.token });
-      }
-      for (const readyEvent of ready) await repository.markMatched("lithic", readyEvent.providerEventId);
-      const orderedEvents = [...providerEvents].sort((a, b) => new Date(latestEventCreated(a.payload) ?? 0).getTime() - new Date(latestEventCreated(b.payload) ?? 0).getTime());
       const ledgerRepository = createSupabaseLedgerRepository();
-      for (const providerEvent of orderedEvents) {
-        const eventIdentity = cardEvents.find((candidate) => candidate.providerEventId === providerEvent.providerEventId);
-        if (!eventIdentity) continue;
-        const eventPayload = payloadThrough(orderedEvents, providerEvent);
-        const projection = projectLithicTransaction({
-          providerEventId: providerEvent.providerEventId,
-          reversalOfTransactionId: linkedIntent?.originalTransactionId,
-          payload: eventPayload,
-        });
-        await transactionRepository.project(projection, providerEvent.payload);
-        if (!readyIds.has(providerEvent.providerEventId)) continue;
-
-        const valueDate = projection.event.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
-        if (projection.event.eventType === "AUTHORIZATION" && projection.hold) {
-          await ledgerRepository.record(
-            authorizeHold(projection.hold.amountCents, projection.transaction.providerTransactionId, valueDate),
-            `lithic:${providerEvent.providerEventId}:authorization`,
-          );
+      const legacySemanticEventIds = new Set(providerEvents.filter((providerEvent) => providerEvent.processingVersion < 2).flatMap((providerEvent) =>
+        assertLithicTransactionPayload(providerEvent.payload).events?.flatMap((nestedEvent) => nestedEvent.token ? [nestedEvent.token] : []) ?? [],
+      ));
+      const snapshots = providerEvents.filter((providerEvent) => providerEvent.processingVersion >= 2).map((providerEvent) => ({
+        webhookId: providerEvent.providerEventId,
+        receivedAt: providerEvent.receivedAt,
+        payload: assertLithicTransactionPayload(providerEvent.payload),
+      }));
+      const baseline = await transactionRepository.getLifecycleBaseline(payload.token);
+      const plan = await processLithicLifecycle(snapshots, { now: new Date().toISOString(), initialState: baseline, excludedSemanticEventIds: legacySemanticEventIds }, {
+        project: (plannedEvent) => transactionRepository.projectLifecycle(plannedEvent),
+        park: (plannedEvent) => repository.park({ provider: "lithic", providerEventId: plannedEvent.semanticEventId, providerTransactionId: plannedEvent.transactionId, eventType: plannedEvent.type, payload: plannedEvent }),
+        markMatched: (plannedEvent) => repository.markMatched("lithic", plannedEvent.semanticEventId),
+        record: (command) => ledgerRepository.record(command.entry, command.idempotencyKey, command.learnedAt),
+      });
+      for (const returned of plan.events.filter((plannedEvent) => plannedEvent.type === "RETURN" && plannedEvent.disposition === "READY" && plannedEvent.settlementDeltaCents > 0)) {
+        if (!linkedIntent) {
+          await repository.park({ provider: "lithic", providerEventId: returned.semanticEventId, providerTransactionId: returned.transactionId, eventType: returned.type, payload: returned });
+          continue;
         }
-        if (projection.event.eventType === "CLEARING" && projection.event.settlementAmountCents) {
-          await ledgerRepository.record(
-            clearCardSettlement(projection.hold?.amountCents ?? 0, projection.event.settlementAmountCents, projection.transaction.providerTransactionId, valueDate),
-            `lithic:${providerEvent.providerEventId}:clearing`,
-          );
-        }
-        if ((projection.event.eventType === "REVERSAL" || projection.event.eventType === "AUTHORIZATION_REVERSAL") && projection.hold) {
-          await ledgerRepository.record(
-            releaseAuthorizationHold(projection.hold.amountCents, projection.transaction.providerTransactionId, valueDate),
-            `lithic:${providerEvent.providerEventId}:authorization-reversal`,
-          );
-        }
-        if (projection.event.eventType === "RETURN" && projection.event.settlementAmountCents) {
-          await ledgerRepository.record(
-            reverseCardSettlement(
-              projection.event.settlementAmountCents,
-              projection.transaction.providerTransactionId,
-              linkedIntent?.originalTransactionId,
-              valueDate,
-            ),
-            settlementReversalIdempotencyKey(providerEvent.providerEventId),
-          );
-          if (linkedIntent) await reversalRepository.markPosted(linkedIntent.id);
-        }
+        const originalProviderTransactionId = await transactionRepository.findProviderTransactionId(linkedIntent.originalTransactionId);
+        if (!originalProviderTransactionId) throw new Error("Original Lithic transaction is missing");
+        await transactionRepository.linkReversal(returned.transactionId, linkedIntent.originalTransactionId);
+        const posted = await ledgerRepository.postCardReturnAtomically({ originalProviderTransactionId, returnEventId: returned.semanticEventId, returnTransactionId: returned.transactionId, amountCents: returned.settlementDeltaCents, learnedAt: returned.learnedAt });
+        if (posted > 0) await reversalRepository.markPosted(linkedIntent.id);
       }
     }
 
@@ -128,32 +94,7 @@ function assertLithicTransactionPayload(event: unknown) {
   if (typeof payload.token !== "string" || typeof payload.card_token !== "string" || typeof payload.status !== "string") {
     throw new Error("Lithic transaction payload is missing identity fields");
   }
-  return payload as Parameters<typeof projectLithicTransaction>[0]["payload"];
-}
-
-function latestEventType(payload: unknown) {
-  const record = assertLithicTransactionPayload(payload);
-  return [...(record.events ?? [])].sort((a, b) => new Date(b.created ?? 0).getTime() - new Date(a.created ?? 0).getTime())[0]?.type ?? "UNKNOWN";
-}
-
-function latestEventCreated(payload: unknown) {
-  const record = assertLithicTransactionPayload(payload);
-  return [...(record.events ?? [])].sort((a, b) => new Date(b.created ?? 0).getTime() - new Date(a.created ?? 0).getTime())[0]?.created ?? null;
-}
-
-function payloadThrough(events: Array<{ payload: unknown }>, target: { payload: unknown }) {
-  const targetPayload = assertLithicTransactionPayload(target.payload);
-  const targetTime = new Date(latestEventCreated(target.payload) ?? 0).getTime();
-  const eventMap = new Map<string, unknown>();
-  for (const event of events) {
-    const payload = assertLithicTransactionPayload(event.payload);
-    for (const nestedEvent of payload.events ?? []) {
-      if (new Date(nestedEvent.created ?? 0).getTime() <= targetTime) {
-        eventMap.set(`${nestedEvent.type}:${nestedEvent.created}`, nestedEvent);
-      }
-    }
-  }
-  return { ...targetPayload, events: [...eventMap.values()] } as Parameters<typeof projectLithicTransaction>[0]["payload"];
+  return payload as unknown as LithicTransactionPayload;
 }
 
 function getEventType(event: unknown) {

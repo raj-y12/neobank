@@ -118,6 +118,19 @@ export class SupabaseCardReversalRepository implements CardReversalRepository {
       .in("status", ["LINKED", "POSTED"]);
     if (error) throw error;
   }
+
+  async completeReturnLink(input: { intentId: string; providerReturnTransactionId: string }) {
+    const now = new Date().toISOString();
+    const { data, error } = await this.client.from("card_reversal_intents").update({
+      provider_return_transaction_id: input.providerReturnTransactionId,
+      status: "POSTED",
+      linked_at: now,
+      posted_at: now,
+    }).eq("id", input.intentId).eq("status", "PENDING")
+      .select("id,original_transaction_id,card_token,expected_amount_cents,provider_return_transaction_id,status,idempotency_key").single<IntentRow>();
+    if (error) throw error;
+    return toIntent(data);
+  }
 }
 
 export function createSupabaseCardReversalRepository() {

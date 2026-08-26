@@ -11,6 +11,7 @@ type ProviderEventRow = {
   provider_event_id: string;
   event_type: string;
   payload: unknown;
+  processing_version: number;
 };
 
 export class SupabaseProviderEventRepository implements ProviderEventRepository {
@@ -22,6 +23,7 @@ export class SupabaseProviderEventRepository implements ProviderEventRepository 
       provider_event_id: event.providerEventId,
       event_type: event.eventType,
       payload: event.payload,
+      processing_version: 2,
     };
 
     const { error } = await this.client.from("provider_events").insert(row);
@@ -34,7 +36,7 @@ export class SupabaseProviderEventRepository implements ProviderEventRepository 
   async listForTransaction(provider: string, providerTransactionId: string): Promise<StoredProviderEvent[]> {
     const { data, error } = await this.client
       .from("provider_events")
-      .select("provider,provider_event_id,event_type,payload,received_at")
+      .select("provider,provider_event_id,event_type,payload,received_at,processing_version")
       .eq("provider", provider)
       .eq("payload->>token", providerTransactionId)
       .order("received_at", { ascending: true });
@@ -45,6 +47,7 @@ export class SupabaseProviderEventRepository implements ProviderEventRepository 
       eventType: row.event_type,
       payload: row.payload,
       receivedAt: row.received_at,
+      processingVersion: row.processing_version,
     }));
   }
 
@@ -67,6 +70,16 @@ export class SupabaseProviderEventRepository implements ProviderEventRepository 
       .eq("provider_event_id", providerEventId)
       .is("matched_at", null);
     if (error) throw error;
+  }
+
+  async listAgedParked(provider: string, before: string) {
+    const { data, error } = await this.client.from("card_event_parking")
+      .select("provider_transaction_id")
+      .eq("provider", provider)
+      .is("matched_at", null)
+      .lte("parked_at", before);
+    if (error) throw error;
+    return [...new Set((data ?? []).map((row) => row.provider_transaction_id))].map((providerTransactionId) => ({ providerTransactionId }));
   }
 }
 

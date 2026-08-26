@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { projectLithicTransaction } from "@/src/domain/lithic-transaction-projection";
-import { reverseCardSettlement } from "@/src/domain/ledger";
+import type { LithicTransactionPayload } from "@/src/domain/lithic-lifecycle";
+import { processLithicLifecycle } from "@/src/services/lithic-lifecycle-service";
 import { createSupabaseCardReversalRepository } from "@/src/repositories/supabase-card-reversal-repository";
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
-import { settlementReversalIdempotencyKey } from "@/src/domain/card-return";
+import { createSupabaseProviderEventRepository } from "@/src/repositories/supabase-provider-event-repository";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
 import { canViewCard } from "@/src/domain/card-access";
+import { validateReturnLink } from "@/src/domain/card-reversal";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,13 +23,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!body.providerReturnTransactionId || !body.returnCardToken || typeof returnAmountCents !== "number" || !Number.isSafeInteger(returnAmountCents)) {
       return NextResponse.json({ error: "providerReturnTransactionId, returnCardToken, and returnAmountCents are required" }, { status: 400 });
     }
-    const intent = await reversalRepository.linkReturn({
-      intentId: id,
-      providerReturnTransactionId: body.providerReturnTransactionId,
-      returnCardToken: body.returnCardToken,
-      returnAmountCents,
-    });
-    await replayStoredReturn(intent);
+    validateReturnLink({ intent: existingIntent, returnCardToken: body.returnCardToken, returnAmountCents });
+    const posted = await replayStoredReturn({ ...existingIntent, providerReturnTransactionId: body.providerReturnTransactionId });
+    if (posted <= 0) throw new Error("No ready return event was posted");
+    const intent = await reversalRepository.completeReturnLink({ intentId: id, providerReturnTransactionId: body.providerReturnTransactionId });
     return NextResponse.json({ intent });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to link return";
@@ -38,44 +35,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 }
 
 async function replayStoredReturn(intent: { id: string; originalTransactionId: string; providerReturnTransactionId: string | null }) {
-  if (!intent.providerReturnTransactionId) return;
-  const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) throw new Error("Supabase provider event storage is not configured");
+  if (!intent.providerReturnTransactionId) return 0;
 
-  const client = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
-  const { data, error } = await client
-    .from("provider_events")
-    .select("provider_event_id,payload")
-    .eq("provider", "lithic")
-    .eq("event_type", "card_transaction.updated")
-    .order("received_at", { ascending: false })
-    .limit(100);
-  if (error) throw error;
-
-  const stored = (data ?? []).find((row) => {
-    const payload = row.payload;
-    return typeof payload === "object" && payload !== null && "token" in payload && payload.token === intent.providerReturnTransactionId;
+  const transactions = createSupabaseCardTransactionRepository();
+  const ledger = createSupabaseLedgerRepository();
+  const providerEvents = createSupabaseProviderEventRepository();
+  const stored = await providerEvents.listForTransaction("lithic", intent.providerReturnTransactionId);
+  if (stored.length === 0) return 0;
+  const legacySemanticEventIds = new Set(stored.filter((row) => row.processingVersion < 2).flatMap((row) => (row.payload as LithicTransactionPayload).events?.flatMap((event) => event.token ? [event.token] : []) ?? []));
+  const snapshots = stored.filter((row) => row.processingVersion >= 2).map((row) => ({ webhookId: row.providerEventId, receivedAt: row.receivedAt, payload: row.payload as LithicTransactionPayload }));
+  const baseline = await transactions.getLifecycleBaseline(intent.providerReturnTransactionId);
+  const plan = await processLithicLifecycle(snapshots, { now: new Date().toISOString(), initialState: baseline, excludedSemanticEventIds: legacySemanticEventIds }, {
+    project: (event) => transactions.projectLifecycle(event),
+    park: (event) => providerEvents.park({ provider: "lithic", providerEventId: event.semanticEventId, providerTransactionId: event.transactionId, eventType: event.type, payload: event }),
+    markMatched: (event) => providerEvents.markMatched("lithic", event.semanticEventId),
+    record: (command) => ledger.record(command.entry, command.idempotencyKey, command.learnedAt),
   });
-  if (!stored || typeof stored.payload !== "object" || stored.payload === null) return;
-
-  const payload = stored.payload as Parameters<typeof projectLithicTransaction>[0]["payload"];
-  const projection = projectLithicTransaction({
-    providerEventId: stored.provider_event_id,
-    reversalOfTransactionId: intent.originalTransactionId,
-    payload,
-  });
-  await createSupabaseCardTransactionRepository().project(projection, stored.payload);
-  if (projection.event.eventType !== "RETURN" || !projection.event.settlementAmountCents) return;
-
-  await createSupabaseLedgerRepository().record(
-    reverseCardSettlement(
-      projection.event.settlementAmountCents,
-      projection.transaction.providerTransactionId,
-      intent.originalTransactionId,
-      projection.event.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-    ),
-    settlementReversalIdempotencyKey(stored.provider_event_id),
-  );
-  await createSupabaseCardReversalRepository().markPosted(intent.id);
+  const originalProviderTransactionId = await transactions.findProviderTransactionId(intent.originalTransactionId);
+  if (!originalProviderTransactionId) throw new Error("Original Lithic transaction is missing");
+  await transactions.linkReversal(intent.providerReturnTransactionId, intent.originalTransactionId);
+  let posted = 0;
+  for (const returned of plan.events.filter((event) => event.type === "RETURN" && event.disposition === "READY" && event.settlementDeltaCents > 0)) {
+    posted += await ledger.postCardReturnAtomically({ originalProviderTransactionId, returnEventId: returned.semanticEventId, returnTransactionId: returned.transactionId, amountCents: returned.settlementDeltaCents, learnedAt: returned.learnedAt });
+  }
+  return posted;
 }

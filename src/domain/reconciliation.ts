@@ -9,6 +9,30 @@ export type ReconciliationBreak = {
   actualAmountCents?: number;
 };
 
+export type JournalTransferRow = {
+  referenceId: string | null;
+  entryType: string;
+  postings: Array<{ accountCode: string; debitCents: number; creditCents: number }>;
+};
+
+export function journalRowsForTransfers(entries: JournalTransferRow[]): ReconciliationLedgerRow[] {
+  return entries.flatMap((entry) => {
+    if (!entry.referenceId) return [];
+    const safeguardedCash = entry.postings
+      .filter((posting) => posting.accountCode === "SAFEGUARDED_CASH")
+      .reduce((amount, posting) => amount + posting.debitCents - posting.creditCents, 0);
+    const customerAvailable = entry.postings
+      .filter((posting) => posting.accountCode === "CUSTOMER_AVAILABLE")
+      .reduce((amount, posting) => amount + posting.creditCents - posting.debitCents, 0);
+    const amountCents = entry.entryType === "FUNDING_SETTLEMENT"
+      ? (safeguardedCash || customerAvailable)
+      : entry.entryType === "PAYMENT_SETTLEMENT"
+        ? safeguardedCash
+        : null;
+    return amountCents === null || amountCents === 0 ? [] : [{ referenceId: entry.referenceId, amountCents }];
+  });
+}
+
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let value = "";
@@ -78,7 +102,7 @@ export function diffReconciliation(
   return breaks;
 }
 
-export function ageBucket(createdAt: string, now = new Date("2026-08-25T00:00:00Z")) {
+export function ageBucket(createdAt: string, now = new Date()) {
   const ageDays = Math.max(0, Math.floor((now.getTime() - new Date(createdAt).getTime()) / 86_400_000));
   if (ageDays <= 1) return "0-1d";
   if (ageDays <= 3) return "2-3d";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectStatementReferenceIds, resolveReversalReferenceId } from "./supabase-ledger-statement-repository";
+import { collectStatementReferenceIds, resolveReversalReferenceId, statementReferenceFilters } from "./supabase-ledger-statement-repository";
 
 describe("collectStatementReferenceIds", () => {
   it("includes both sides when the selected transaction is the reversal", () => {
@@ -19,5 +19,12 @@ describe("collectStatementReferenceIds", () => {
   it("uses the linked transaction relationship when the immutable journal has no link", () => {
     expect(resolveReversalReferenceId(null, "return_provider", new Map([["return_provider", "original_internal"]]))).toBe("original_internal");
     expect(resolveReversalReferenceId("journal_original", "return_provider", new Map([["return_provider", "projection_original"]]))).toBe("journal_original");
+  });
+});
+
+describe("statementReferenceFilters", () => {
+  it("includes immutable lifecycle-event references for a provider transaction", () => {
+    expect(statementReferenceFilters(["tx_1"])).toContain("reference_id.like.tx_1:%");
+    expect(statementReferenceFilters(["tx_1"])).toContain("reversal_of_reference_id.like.tx_1:%");
   });
 });

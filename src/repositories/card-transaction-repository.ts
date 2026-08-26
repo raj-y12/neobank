@@ -1,5 +1,8 @@
-import type { InternalTransactionProjection } from "@/src/domain/lithic-transaction-projection";
+import type { PlannedLithicEvent } from "@/src/domain/lithic-lifecycle";
 
 export interface CardTransactionRepository {
-  project(projection: InternalTransactionProjection, payload: unknown): Promise<void>;
+  projectLifecycle(event: PlannedLithicEvent): Promise<void>;
+  findProviderTransactionId(transactionId: string): Promise<string | null>;
+  linkReversal(providerReturnTransactionId: string, originalTransactionId: string): Promise<void>;
+  getLifecycleBaseline(providerTransactionId: string): Promise<{ remainingHoldCents: number; cumulativeSettledSigned: number; hasAuthorization: boolean }>;
 }
