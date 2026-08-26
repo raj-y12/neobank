@@ -27,7 +27,7 @@ Statements are projections over `journal_entries` and `journal_postings`. Journa
 - Opening and closing available balance: net `CUSTOMER_AVAILABLE` before and through the statement date.
 - Holds: net `CUSTOMER_CARD_HOLDS + CUSTOMER_PAYMENT_HOLDS`, displayed separately and never presented as settled cash movement.
 - Posted activity: entries that affect the customer available balance, including funding, payments, card settlements, and reversals.
-- Running available balance: opening available balance plus each posted activity row in deterministic value-date/booking order.
+- Running available balance: opening available balance plus each posted activity and hold availability impact in deterministic value-date/booking order.
 
 ### Bitemporal semantics
 
@@ -60,7 +60,7 @@ The page displays:
 3. Posted activity table with value date, booked at, description, amount, and running available balance.
 4. Separate holds/pending activity section.
 5. Closing ledger and available balances.
-6. A reconciliation line showing opening available plus posted activity equals closing available.
+6. A reconciliation line showing opening available plus posted activity plus hold availability impacts equals closing available.
 7. Empty, loading, and error states.
 
 Each card-related posted row can link to the existing card correction detail page.
@@ -77,6 +77,21 @@ The domain projection exposes a pure function with these concepts:
 type StatementQuery = {
   statementDate: string;
   asOfBookingTimestamp?: string;
+};
+
+type StatementRow = {
+  journalEntryId: string;
+  kind: "POSTED" | "HOLD" | "CORRECTION";
+  entryType: string;
+  valueDate: string;
+  bookingTimestamp: string;
+  bookingDate?: string;
+  referenceId: string | null;
+  reversalOfReferenceId: string | null;
+  postedAmountCents: number;
+  availableBalanceImpactCents: number;
+  holdImpactCents: number;
+  runningAvailableBalanceCents: number;
 };
 
 type AccountStatement = {
@@ -121,7 +136,7 @@ Repository/route tests cover:
 - invalid query parameters;
 - duplicate journal rows not changing a projection.
 
-The live-fire fixture uses a $50 authorization hold, a $73.40 settlement two days later, and a later reversal allocated to the settlement's value date. It asserts the current corrected Tuesday statement, the Wednesday knowledge snapshot, and the exact opening-plus-activity-to-closing equation.
+The live-fire fixture uses a $50 authorization hold, a $73.40 settlement two days later, and a later reversal allocated to the settlement's value date. It asserts the current corrected Tuesday statement, the Wednesday knowledge snapshot, and the exact opening-plus-activity-and-hold-impact-to-closing equation.
 
 ## Acceptance criteria
 
