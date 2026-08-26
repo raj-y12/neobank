@@ -48,6 +48,10 @@ export function IconChevronRight({ className }: IconProps) {
   return <svg {...base} className={className}><path d="m9 5 7 7-7 7" /></svg>;
 }
 
+export function IconLogOut({ className }: IconProps) {
+  return <svg {...base} className={className}><path d="M14 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19H14" /><path d="M11 12h8M16 8l4 4-4 4" /></svg>;
+}
+
 export function IconClose({ className }: IconProps) {
   return <svg {...base} className={className}><path d="m6 6 12 12M18 6 6 18" /></svg>;
 }
