@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatUsdCents } from "@/src/integrations/lithic/client";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { getLedgerActivity } from "@/src/repositories/supabase-ledger-statement-repository";
+import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { IconArrowDown, IconArrowUp, IconDollar, IconReceipt } from "./components/Icon";
 
@@ -13,9 +14,10 @@ export default async function Home() {
   const scope = await getAuthenticatedScope();
   const ledger = createSupabaseLedgerRepository();
   const ledgerScope = { businessId: scope.businessId, accountId: scope.accountId };
-  const [balances, activity] = await Promise.all([
+  const [balances, activity, pendingApprovals] = await Promise.all([
     ledger.getBalances(ledgerScope),
     getLedgerActivity(8, ledgerScope),
+    scope.role === "ADMIN" ? createSupabasePaymentRepository().listPending(scope.businessId) : Promise.resolve([]),
   ]);
 
   return (
@@ -52,12 +54,15 @@ export default async function Home() {
         </article>
 
         <aside className="widgets-rail">
-          <div className="widget-card">
-            <div className="panel-heading"><h3>Approvals</h3><span className="chip chip-orange">2</span></div>
-            <div className="list-row"><div className="list-icon is-blue"><IconDollar /></div><div><p className="list-title">Northstar Supplies</p><p className="list-meta">ACH · $1,240.00</p></div><span className="status-dot" /></div>
-            <div className="list-row"><div className="list-icon is-blue"><IconDollar /></div><div><p className="list-title">Atlas Contractors</p><p className="list-meta">ACH · $2,800.00</p></div><span className="status-dot" /></div>
-            <Link className="btn btn-outline btn-block" href="/approvals">Open approval queue</Link>
-          </div>
+          {scope.role === "ADMIN" && (
+            <div className="widget-card">
+              <div className="panel-heading"><h3>Approvals</h3><span className="chip chip-orange">{pendingApprovals.length}</span></div>
+              {pendingApprovals.length === 0 ? <p className="list-meta">Nothing waiting on your approval.</p> : pendingApprovals.slice(0, 3).map((approval) => (
+                <div className="list-row" key={approval.id}><div className="list-icon is-blue"><IconDollar /></div><div><p className="list-title">{approval.recipient}</p><p className="list-meta">ACH · {formatUsdCents(approval.amountCents)}</p></div><span className="status-dot" /></div>
+              ))}
+              <Link className="btn btn-outline btn-block" href="/approvals">Open approval queue</Link>
+            </div>
+          )}
 
           <div className="widget-card">
             <h3>Operating account</h3>

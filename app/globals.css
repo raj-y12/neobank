@@ -714,6 +714,9 @@ body:has(.auth-shell) { background: var(--paper); color: var(--ink); }
 .skeleton-list { display: grid; gap: 1px; overflow: hidden; border-radius: var(--radius-md); background: var(--line); }
 .skeleton-list span { display: block; height: 56px; background: linear-gradient(90deg, var(--card-soft) 20%, rgba(255,255,255,.08) 45%, var(--card-soft) 70%); background-size: 220% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
 @keyframes skeleton-shimmer { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+.skel { display: block; border-radius: var(--radius-sm, 4px); background: linear-gradient(90deg, var(--card-soft) 20%, rgba(255,255,255,.08) 45%, var(--card-soft) 70%); background-size: 220% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.card-tile.is-skeleton { background: var(--card-soft); box-shadow: none; }
+.card-tile.is-skeleton::after { content: none; }
 
 @media (max-width: 760px) {
   .app-shell { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
