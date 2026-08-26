@@ -3,6 +3,7 @@ import { formatUsdCents } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseAccountStatementRepository } from "@/src/repositories/supabase-account-statement-repository";
 import { compareStatementRowsLatestFirst, isTransactionsOnlyView, parseStatementDate } from "./statement-controls";
+import { requirePageAccess } from "@/src/lib/page-authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ function signedUsd(value: number) { return value < 0 ? `−${formatUsdCents(Math
 
 export default async function StatementsPage({ searchParams }: { searchParams: Promise<{ date?: string; from?: string; to?: string; asOf?: string; view?: string }> }) {
   const scope = await getAuthenticatedScope();
+  requirePageAccess(scope, "/statements");
   const repository = createSupabaseAccountStatementRepository();
   const params = await searchParams;
   const requestedFrom = params.from ?? params.date;

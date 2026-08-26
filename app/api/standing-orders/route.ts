@@ -12,6 +12,7 @@ function adminClient() {
 export async function GET() {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { data, error } = await adminClient().from("standing_orders").select("*").eq("business_id", scope.businessId).order("created_at", { ascending: false });
     if (error) throw error;
     return NextResponse.json({ standingOrders: data ?? [] });
@@ -23,6 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const body = await request.json() as { amountCents?: number; recipient?: unknown; frequency?: string; nextRunDate?: string; insufficientFundsPolicy?: string };
     if (!Number.isSafeInteger(body.amountCents) || (body.amountCents ?? 0) <= 0 || !body.recipient || !body.nextRunDate) throw new Error("amountCents, recipient, and nextRunDate are required");
     if (!/^(DAILY|WEEKLY|MONTHLY)$/.test(body.frequency ?? "")) throw new Error("frequency must be DAILY, WEEKLY, or MONTHLY");

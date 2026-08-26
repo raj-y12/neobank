@@ -6,6 +6,7 @@ import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledg
 export async function GET() {
   try {
     const context = await getAuthenticatedScope();
+    if (context.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) throw new Error("Supabase account storage is not configured");

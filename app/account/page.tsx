@@ -7,6 +7,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const scope = await getAuthenticatedScope();
+  if (scope.role === "MEMBER") {
+    const initials = (scope.email ?? "M").split(/[^A-Za-z0-9]+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+    return <>
+      <section className="account-profile-header"><div><h2>{scope.email ?? "Member account"}</h2><p className="account-handle">Member profile</p></div><div className="account-avatar" aria-hidden="true">{initials}</div></section>
+      <div className="account-settings"><section className="account-setting-section" aria-labelledby="member-section"><h3>Profile</h3><div className="settings-group"><div className="settings-row"><span className="settings-copy"><strong>{scope.email ?? "Member"}</strong><small>Business member</small></span><span className="settings-status is-good">Active</span></div></div></section><section className="account-setting-section account-session" aria-labelledby="session-section"><h3 id="session-section">Session</h3><div className="settings-group"><form action="/auth/signout" method="post"><button className="settings-row settings-button" type="submit"><span className="settings-copy"><strong>Sign out</strong><small>End this session</small></span><span aria-hidden="true"><IconChevronRight /></span></button></form></div></section></div>
+    </>;
+  }
   const [onboarding, funding] = await Promise.all([
     createSupabaseOnboardingRepository().get(scope.businessId),
     createSupabaseFundingAccountRepository().get(scope.businessId),

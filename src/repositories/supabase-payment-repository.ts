@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Payment } from "../domain/payment-lifecycle";
+import type { PaymentRequestView } from "../domain/payment-request-view";
 
 type PaymentRow = {
   id: string;
@@ -68,6 +69,23 @@ export class SupabasePaymentRepository {
       recipient: typeof row.recipient === "string" ? row.recipient : (row.recipient as { name?: string })?.name ?? "Unknown",
       status: row.status as Payment["status"],
       initiatorMemberId: row.initiator_member_id as string,
+      createdAt: row.created_at as string,
+    }));
+  }
+
+  async listForMember(businessId: string, memberId: string): Promise<PaymentRequestView[]> {
+    const { data, error } = await this.client
+      .from("payments")
+      .select("id,amount_cents,recipient,status,created_at")
+      .eq("business_id", businessId)
+      .eq("initiator_member_id", memberId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      amountCents: row.amount_cents as number,
+      recipient: typeof row.recipient === "string" ? row.recipient : (row.recipient as { name?: string })?.name ?? "Unknown",
+      status: row.status as Payment["status"],
       createdAt: row.created_at as string,
     }));
   }

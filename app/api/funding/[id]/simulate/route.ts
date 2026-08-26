@@ -6,6 +6,7 @@ import { processPaymentRailEvent } from "@/app/api/webhooks/payment-rail/route";
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
     const body = await request.json() as { action?: "SETTLE" | "RETURN" };
     if (body.action !== "SETTLE" && body.action !== "RETURN") return NextResponse.json({ error: "action must be SETTLE or RETURN" }, { status: 400 });

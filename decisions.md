@@ -179,6 +179,13 @@ This is the decision record for the Track 3 trial. It records the choices we mad
 - Decision: If somebody opens a protected page without a valid Supabase session or complete membership, redirect them to `/login`.
 - Why: The page may work perfectly once authenticated, but a reviewer seeing a server-error screen will reasonably call the deployment broken.
 
+### D-027 — Keep members scoped to their own cards and payment requests
+
+- Date: 2026-08-26
+- Decision: Treat `MEMBER` as an employee cardholder and payment initiator, not as a business administrator. Members may see their own delegated card, send payments, and review only the payment requests they initiated. Their request history is read-only and shows pending, approved, submitted, settled, rejected, and returned states. Business-wide balances, funding, statements, reconciliation, employee management, card issuance/delegation, and approval actions remain `ADMIN`-only.
+- Why: Employees need to use their assigned card and understand what happened to their own payment requests without gaining access to company-wide financial data or administrative controls. Navigation hiding improves clarity, while matching page, API, and query authorization prevents direct-route access and cross-member data leakage.
+- UI result: `/approvals` remains the admin approval queue but becomes **My requests** for members. The member overview and account surfaces contain personal data only; admin-only navigation items are omitted.
+
 ## Current open items
 
 - Enable Supabase leaked-password protection.

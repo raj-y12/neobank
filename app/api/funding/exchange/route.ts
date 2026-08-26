@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     const body = await request.json() as { publicToken?: string; accountName?: string; accountMask?: string };
     if (!body.publicToken) return NextResponse.json({ error: "publicToken is required" }, { status: 400 });
     const scope = await getAuthenticatedScope();
+    if (scope.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const onboarding = await createSupabaseOnboardingRepository().get(scope.businessId);
     if (!isBusinessApproved(onboarding)) return NextResponse.json({ error: "Business verification must be approved before linking a bank" }, { status: 403 });
     const exchanged = await exchangePlaidPublicToken(body.publicToken);

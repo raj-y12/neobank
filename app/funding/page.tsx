@@ -4,11 +4,13 @@ import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-
 import { PlaidLinkButton } from "./PlaidLinkButton";
 import { AddMoneyForm } from "./AddMoneyForm";
 import { IconDollar } from "../components/Icon";
+import { requirePageAccess } from "@/src/lib/page-authorization";
 
 export const dynamic = "force-dynamic";
 
 export default async function FundingPage() {
   const scope = await getAuthenticatedScope();
+  requirePageAccess(scope, "/funding");
   const [onboarding, account] = await Promise.all([createSupabaseOnboardingRepository().get(scope.businessId), createSupabaseFundingAccountRepository().get(scope.businessId)]);
   const approved = onboarding?.businessStatus === "APPROVED" && onboarding.ownerStatus === "APPROVED";
   return <>
