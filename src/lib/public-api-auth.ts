@@ -30,6 +30,9 @@ export async function getPublicApiScope(request: Request): Promise<Authenticated
 
 export function publicApiError(error: unknown, fallback = "Request failed") {
   const message = error instanceof Error ? error.message : fallback;
-  const status = /required|Authentication|membership|assigned/.test(message) ? 401 : 400;
-  return Response.json({ error: message, code: status === 401 ? "unauthorized" : "bad_request" }, { status });
+  const isUnauthorized = /required|Authentication|membership|assigned/.test(message);
+  const isConflict = /already been used with different request data/.test(message);
+  const status = isConflict ? 409 : isUnauthorized ? 401 : 400;
+  const code = isConflict ? "idempotency_conflict" : status === 401 ? "unauthorized" : "bad_request";
+  return Response.json({ error: message, code }, { status });
 }

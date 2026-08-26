@@ -18,3 +18,41 @@ describe("SupabasePaymentRepository.listForMember", () => {
     expect(result[0]).not.toHaveProperty("recipientBank");
   });
 });
+
+describe("SupabasePaymentRepository.create", () => {
+  it("rejects a reused idempotency key when the request changes", async () => {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: async () => ({
+        data: {
+          id: "payment-1",
+          business_id: "business-a",
+          account_id: "account-a",
+          initiator_member_id: "member-a",
+          amount_cents: 100,
+          currency: "USD",
+          rail: "ACH",
+          recipient: { name: "Acme", accountNumber: "1234567890", routingNumber: "021000021" },
+          status: "PENDING_APPROVAL",
+        },
+        error: null,
+      }),
+      insert: () => { throw new Error("insert should not be called"); },
+    };
+    const client = { from: () => query } as never;
+
+    await expect(new SupabasePaymentRepository(client).create({
+      id: "payment-2",
+      businessId: "business-a",
+      accountId: "account-a",
+      initiatorId: "member-a",
+      amountCents: 200,
+      currency: "USD",
+      rail: "ACH",
+      recipient: "Acme",
+      recipientBank: { accountNumber: "1234567890", routingNumber: "021000021" },
+      status: "PENDING_APPROVAL",
+    }, "same-key")).rejects.toThrow("different request data");
+  });
+});

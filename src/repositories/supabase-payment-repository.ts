@@ -27,7 +27,10 @@ export class SupabasePaymentRepository {
 
   async create(payment: Payment, idempotencyKey: string): Promise<Payment> {
     const existing = await this.getByIdempotencyKey(payment.businessId, idempotencyKey);
-    if (existing) return existing;
+    if (existing) {
+      if (!samePaymentRequest(existing, payment)) throw new Error("Idempotency key was already used with different request data");
+      return existing;
+    }
     const { error } = await this.client.from("payments").insert({
       id: payment.id,
       business_id: payment.businessId,
@@ -42,7 +45,11 @@ export class SupabasePaymentRepository {
       idempotency_key: idempotencyKey,
     });
     if (error && error.code !== "23505") throw error;
-    if (error?.code === "23505") return (await this.getByIdempotencyKey(payment.businessId, idempotencyKey)) ?? payment;
+    if (error?.code === "23505") {
+      const concurrent = await this.getByIdempotencyKey(payment.businessId, idempotencyKey);
+      if (concurrent && !samePaymentRequest(concurrent, payment)) throw new Error("Idempotency key was already used with different request data");
+      return concurrent ?? payment;
+    }
     return payment;
   }
 
@@ -133,6 +140,18 @@ export class SupabasePaymentRepository {
     if (error) throw error;
     return Boolean(data);
   }
+}
+
+function samePaymentRequest(left: Payment, right: Payment) {
+  return left.businessId === right.businessId
+    && left.accountId === right.accountId
+    && left.initiatorId === right.initiatorId
+    && left.amountCents === right.amountCents
+    && left.currency === right.currency
+    && left.rail === right.rail
+    && left.recipient === right.recipient
+    && left.recipientBank?.accountNumber === right.recipientBank?.accountNumber
+    && left.recipientBank?.routingNumber === right.recipientBank?.routingNumber;
 }
 
 export function createSupabasePaymentRepository() {

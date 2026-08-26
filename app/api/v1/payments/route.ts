@@ -3,6 +3,7 @@ import { validateAchBankDetails } from "@/src/domain/ach";
 import { dollarsToCents } from "@/src/domain/money";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
 import { getPublicApiScope, publicApiError } from "@/src/lib/public-api-auth";
+import { toPublicPayment } from "@/src/lib/public-api-payment";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,6 @@ export async function POST(request: Request) {
       if (persisted.status === "APPROVED" || persisted.status === "PENDING_APPROVAL") await repository.setStatus(persisted.id, scope.businessId, "REJECTED");
       throw error;
     }
-    return Response.json({ payment: persisted, providerSubmitted: false, queue: "approval" }, { status: 201 });
+    return Response.json({ payment: toPublicPayment(persisted), providerSubmitted: false, queue: "approval" }, { status: 201 });
   } catch (error) { return publicApiError(error, "Unable to queue payment"); }
 }
