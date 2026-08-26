@@ -46,15 +46,14 @@ describe("IncreaseAchRail sandbox lifecycle", () => {
     expect(result.status).toBe("RETURNED");
   });
 
-  it("pulls inbound funding from the linked bank with a negative ACH amount", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "ach_transfer_inbound", status: "pending_submission" }), { status: 200 }));
+  it("uses Increase's sandbox inbound simulation for add money", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: "account_number_1", account_number: "123456789", routing_number: "101050001", status: "active" }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "ach_transfer_inbound", status: "pending_submission" }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await new IncreaseAchRail().createInbound({ amountCents: 50_000, idempotencyKey: "funding-test", accountNumber: "123456789", routingNumber: "101050001" });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://sandbox.increase.com/ach_transfers",
-      expect.objectContaining({ body: expect.stringContaining('"amount":-50000') }),
-    );
+    expect(fetchMock).toHaveBeenLastCalledWith("https://sandbox.increase.com/simulations/inbound_ach_transfers", expect.objectContaining({ body: JSON.stringify({ account_number_id: "account_number_1", amount: 50000 }) }));
   });
 });

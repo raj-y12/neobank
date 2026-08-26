@@ -7,6 +7,7 @@ export type IncreaseAchTransfer = {
   status?: string;
   settlement?: { settled_at?: string | null } | null;
 };
+type IncreaseAccountNumber = { id: string; account_number: string; routing_number: string; status?: string };
 
 export class IncreaseAchRail implements PaymentRail {
   readonly mode = "LIVE" as const;
@@ -27,7 +28,22 @@ export class IncreaseAchRail implements PaymentRail {
     return { providerTransferId: transfer.id, status: "PENDING" };
   }
 
+  private async accountNumberId(accountNumber?: string, routingNumber?: string) {
+    if (process.env.INCREASE_ACCOUNT_NUMBER_ID) return process.env.INCREASE_ACCOUNT_NUMBER_ID;
+    const accountId = process.env.INCREASE_ACCOUNT_ID;
+    if (!accountId) throw new Error("INCREASE_ACCOUNT_ID is not configured");
+    const response = await this.request<{ data: IncreaseAccountNumber[] }>(`/account_numbers?${new URLSearchParams({ account_id: accountId })}`);
+    const match = response.data.find((item) => item.status !== "disabled" && (!accountNumber || item.account_number === accountNumber) && (!routingNumber || item.routing_number === routingNumber));
+    if (!match) throw new Error("No active Increase account number matches the configured funding account");
+    return match.id;
+  }
+
   async createInbound(input: { amountCents: number; idempotencyKey: string; accountNumber?: string; routingNumber?: string }) {
+    if (process.env.INCREASE_ENV !== "production") {
+      const accountNumberId = await this.accountNumberId(process.env.INCREASE_ACCOUNT_NUMBER, process.env.INCREASE_ACCOUNT_ROUTING_NUMBER);
+      const transfer = await this.request<IncreaseAchTransfer>("/simulations/inbound_ach_transfers", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: JSON.stringify({ account_number_id: accountNumberId, amount: Math.abs(input.amountCents) }) });
+      return { providerTransferId: transfer.id, status: "PENDING" as const };
+    }
     const accountNumber = input.accountNumber ?? process.env.INCREASE_FUNDING_ACCOUNT_NUMBER;
     const routingNumber = input.routingNumber ?? process.env.INCREASE_FUNDING_ROUTING_NUMBER;
     return this.createTransfer({ amountCents: -Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, accountNumber: accountNumber ?? "", routingNumber: routingNumber ?? "", statementDescriptor: "Neobank funding" });
