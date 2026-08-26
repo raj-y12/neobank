@@ -31,12 +31,6 @@ export default function ReconciliationPage() {
     if (response.ok) { setMessage(`Imported ${file.name}: ${body.breakCount} break(s)`); void load(); }
     else setErrorMessage(body.error);
   }
-  async function plantBreak() {
-    const response = await fetch("/api/reconciliation", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileReference: `increase-demo-${Date.now()}`, providerRows: [{ referenceId: `increase-missing-${Date.now()}`, amountCents: 280000 }], ledgerRows: [] }) });
-    const body = await response.json();
-    if (response.ok) { setMessage(`Planted ${body.breakCount} break(s)`); void load(); }
-    else setErrorMessage(body.error);
-  }
   const openCount = breaks.filter((item) => item.status === "OPEN").length;
   async function resolve(id: string) {
     const response = await fetch(`/api/reconciliation/${id}`, { method: "PATCH" });
@@ -60,7 +54,6 @@ export default function ReconciliationPage() {
             <label className="btn btn-outline">Choose CSV<input type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} hidden /></label>
             <button className="btn btn-primary" onClick={uploadFile} disabled={!file}>Import file</button>
             <button className="btn btn-outline" onClick={load}>Refresh</button>
-            <button className="btn btn-primary" onClick={plantBreak}>Add test break</button>
           </div>
         </div>
         {loading ? <div className="skeleton-list" aria-label="Loading reconciliation breaks" aria-busy="true"><span /><span /><span /></div> : breaks.length === 0 ? <div className="empty-state"><h4>No breaks</h4><p>{message}</p></div> : (
