@@ -251,6 +251,16 @@ Missing provider credentials intentionally switch the relevant integration to it
 - Provider webhooks must be configured and verified for Increase, Lithic, Persona, and Plaid before production handoff.
 - Scheduled recovery and standing-order execution use an external cron provider; see [docs/external-crons.md](docs/external-crons.md).
 
+## Integration evidence screenshots
+
+The committed [integration evidence pack](docs/integration-evidence.md) contains sanitized provider-console screenshots captured on 2026-08-26:
+
+- Increase: [account](docs/evidence/increase-01-account.jpg), [transactions](docs/evidence/increase-02-transactions.jpg), [inbound ACH](docs/evidence/increase-03-inbound-ach-timeline.jpg), [outbound ACH](docs/evidence/increase-04-outbound-ach-timeline.jpg), and [event record](docs/evidence/increase-05-event-record.jpg).
+- Persona: [Sandbox KYC inquiries](docs/evidence/persona-01-inquiries.jpg) and [enabled webhook](docs/evidence/persona-02-webhooks.jpg).
+- Lithic: [Sandbox card inventory](docs/evidence/lithic-01-cards.jpg) and [authorization/settlement activity](docs/evidence/lithic-02-activity.jpg).
+
+The captures contain no API keys, webhook secrets, PAN/CVV values, or full bank details. They demonstrate sandbox state; a final live rehearsal still needs provider webhook-delivery IDs and the Corgi application’s card-delegation view.
+
 ## Repository guide
 
 - `app/` — Next.js routes, pages, API endpoints, and MCP transport route.
