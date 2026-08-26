@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PaymentStatus } from "@/src/domain/payment-lifecycle";
-import { IconClose } from "../components/Icon";
+import { IconArrowUp, IconCheck, IconClock, IconClose, IconUndo } from "../components/Icon";
 
 export default function PaymentsPage() {
   const [recipient, setRecipient] = useState("Northstar Supplies");
@@ -62,14 +62,18 @@ export default function PaymentsPage() {
         </div>
         <button className="btn btn-primary" onClick={createPayment} disabled={submitting}>{submitting ? "Sending…" : "Send payment"}</button>
       </section>
-      {modalOpen && payment && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModalOpen(false)}>
-        <section className="transaction-modal payment-status-modal" role="dialog" aria-modal="true" aria-labelledby="payment-status-title">
-          <div className="modal-header"><div><p className="modal-context">Payment status</p><h3 id="payment-status-title">{statusTitle(payment.status)}</h3></div><button className="modal-close" aria-label="Close payment status" onClick={() => setModalOpen(false)}><IconClose /></button></div>
-          <div className="modal-summary"><div><span className="detail-label">Current state</span><div className="modal-chips"><span className={`chip ${statusTone(payment.status)}`}>{payment.status.replaceAll("_", " ")}</span></div></div><div className="modal-amount"><span className="detail-label">Amount</span><strong>${(payment.amountCents / 100).toFixed(2)}</strong></div></div>
-          <p className="modal-note">{statusMessage(payment.status)}</p>
-          {(payment.status === "SUBMITTED" || payment.status === "APPROVED" || payment.status === "PENDING_APPROVAL") && <div className="payment-status-track"><span className="is-complete">Created</span><span className={payment.status === "PENDING_APPROVAL" ? "is-current" : "is-complete"}>{payment.status === "PENDING_APPROVAL" ? "Approval required" : "Submitted"}</span><span>Settled</span></div>}
-        </section>
-      </div>}
+      {modalOpen && payment && typeof document !== "undefined" && createPortal(
+        <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModalOpen(false)}>
+          <div className="error-modal" role="dialog" aria-modal="true" aria-labelledby="payment-status-title">
+            <div key={payment.status} className="status-modal-swap">
+              <p id="payment-status-title">{statusTitle(payment.status)}</p>
+              <div className={`error-modal-icon ${statusIconTone(payment.status)}`} aria-hidden="true">{statusIcon(payment.status)}</div>
+              <p className="modal-note">${(payment.amountCents / 100).toFixed(2)} · {statusMessage(payment.status)}</p>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {errorMessage && typeof document !== "undefined" && createPortal(
         <div className="modal-backdrop is-centered" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setErrorMessage("")}>
@@ -100,9 +104,16 @@ function statusMessage(status: PaymentStatus) {
   if (status === "RETURNED") return "The payment rail returned this payment. The ledger has recorded the correction.";
   return "This payment was rejected and was not submitted.";
 }
-function statusTone(status: PaymentStatus) {
-  if (status === "SETTLED") return "chip-green";
-  if (status === "RETURNED" || status === "REJECTED") return "chip-red";
-  if (status === "SUBMITTED") return "chip-blue";
-  return "chip-orange";
+function statusIconTone(status: PaymentStatus) {
+  if (status === "SETTLED") return "is-success";
+  if (status === "RETURNED" || status === "REJECTED") return "";
+  if (status === "SUBMITTED") return "is-progress";
+  return "is-pending";
+}
+function statusIcon(status: PaymentStatus) {
+  if (status === "SETTLED") return <IconCheck />;
+  if (status === "RETURNED") return <IconUndo />;
+  if (status === "REJECTED") return <IconClose />;
+  if (status === "SUBMITTED") return <IconArrowUp />;
+  return <IconClock />;
 }
