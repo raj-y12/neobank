@@ -24,7 +24,6 @@ export default async function Home() {
     <>
       <section className="intro">
         <h2>Overview</h2>
-        <Link className="btn btn-primary" href="/payments">Send money</Link>
       </section>
 
       <section className="dashboard-grid">
