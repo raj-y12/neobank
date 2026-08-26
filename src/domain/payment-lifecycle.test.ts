@@ -6,9 +6,25 @@ import {
   canTransitionPayment,
   createFundingTransfer,
   createPayment,
+  rejectPayment,
 } from "./payment-lifecycle";
 
 describe("payment lifecycle", () => {
+  it("can force an agent-submitted payment into human approval", () => {
+    const payment = createPayment({
+      businessId: "b1",
+      accountId: "a1",
+      initiatorId: "m1",
+      amountCents: 100,
+      currency: "USD",
+      rail: "ACH",
+      recipient: "Supplier",
+      approvalMode: "HUMAN",
+    });
+
+    expect(payment.status).toBe("PENDING_APPROVAL");
+  });
+
   it("requires a second human for payments above the threshold", () => {
     const payment = createPayment({
       businessId: "biz-1",
@@ -30,6 +46,21 @@ describe("payment lifecycle", () => {
     expect(canTransitionPayment("PENDING_APPROVAL", "SETTLED")).toBe(false);
     expect(canTransitionPayment("APPROVED", "SUBMITTED")).toBe(true);
     expect(canTransitionPayment("RETURNED", "SETTLED")).toBe(false);
+  });
+
+  it("allows a pending approval to be rejected without provider submission", () => {
+    const payment = createPayment({
+      businessId: "biz-1",
+      accountId: "acct-1",
+      initiatorId: "member-1",
+      amountCents: 100_001,
+      currency: "USD",
+      rail: "ACH",
+      recipient: "Vendor",
+    });
+
+    expect(rejectPayment(payment, "member-2").status).toBe("REJECTED");
+    expect(() => rejectPayment(payment, "member-1")).toThrow("Initiator cannot reject");
   });
 
   it("keeps funding pending until an explicit settlement event", () => {

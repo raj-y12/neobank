@@ -6,8 +6,6 @@ const PLAID_BASE_URLS: Record<string, string> = {
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-type PlaidResponse = { request_id?: string; link_token?: string; access_token?: string; item_id?: string; item?: { institution_id?: string | null; institution_name?: string | null } };
-
 function plaidBaseUrl() {
   return PLAID_BASE_URLS[process.env.PLAID_ENV ?? "sandbox"] ?? PLAID_BASE_URLS.sandbox;
 }

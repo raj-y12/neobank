@@ -20,6 +20,12 @@ export default function ApprovalsPage() {
     setMessage(response.ok ? `Submitted to ${body.mode} rail as ${body.providerTransferId}` : body.error);
     if (response.ok) void load();
   }
+  async function reject(id: string) {
+    const response = await fetch(`/api/payments/${id}/reject`, { method: "POST" });
+    const body = await response.json();
+    setMessage(response.ok ? "Payment rejected" : body.error);
+    if (response.ok) void load();
+  }
   return (
     <>
       <section className="intro">
@@ -45,7 +51,7 @@ export default function ApprovalsPage() {
                     <td>{approval.initiator_member_id}</td>
                     <td><span className={`table-status status-${approval.status.toLowerCase()}`}>{approval.status}</span></td>
                     <td className="tabular">${(approval.amount_cents / 100).toFixed(2)}</td>
-                    <td><button className="btn btn-outline" onClick={() => approve(approval.id)}>Approve</button></td>
+                    <td><div className="form-row"><button className="btn btn-outline" onClick={() => approve(approval.id)}>Approve</button><button className="btn btn-ghost" onClick={() => reject(approval.id)}>Reject</button></div></td>
                   </tr>
                 );
               })}

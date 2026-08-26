@@ -30,7 +30,7 @@ export class IncreaseAchRail implements PaymentRail {
   async createInbound(input: { amountCents: number; idempotencyKey: string; accountNumber?: string; routingNumber?: string }) {
     const accountNumber = input.accountNumber ?? process.env.INCREASE_FUNDING_ACCOUNT_NUMBER;
     const routingNumber = input.routingNumber ?? process.env.INCREASE_FUNDING_ROUTING_NUMBER;
-    return this.createTransfer({ amountCents: Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, accountNumber: accountNumber ?? "", routingNumber: routingNumber ?? "", statementDescriptor: "Neobank funding" });
+    return this.createTransfer({ amountCents: -Math.abs(input.amountCents), idempotencyKey: input.idempotencyKey, accountNumber: accountNumber ?? "", routingNumber: routingNumber ?? "", statementDescriptor: "Neobank funding" });
   }
 
   createOutbound(input: { amountCents: number; recipient: string; idempotencyKey: string; accountNumber?: string; routingNumber?: string }) {

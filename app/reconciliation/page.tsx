@@ -7,6 +7,7 @@ type Break = { id: string; break_type: string; provider_reference: string; expec
 export default function ReconciliationPage() {
   const [breaks, setBreaks] = useState<Break[]>([]);
   const [message, setMessage] = useState("No file loaded.");
+  const [file, setFile] = useState<File | null>(null);
   async function load() {
     const response = await fetch("/api/agent/reconciliation-breaks", { cache: "no-store" });
     const body = await response.json();
@@ -14,6 +15,13 @@ export default function ReconciliationPage() {
     setMessage(response.ok ? `${body.breaks?.length ?? 0} break(s) loaded` : body.error);
   }
   useEffect(() => { void load(); }, []);
+  async function uploadFile() {
+    if (!file) { setMessage("Choose an Increase transaction CSV first."); return; }
+    const response = await fetch("/api/reconciliation", { method: "POST", headers: { "content-type": "text/csv", "x-file-reference": file.name }, body: await file.text() });
+    const body = await response.json();
+    setMessage(response.ok ? `Imported ${file.name}: ${body.breakCount} break(s)` : body.error);
+    if (response.ok) void load();
+  }
   async function plantBreak() {
     const response = await fetch("/api/reconciliation", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileReference: `increase-demo-${Date.now()}`, providerRows: [{ referenceId: `increase-missing-${Date.now()}`, amountCents: 280000 }], ledgerRows: [] }) });
     const body = await response.json();
@@ -40,6 +48,8 @@ export default function ReconciliationPage() {
         <div className="table-toolbar">
           <div><h3>{openCount} open</h3></div>
           <div className="table-toolbar-actions">
+            <label className="btn btn-outline">Choose CSV<input type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} hidden /></label>
+            <button className="btn btn-primary" onClick={uploadFile} disabled={!file}>Import file</button>
             <button className="btn btn-outline" onClick={load}>Refresh</button>
             <button className="btn btn-primary" onClick={plantBreak}>Add test break</button>
           </div>

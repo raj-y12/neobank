@@ -15,7 +15,7 @@ function toAccount(row: FundingRow): LinkedFundingAccount {
 export class SupabaseFundingAccountRepository implements FundingAccountRepository {
   constructor(private readonly client: SupabaseClient) {}
   async get(businessId: string) {
-    const { data, error } = await this.client.from("linked_funding_accounts").select(columns).eq("business_id", businessId).maybeSingle<FundingRow>();
+    const { data, error } = await this.client.from("linked_funding_accounts").select(columns).eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle<FundingRow>();
     if (error) throw error;
     return data ? toAccount(data) : null;
   }
@@ -26,7 +26,7 @@ export class SupabaseFundingAccountRepository implements FundingAccountRepositor
       account_name: input.accountName ?? null, account_mask: input.accountMask ?? null, status: "LINKED", updated_at: new Date().toISOString(),
       encrypted_account_number: input.accountNumber ? encryptPlaidAccessToken(input.accountNumber) : null,
       encrypted_routing_number: input.routingNumber ? encryptPlaidAccessToken(input.routingNumber) : null,
-    }, { onConflict: "business_id" }).select(columns).single<FundingRow>();
+    }, { onConflict: "provider,provider_item_id" }).select(columns).single<FundingRow>();
     if (error) throw error;
     return toAccount(data);
   }

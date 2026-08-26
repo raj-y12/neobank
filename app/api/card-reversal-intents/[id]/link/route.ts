@@ -6,16 +6,24 @@ import { createSupabaseCardReversalRepository } from "@/src/repositories/supabas
 import { createSupabaseCardTransactionRepository } from "@/src/repositories/supabase-card-transaction-repository";
 import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 import { settlementReversalIdempotencyKey } from "@/src/domain/card-return";
+import { getAuthenticatedScope } from "@/src/lib/auth-scope";
+import { getBusinessCardAssignment } from "@/src/repositories/supabase-business-card-repository";
+import { canViewCard } from "@/src/domain/card-access";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const scope = await getAuthenticatedScope();
+    const reversalRepository = createSupabaseCardReversalRepository();
+    const existingIntent = await reversalRepository.getIntent(id);
+    const assignment = await getBusinessCardAssignment(scope.businessId, existingIntent.cardToken);
+    if (!assignment || !canViewCard({ role: scope.role, currentMemberId: scope.memberId, assignedMemberId: assignment.memberId })) return NextResponse.json({ error: "Card is outside the authenticated business scope" }, { status: 404 });
     const body = await request.json() as { providerReturnTransactionId?: string; returnCardToken?: string; returnAmountCents?: number };
     const returnAmountCents = body.returnAmountCents;
     if (!body.providerReturnTransactionId || !body.returnCardToken || typeof returnAmountCents !== "number" || !Number.isSafeInteger(returnAmountCents)) {
       return NextResponse.json({ error: "providerReturnTransactionId, returnCardToken, and returnAmountCents are required" }, { status: 400 });
     }
-    const intent = await createSupabaseCardReversalRepository().linkReturn({
+    const intent = await reversalRepository.linkReturn({
       intentId: id,
       providerReturnTransactionId: body.providerReturnTransactionId,
       returnCardToken: body.returnCardToken,

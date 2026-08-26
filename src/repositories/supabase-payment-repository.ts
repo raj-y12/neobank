@@ -13,10 +13,16 @@ type PaymentRow = {
   status: Payment["status"];
 };
 
+function toPayment(data: PaymentRow): Payment {
+  return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", status: data.status };
+}
+
 export class SupabasePaymentRepository {
   constructor(private readonly client: SupabaseClient) {}
 
-  async create(payment: Payment, idempotencyKey: string) {
+  async create(payment: Payment, idempotencyKey: string): Promise<Payment> {
+    const existing = await this.getByIdempotencyKey(payment.businessId, idempotencyKey);
+    if (existing) return existing;
     const { error } = await this.client.from("payments").insert({
       id: payment.id,
       business_id: payment.businessId,
@@ -31,17 +37,58 @@ export class SupabasePaymentRepository {
       idempotency_key: idempotencyKey,
     });
     if (error && error.code !== "23505") throw error;
+    if (error?.code === "23505") return (await this.getByIdempotencyKey(payment.businessId, idempotencyKey)) ?? payment;
+    return payment;
+  }
+
+  private async getByIdempotencyKey(businessId: string, idempotencyKey: string) {
+    const { data, error } = await this.client.from("payments").select("id,business_id,account_id,initiator_member_id,amount_cents,currency,rail,recipient,status").eq("business_id", businessId).eq("idempotency_key", idempotencyKey).maybeSingle<PaymentRow>();
+    if (error) throw error;
+    return data ? toPayment(data) : null;
   }
 
   async get(id: string, businessId: string): Promise<Payment | null> {
     const { data, error } = await this.client.from("payments").select("id,business_id,account_id,initiator_member_id,amount_cents,currency,rail,recipient,status").eq("id", id).eq("business_id", businessId).maybeSingle<PaymentRow>();
     if (error) throw error;
     if (!data) return null;
-    return { id: data.id, businessId: data.business_id, accountId: data.account_id, initiatorId: data.initiator_member_id, amountCents: data.amount_cents, currency: data.currency, rail: "ACH", recipient: typeof data.recipient === "string" ? data.recipient : data.recipient.name ?? "Unknown", status: data.status };
+    return toPayment(data);
+  }
+
+  async listPending(businessId: string) {
+    const { data, error } = await this.client
+      .from("payments")
+      .select("id,amount_cents,recipient,status,initiator_member_id,created_at")
+      .eq("business_id", businessId)
+      .eq("status", "PENDING_APPROVAL")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      amountCents: row.amount_cents as number,
+      recipient: typeof row.recipient === "string" ? row.recipient : (row.recipient as { name?: string })?.name ?? "Unknown",
+      status: row.status as Payment["status"],
+      initiatorMemberId: row.initiator_member_id as string,
+      createdAt: row.created_at as string,
+    }));
   }
 
   async setStatus(id: string, businessId: string, status: Payment["status"]) {
     const { error } = await this.client.from("payments").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", businessId);
+    if (error) throw error;
+  }
+
+  async setProviderTransfer(id: string, businessId: string, providerTransferId: string, status: Payment["status"]) {
+    const { error } = await this.client.from("payments").update({ provider_payment_id: providerTransferId, status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", businessId);
+    if (error) throw error;
+  }
+
+  async reserveFunds(payment: Payment) {
+    const { error } = await this.client.rpc("reserve_payment_funds", {
+      p_business_id: payment.businessId,
+      p_account_id: payment.accountId,
+      p_payment_id: payment.id,
+      p_amount_cents: payment.amountCents,
+    });
     if (error) throw error;
   }
 

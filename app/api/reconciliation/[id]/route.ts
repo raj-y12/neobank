@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await getAuthenticatedScope();
+    if (context.role !== "ADMIN") return NextResponse.json({ error: "ADMIN role required" }, { status: 403 });
     const { id } = await params;
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -3,7 +3,6 @@ import { createPayment } from "@/src/domain/payment-lifecycle";
 import { getPaymentRail } from "@/src/integrations/simulated-ach";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabasePaymentRepository } from "@/src/repositories/supabase-payment-repository";
-import { createSupabaseLedgerRepository } from "@/src/repositories/supabase-ledger-repository";
 
 export async function POST(request: Request) {
   try {
@@ -11,16 +10,22 @@ export async function POST(request: Request) {
     const body = await request.json() as { amountCents?: number; recipient?: string; idempotencyKey?: string };
     if (!body.amountCents || !body.recipient || !body.idempotencyKey) throw new Error("amountCents, recipient, and idempotencyKey are required");
     const payment = createPayment({ businessId: context.businessId, accountId: context.accountId, initiatorId: context.memberId, amountCents: body.amountCents, currency: "USD", rail: "ACH", recipient: body.recipient });
-    const balances = await createSupabaseLedgerRepository().getBalances({ businessId: context.businessId, accountId: context.accountId });
-    if (balances.availableBalanceCents < payment.amountCents) throw new Error("Insufficient available funds");
     const repository = createSupabasePaymentRepository();
-    await repository.create(payment, body.idempotencyKey);
-    if (payment.status === "APPROVED") {
-      const transfer = await getPaymentRail().createOutbound({ amountCents: payment.amountCents, recipient: payment.recipient, idempotencyKey: `payment-submit:${payment.id}` });
-      await repository.setStatus(payment.id, context.businessId, "SUBMITTED");
-      return NextResponse.json({ payment: { ...payment, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });
+    const persisted = await repository.create(payment, body.idempotencyKey);
+    try {
+      await repository.reserveFunds(persisted);
+    } catch (error) {
+      if (persisted.status === "APPROVED" || persisted.status === "PENDING_APPROVAL") {
+        await repository.setStatus(persisted.id, context.businessId, "REJECTED");
+      }
+      throw error;
     }
-    return NextResponse.json({ payment, submitted: false, approvalRequired: true }, { status: 201 });
+    if (persisted.status === "APPROVED") {
+      const transfer = await getPaymentRail().createOutbound({ amountCents: persisted.amountCents, recipient: persisted.recipient, idempotencyKey: `payment-submit:${persisted.id}` });
+      await repository.setProviderTransfer(persisted.id, context.businessId, transfer.providerTransferId, "SUBMITTED");
+      return NextResponse.json({ payment: { ...persisted, status: "SUBMITTED" }, submitted: true, mode: getPaymentRail().mode, providerTransferId: transfer.providerTransferId, approvalRequired: false }, { status: 201 });
+    }
+    return NextResponse.json({ payment: persisted, submitted: false, approvalRequired: true }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create payment" }, { status: 400 });
   }

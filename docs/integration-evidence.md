@@ -8,6 +8,14 @@
 - ACH payment rail: Increase adapter in `src/integrations/increase/client.ts`, selected when `INCREASE_API_KEY` and `INCREASE_ACCOUNT_ID` are configured; otherwise deterministic simulator in `src/integrations/simulated-ach.ts` is explicitly `SIMULATED`.
 - USDC: deferred by decision; no claim of support.
 
+## Verification status (2026-08-25)
+
+- Increase: sandbox adapter is configured in the deployed project; Add Money uses a negative ACH amount so funds are pulled from the linked bank. Retain the Increase transfer ID and webhook delivery ID for each settlement/return rehearsal.
+- Plaid: sandbox Link and token exchange are available when the three Plaid variables are configured. Existing linked-account tokens were migrated to the application AES-256-GCM representation; no token is returned to the browser.
+- Lithic: sandbox card inventory and webhook adapter are live. Use the admin “Sync existing cards” action to associate cards with the business before delegating them.
+- Supabase: application RLS gaps were closed in migration `20260825220000_harden_application_rls`; the security advisor should show only the dashboard-controlled leaked-password warning until that setting is enabled.
+- Auth: employee provisioning is direct and intentionally returns the initial password once because email delivery is not configured. A forced password-change/reset flow remains a production handoff item.
+
 ## Reviewer smoke sequence
 
 1. Apply Supabase migrations and `supabase/seed.sql`.
@@ -15,6 +23,13 @@
 3. Open `/onboarding`, `/funding`, `/payments`, `/approvals`, and `/reconciliation`.
 4. Use the authenticated business headers documented below for API smoke tests.
 5. For live integrations, attach provider dashboard screenshots and webhook delivery IDs here; simulated runs must retain the `SIMULATED` label. Increase also requires `INCREASE_ACCOUNT_ID`, `INCREASE_FUNDING_ACCOUNT_NUMBER`, `INCREASE_FUNDING_ROUTING_NUMBER`, `INCREASE_RECIPIENT_ACCOUNT_NUMBER`, and `INCREASE_RECIPIENT_ROUTING_NUMBER`.
+
+## Evidence to attach before submission
+
+- Increase: account page, ACH transfer detail, and webhook/event delivery for one inbound settlement and one outbound settlement/return.
+- Plaid: Link success, `/api/funding/exchange` response without secrets, and the linked-account row showing encrypted storage.
+- Lithic: card inventory page after sync, delegation page, and one authorization/settlement webhook event.
+- Supabase: security advisor result after leaked-password protection is enabled, plus the migration list showing the RLS hardening migration.
 
 ## Demo request headers
 

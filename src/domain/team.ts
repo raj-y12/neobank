@@ -9,10 +9,11 @@ export function validateSignupInput(input: { email?: string; password?: string; 
   return { email, password: input.password, legalName };
 }
 
-export function validateEmployeeInvite(input: { email?: string; role?: string }) {
+export function validateEmployeeInvite(input: { email?: string; role?: string; password?: string }) {
   const email = input.email?.trim().toLowerCase();
   if (!email || !email.includes("@")) throw new Error("A valid employee email is required");
   const role = input.role === "ADMIN" ? "ADMIN" : input.role === "MEMBER" ? "MEMBER" : null;
   if (!role) throw new Error("Employee role must be ADMIN or MEMBER");
-  return { email, role };
+  if (!input.password || input.password.length < 8) throw new Error("Password must be at least 8 characters");
+  return { email, role, password: input.password };
 }

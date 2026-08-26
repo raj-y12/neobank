@@ -8,6 +8,20 @@ export function IssueCardButton() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  async function syncCards() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/cards/sync", { method: "POST" });
+        const body = await response.json() as { error?: string };
+        if (!response.ok) throw new Error(body.error ?? "Unable to sync cards");
+        router.refresh();
+      } catch (syncError) {
+        setError(syncError instanceof Error ? syncError.message : "Unable to sync cards");
+      }
+    });
+  }
+
   async function issueCard() {
     setError(null);
     startTransition(async () => {
@@ -23,6 +37,7 @@ export function IssueCardButton() {
   }
 
   return <div className="action-stack">
+    <button className="btn btn-secondary" onClick={syncCards} disabled={isPending}>{isPending ? "Syncing…" : "Sync existing cards"}</button>
     <button className="btn btn-primary" onClick={issueCard} disabled={isPending}>
       {isPending ? "Issuing…" : "Issue card"}
     </button>

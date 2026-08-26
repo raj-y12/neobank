@@ -90,6 +90,16 @@ export class SupabaseCardReversalRepository implements CardReversalRepository {
     return toIntent(linked);
   }
 
+  async getIntent(intentId: string) {
+    const { data, error } = await this.client
+      .from("card_reversal_intents")
+      .select("id,original_transaction_id,card_token,expected_amount_cents,provider_return_transaction_id,status,idempotency_key")
+      .eq("id", intentId)
+      .single<IntentRow>();
+    if (error) throw error;
+    return toIntent(data);
+  }
+
   async findByProviderReturnTransactionId(providerReturnTransactionId: string) {
     const { data, error } = await this.client
       .from("card_reversal_intents")
