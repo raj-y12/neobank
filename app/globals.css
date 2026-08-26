@@ -329,7 +329,7 @@ h4 { margin-bottom: var(--space-3); font-size: var(--text-sm); font-weight: 600;
 /* ---- physical card tiles ---- */
 
 .card-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-5); }
-.card-reveal { perspective: 1200px; }
+.card-reveal { display: grid; gap: var(--space-4); perspective: 1200px; }
 .card-reveal-inner { position: relative; aspect-ratio: 1.618; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.2,.7,.2,1); }
 .card-reveal.is-revealed .card-reveal-inner { transform: rotateY(180deg); }
 .card-reveal-face { position: absolute; inset: 0; display: flex; backface-visibility: hidden; }
@@ -344,7 +344,7 @@ h4 { margin-bottom: var(--space-3); font-size: var(--text-sm); font-weight: 600;
 .card-reveal-details { position: absolute; z-index: 2; inset: 0; color: white; pointer-events: none; }
 .card-reveal-details > div { overflow: hidden; color: white; pointer-events: auto; }
 .card-reveal-details > div iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
-.card-reveal-pan { position: absolute; top: 106px; left: 24px; width: 220px; height: 28px; }
+.card-reveal-pan { position: absolute; top: 48%; left: 24px; width: 220px; height: 28px; }
 .card-reveal-expiry { position: absolute; right: 24px; bottom: 26px; display: flex; align-items: center; gap: 3px; height: 24px; }
 .card-reveal-expiry > div { width: 22px; height: 24px; }
 .card-reveal-expiry b { font-size: 12px; font-weight: 500; }
