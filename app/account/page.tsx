@@ -1,6 +1,7 @@
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { createSupabaseFundingAccountRepository } from "@/src/repositories/supabase-funding-account-repository";
 import { createSupabaseOnboardingRepository } from "@/src/repositories/supabase-onboarding-repository";
+import { IconCheckCircle, IconChevronRight, IconDollar, IconUsers } from "../components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +11,33 @@ export default async function AccountPage() {
     createSupabaseOnboardingRepository().get(scope.businessId),
     createSupabaseFundingAccountRepository().get(scope.businessId),
   ]);
+  const initials = (onboarding?.ownerName ?? scope.email ?? "C").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   return <>
-    <section className="intro"><div><p className="eyebrow">Account</p><h2>Business profile and connections.</h2><p className="intro-copy">Review the information used to operate this business account.</p></div><span className="pill pill-green">{scope.role}</span></section>
-    <section className="content-grid account-grid">
-      <article className="panel"><div className="panel-heading"><div><p className="eyebrow">Business details</p><h3>{onboarding?.businessName ?? "Not started"}</h3></div></div><div className="linked-account"><div><span className="detail-label">Signed in as</span><strong>{scope.email ?? "Demo user"}</strong></div><div><span className="detail-label">Owner / director</span><strong>{onboarding?.ownerName ?? "—"}</strong></div><div><span className="detail-label">KYC status</span><strong className={`status-text status-${(onboarding?.businessStatus ?? "PENDING").toLowerCase()}`}>{onboarding?.businessStatus ?? "PENDING"}</strong></div></div></article>
-      <article className="panel"><div className="panel-heading"><div><p className="eyebrow">Funding account</p><h3>{funding?.institutionName ?? "Not linked"}</h3></div></div><div className="linked-account"><div><span className="detail-label">Account</span><strong>{funding ? `${funding.accountName ?? "Checking"}${funding.accountMask ? ` ····${funding.accountMask}` : ""}` : "No external account linked"}</strong></div><div><span className="detail-label">Status</span><strong>{funding?.status ?? "NOT LINKED"}</strong></div></div></article>
+    <section className="account-profile-header">
+      <div><h2>Account</h2><p className="account-handle">{scope.email ?? "Business account"}</p></div>
+      <div className="account-avatar" aria-hidden="true">{initials}</div>
     </section>
-    <section className="panel account-actions"><p className="eyebrow">Session</p><form action="/auth/signout" method="post"><button className="btn btn-outline" type="submit">Sign out</button></form></section>
+
+    <div className="account-settings">
+      <section className="account-setting-section" aria-labelledby="business-section">
+        <h3 id="business-section">Business</h3>
+        <div className="settings-group">
+          <div className="settings-row"><span className="settings-icon"><IconUsers /></span><span className="settings-copy"><strong>{onboarding?.businessName ?? "Business profile"}</strong><small>{onboarding?.ownerName ?? "Owner details not added"}</small></span></div>
+          <div className="settings-row"><span className="settings-icon"><IconCheckCircle /></span><span className="settings-copy"><strong>Verification</strong><small>{onboarding?.businessStatus ?? "Not started"}</small></span></div>
+        </div>
+      </section>
+
+      <section className="account-setting-section" aria-labelledby="funding-section">
+        <h3 id="funding-section">Funding</h3>
+        <div className="settings-group">
+          <div className="settings-row"><span className="settings-icon"><IconDollar /></span><span className="settings-copy"><strong>{funding?.institutionName ?? "No account linked"}</strong><small>{funding ? `${funding.accountName ?? "Checking"}${funding.accountMask ? ` ····${funding.accountMask}` : ""}` : "Connect a checking account to add money"}</small></span><span className={`settings-status ${funding ? "is-good" : ""}`}>{funding?.status ?? "Not linked"}</span></div>
+        </div>
+      </section>
+
+      <section className="account-setting-section account-session" aria-labelledby="session-section">
+        <h3 id="session-section">Session</h3>
+        <div className="settings-group"><form action="/auth/signout" method="post"><button className="settings-row settings-button" type="submit"><span className="settings-copy"><strong>Sign out</strong><small>End this session</small></span><span aria-hidden="true"><IconChevronRight /></span></button></form></div>
+      </section>
+    </div>
   </>;
 }

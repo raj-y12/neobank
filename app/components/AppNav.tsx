@@ -5,14 +5,15 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/browser";
 import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
+import { IconCheckCircle, IconDollar, IconHome, IconReceipt, IconUsers } from "./Icon";
 
 const TABS = [
-  { href: "/", label: "Overview", icon: "⌂" },
-  { href: "/cards", label: "Cards", icon: "card" },
-  { href: "/team", label: "Employees", icon: "people" },
-  { href: "/payments", label: "Payments", icon: "$" },
-  { href: "/approvals", label: "Approvals", icon: "✓" },
-  { href: "/reconciliation", label: "Reconciliation", icon: "≡" },
+  { href: "/", label: "Overview", icon: <IconHome /> },
+  { href: "/cards", label: "Cards", icon: "card" as const },
+  { href: "/team", label: "Employees", icon: <IconUsers /> },
+  { href: "/payments", label: "Payments", icon: <IconDollar /> },
+  { href: "/approvals", label: "Approvals", icon: <IconCheckCircle /> },
+  { href: "/reconciliation", label: "Reconciliation", icon: <IconReceipt /> },
 ];
 
 export function AppNav() {
@@ -50,25 +51,28 @@ export function AppNav() {
   if (!showNavigation) return null;
 
   return (
-    <header className="topbar">
-      <div className="brand-mark" aria-label="Corgi home">c</div>
+    <header className="sidebar">
+      <Link className="sidebar-brand" href="/" aria-label="Corgi home">
+        <span className="brand-mark">c</span>
+        <span className="sidebar-brand-word">Corgi</span>
+      </Link>
 
-      <nav className="nav-tabs" aria-label="Primary">
+      <nav className="sidebar-nav" aria-label="Primary">
         {TABS.map((tab) => (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`nav-tab${pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? " is-active" : ""}`}
+            className={`sidebar-tab${pathname === tab.href || (tab.href === "/cards" && pathname.startsWith("/cards/")) ? " is-active" : ""}`}
           >
-            {tab.icon === "card" ? <span className="nav-tab-card-chip" aria-hidden="true" /> : <span className="nav-tab-icon" aria-hidden="true">{tab.icon === "people" ? "♙" : tab.icon}</span>}
-            {tab.label}
+            {tab.icon === "card" ? <span className="sidebar-tab-card-chip" aria-hidden="true" /> : <span className="sidebar-tab-icon" aria-hidden="true">{tab.icon}</span>}
+            <span className="sidebar-tab-label">{tab.label}</span>
           </Link>
         ))}
       </nav>
 
-      <div className="topbar-spacer" />
       <Link className="nav-user" href="/account" aria-label="Open account profile">
         <div className="avatar">{email?.slice(0, 2).toUpperCase() ?? "??"}</div>
+        <span className="nav-user-email">{email}</span>
       </Link>
     </header>
   );

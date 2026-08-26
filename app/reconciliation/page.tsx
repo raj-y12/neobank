@@ -20,11 +20,49 @@ export default function ReconciliationPage() {
     setMessage(response.ok ? `Planted ${body.breakCount} break(s)` : body.error);
     if (response.ok) void load();
   }
+  const openCount = breaks.filter((item) => item.status === "OPEN").length;
   async function resolve(id: string) {
     const response = await fetch(`/api/reconciliation/${id}`, { method: "PATCH" });
     const body = await response.json();
     setMessage(response.ok ? "Break resolved without editing the ledger" : body.error);
     if (response.ok) void load();
   }
-  return <main className="panel page-panel"><p className="eyebrow">Nightly scheme file · Increase ACH</p><h1>Reconciliation breaks</h1><p className="muted">Provider reports are evidence; the ledger remains customer truth. Breaks are never fixed by editing history.</p><div className="form-row"><button className="btn btn-primary" onClick={plantBreak}>Plant demo break</button><button className="btn btn-outline" onClick={load}>Refresh breaks</button></div>{breaks.length === 0 ? <div className="empty-state"><h4>No breaks</h4><p>{message}</p></div> : breaks.map((item) => <div className="status-card" key={item.id}><div><strong>{item.break_type} · {item.provider_reference}</strong><p className="list-meta">${((item.actual_amount_cents ?? item.expected_amount_cents ?? 0) / 100).toFixed(2)} · age {item.ageBucket}</p></div>{item.status === "OPEN" && <button className="btn btn-outline" onClick={() => resolve(item.id)}>Resolve</button>}</div>)}<p className="list-meta" role="status">{message}</p></main>;
+  return (
+    <>
+      <section className="intro">
+        <div>
+          <h2>Reconciliation breaks</h2>
+          <p className="muted">Review differences between provider reports and the ledger.</p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="table-toolbar">
+          <div><h3>{openCount} open</h3></div>
+          <div className="table-toolbar-actions">
+            <button className="btn btn-outline" onClick={load}>Refresh</button>
+            <button className="btn btn-primary" onClick={plantBreak}>Add test break</button>
+          </div>
+        </div>
+        {breaks.length === 0 ? <div className="empty-state"><h4>No breaks</h4><p>{message}</p></div> : (
+          <table className="data-table">
+            <thead><tr><th>Break</th><th>Reference</th><th>Amount</th><th>Age</th><th>Status</th><th /></tr></thead>
+            <tbody>
+              {breaks.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.break_type}</td>
+                  <td>{item.provider_reference}</td>
+                  <td className="tabular">${((item.actual_amount_cents ?? item.expected_amount_cents ?? 0) / 100).toFixed(2)}</td>
+                  <td>{item.ageBucket}</td>
+                  <td><span className={`table-status status-${item.status.toLowerCase()}`}>{item.status}</span></td>
+                  <td>{item.status === "OPEN" && <button className="btn btn-outline" onClick={() => resolve(item.id)}>Resolve</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="list-meta" role="status">{message}</p>
+      </section>
+    </>
+  );
 }

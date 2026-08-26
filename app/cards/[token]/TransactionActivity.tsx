@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { formatLithicDate, type LithicTransaction } from "@/src/integrations/lithic/client";
+import { IconArrowDown, IconArrowUp, IconClose } from "../../components/Icon";
 
 type TransactionRow = LithicTransaction & { displayAmount: number | null; internalTransactionId?: string; reversalOfTransactionId?: string };
 
@@ -19,6 +20,10 @@ function isIncoming(transaction: TransactionRow) {
 function signedUsd(amount: number | null | undefined, incoming: boolean) {
   if (amount === null || amount === undefined) return "—";
   return `${incoming ? "+" : "−"}${usd(amount)}`;
+}
+
+function hasMeaningfulAmount(amount: number | null | undefined) {
+  return amount !== null && amount !== undefined && amount !== 0;
 }
 
 function formatStatus(status: string | null | undefined) {
@@ -106,7 +111,7 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
     <>
       {transactions.length === 0 ? <div className="empty-state"><h4>No transactions recorded</h4><p>When Lithic receives an authorization or settlement for this card, it will appear here.</p></div> : transactions.map((transaction) => (
         <button className="list-row transaction-row" key={transaction.token} onClick={() => { setSelected(transaction); setReversalIntentId(null); setLinkError(null); }}>
-          <span className={`list-icon transaction-icon${isIncoming(transaction) ? " is-incoming" : ""}`} aria-hidden="true">{isIncoming(transaction) ? "↗" : "↘"}</span>
+          <span className={`list-icon transaction-icon${isIncoming(transaction) ? " is-incoming" : ""}`} aria-hidden="true">{isIncoming(transaction) ? <IconArrowDown /> : <IconArrowUp />}</span>
           <span className="transaction-copy"><span className="transaction-primary"><span className="list-title transaction-title">{transaction.merchant_descriptor ?? transaction.merchant?.descriptor ?? "Card transaction"}</span><span className={`chip ${statusTone(transaction.status)}`}>{formatStatus(transaction.status)}</span></span><span className="transaction-meta"><span>{latestEvent(transaction)?.type ?? "TRANSACTION"}</span><span aria-hidden="true">·</span><span>{date(transaction.updated ?? transaction.created)}</span></span></span>
           <span className={`transaction-amount ${isIncoming(transaction) ? "amount-positive" : "amount-negative"}`}>{signedUsd(transaction.displayAmount, isIncoming(transaction))}</span>
         </button>
@@ -114,22 +119,22 @@ export function TransactionActivity({ transactions }: { transactions: Transactio
 
       {selected && typeof document !== "undefined" && createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
         <section className="transaction-modal" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
-          <div className="modal-header"><div><p className="eyebrow">Transaction details</p><h3 id="transaction-modal-title">{selected.merchant_descriptor ?? selected.merchant?.descriptor ?? "Card transaction"}</h3></div><button className="modal-close" aria-label="Close transaction details" onClick={() => setSelected(null)}>×</button></div>
-          <div className="modal-summary"><div><span className="detail-label">Latest event</span><div className="modal-chips"><span className="chip chip-blue">{latestEvent(selected)?.type ?? "TRANSACTION"}</span><span className="chip chip-neutral">{selected.status ?? "Unknown status"}</span></div></div><div className="modal-amount"><span className="detail-label">{isIncoming(selected) ? "Money in" : "Money out"}</span><strong className={isIncoming(selected) ? "amount-positive" : "amount-negative"}>{signedUsd(selected.displayAmount, isIncoming(selected))}</strong></div></div>
+          <div className="modal-header"><div><p className="modal-context">Transaction details</p><h3 id="transaction-modal-title">{selected.merchant_descriptor ?? selected.merchant?.descriptor ?? "Card transaction"}</h3></div><button className="modal-close" aria-label="Close transaction details" onClick={() => setSelected(null)}><IconClose /></button></div>
+          <div className="modal-summary"><div><span className="detail-label">Status</span><div className="modal-chips"><span className="chip chip-blue">{latestEvent(selected)?.type ?? "TRANSACTION"}</span><span className="chip chip-neutral">{selected.status ?? "Unknown status"}</span></div></div><div className="modal-amount"><span className="detail-label">{isIncoming(selected) ? "Money in" : "Money out"}</span><strong className={isIncoming(selected) ? "amount-positive" : "amount-negative"}>{signedUsd(selected.displayAmount, isIncoming(selected))}</strong></div></div>
+
+          <div className="detail-grid consumer-details">
+            <div><span className="detail-label">Reference</span><code>{selected.internalTransactionId ?? "—"}</code></div>
+            <div><span className="detail-label">Date</span><span>{date(selected.created)}</span></div>
+          </div>
 
           <div className="modal-actions">
             {selected.internalTransactionId && <Link className="btn btn-ghost" href={`/statements/card/${selected.internalTransactionId}`}>Open statement</Link>}
             {canLinkReturn && !reversalIntentId && <button className="btn btn-outline" onClick={createReversalIntent} disabled={linking}>{linking ? "Preparing…" : "Link return"}</button>}
           </div>
 
-          <div className="detail-grid consumer-details">
-            <div><span className="detail-label">Transaction ID</span><code>{selected.internalTransactionId ?? "—"}</code></div>
-            <div><span className="detail-label">Created</span><span>{date(selected.created)}</span></div>
-          </div>
+          <div className="modal-section"><div className="modal-section-heading"><div><strong className="modal-section-title">Activity</strong></div><span className="chip chip-neutral">{selectedEvents.length}</span></div>{selectedEvents.map((event, index) => <div className="event-detail" key={`${event.type}-${event.created}-${index}`}><div className="event-title"><span className="event-marker" aria-hidden="true" /><div><strong>{formatStatus(event.type)}</strong><span>{event.result ? formatStatus(event.result) : ""}</span></div></div><time>{date(event.created)}</time><div className="event-amounts">{hasMeaningfulAmount(event.amounts?.hold?.amount) && <span><small>Hold</small><strong>{usd(event.amounts?.hold?.amount)}</strong></span>}{hasMeaningfulAmount(event.amounts?.cardholder?.amount) && <span><small>Cardholder</small><strong>{usd(event.amounts?.cardholder?.amount)}</strong></span>}{hasMeaningfulAmount(event.amounts?.settlement?.amount) && <span><small>Settlement</small><strong>{usd(event.amounts?.settlement?.amount)}</strong></span>}</div></div>)}</div>
 
-          <div className="modal-section"><div className="modal-section-heading"><div><p className="eyebrow">Event timeline</p></div><span className="chip chip-neutral">{selectedEvents.length}</span></div>{selectedEvents.map((event, index) => <div className="event-detail" key={`${event.type}-${event.created}-${index}`}><div className="event-title"><span className="event-marker" aria-hidden="true" /><div><strong>{event.type}</strong><span>{event.result ?? ""}</span></div></div><time>{date(event.created)}</time><div className="event-amounts"><span>Hold {usd(event.amounts?.hold?.amount)}</span><span>Cardholder {usd(event.amounts?.cardholder?.amount)}</span><span>Settlement {usd(event.amounts?.settlement?.amount)}</span></div></div>)}</div>
-
-          {relatedTransactions.length > 0 && <div className="modal-section"><div className="modal-section-heading"><div><p className="eyebrow">Related transactions</p></div></div>{relatedTransactions.map((transaction) => <button className="related-row" key={transaction.token} onClick={() => { setSelected(transaction); setReversalIntentId(null); }}><span><strong>{transaction.merchant_descriptor ?? transaction.merchant?.descriptor ?? "Card transaction"}</strong><small>{latestEvent(transaction)?.type ?? "TRANSACTION"} · {transaction.status} · {date(transaction.updated ?? transaction.created)}</small></span><strong className={isIncoming(transaction) ? "amount-positive" : "amount-negative"}>{signedUsd(transaction.displayAmount, isIncoming(transaction))}</strong></button>)}</div>}
+          {relatedTransactions.length > 0 && <div className="modal-section"><div className="modal-section-heading"><div><strong className="modal-section-title">Related transactions</strong></div></div>{relatedTransactions.map((transaction) => <button className="related-row" key={transaction.token} onClick={() => { setSelected(transaction); setReversalIntentId(null); }}><span><strong>{transaction.merchant_descriptor ?? transaction.merchant?.descriptor ?? "Card transaction"}</strong><small>{latestEvent(transaction)?.type ?? "TRANSACTION"} · {transaction.status} · {date(transaction.updated ?? transaction.created)}</small></span><strong className={isIncoming(transaction) ? "amount-positive" : "amount-negative"}>{signedUsd(transaction.displayAmount, isIncoming(transaction))}</strong></button>)}</div>}
 
           {reversalIntentId && <div className="modal-section"><p className="eyebrow">Link a return</p><form className="reversal-link-form" onSubmit={linkReturn}><p className="modal-note">Simulate the return in Lithic, then paste its provider transaction token here.</p><label className="detail-label" htmlFor="provider-return-token">Lithic return transaction token</label><input id="provider-return-token" value={providerReturnToken} onChange={(event) => setProviderReturnToken(event.target.value)} required placeholder="Lithic transaction token" /><label className="detail-label" htmlFor="return-amount">Return amount (USD)</label><input id="return-amount" inputMode="decimal" value={returnAmountDollars} onChange={(event) => setReturnAmountDollars(event.target.value)} required /><button className="btn btn-primary" type="submit" disabled={linking}>{linking ? "Linking…" : "Confirm link"}</button></form>{linkError && <p className="form-error">{linkError}</p>}</div>}
         </section>

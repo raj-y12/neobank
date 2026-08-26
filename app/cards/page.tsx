@@ -22,19 +22,18 @@ export default async function CardsPage() {
   return (
     <>
       <section className="intro">
-        <div><p className="eyebrow">Cards · Lithic sandbox</p><h2>Your team cards.</h2><p className="intro-copy">Live card inventory from the issuer processor. Open a card to see the activity Lithic has recorded for it.</p></div>
+        <div><h2>Cards</h2><p className="intro-copy">Manage cards issued to your team.</p></div>
         <IssueCardButton />
       </section>
       {cards.length === 0 ? (
-        <section className="panel" style={{ marginTop: 14 }}>
-          <div className="empty-state"><h4>No cards in Lithic yet</h4><p>Create a sandbox card to see it appear here.</p></div>
+        <section className="panel section-panel">
+          <div className="empty-state"><h4>No cards yet</h4><p>Issue a card to get started.</p></div>
         </section>
       ) : (
-        <section className="card-tile-grid" style={{ marginTop: 14 }} aria-label="Issued cards">
+        <section className="card-tile-grid section-panel" aria-label="Issued cards">
           {cards.map((card) => <div key={card.token}><CardTile card={card} href={`/cards/${card.token}`} /><CardDelegateForm cardToken={card.token} assignedMemberId={assignmentByToken.get(card.token)?.memberId ?? null} employees={employees} /></div>)}
         </section>
       )}
-      <footer className="footer"><span>{cards.length} live sandbox card{cards.length === 1 ? "" : "s"}</span><span>Lithic</span></footer>
     </>
   );
 }

@@ -26,11 +26,10 @@ export default async function CardDetailPage({ params }: { params: Promise<{ tok
         <Link className="back-link" href="/cards">← Cards</Link>
       </section>
       <section className="card-detail-hero" aria-label="Card details"><CardTile card={card} /></section>
-      <section className="panel" style={{ marginTop: 14 }}>
-        <div className="panel-heading"><div><p className="eyebrow">Activity</p><h3>Recent transactions</h3></div><span className="chip chip-neutral">{recentTransactions.length} · click a row</span></div>
+      <section className="panel section-panel">
+        <div className="panel-heading"><div><h3>Recent activity</h3></div><span className="chip chip-neutral">{recentTransactions.length}</span></div>
         <TransactionActivity transactions={transactionRows} />
       </section>
-      <footer className="footer"><span>New York, USA</span><span>Business operating account</span></footer>
     </>
   );
 }

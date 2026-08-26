@@ -20,5 +20,40 @@ export default function ApprovalsPage() {
     setMessage(response.ok ? `Submitted to ${body.mode} rail as ${body.providerTransferId}` : body.error);
     if (response.ok) void load();
   }
-  return <main className="panel page-panel"><p className="eyebrow">Maker-checker queue</p><h1>Approvals</h1><p className="muted">Sign in as a different business member to approve a payment. Self-approval is rejected.</p>{approvals.length === 0 ? <div className="empty-state"><h4>No pending approvals</h4><p>{message}</p></div> : approvals.map((approval) => <div className="status-card" key={approval.id}><div><strong>{typeof approval.recipient === "string" ? approval.recipient : approval.recipient.name}</strong><p className="list-meta">${(approval.amount_cents / 100).toFixed(2)} · initiated by {approval.initiator_member_id}</p></div><button className="btn btn-primary" onClick={() => approve(approval.id)}>Approve</button></div>)}<p className="list-meta" role="status">{message}</p></main>;
+  return (
+    <>
+      <section className="intro">
+        <div>
+          <h2>Approvals</h2>
+          <p className="muted">Review payments waiting for your approval.</p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="table-toolbar">
+          <div><h3>{approvals.length} waiting</h3></div>
+        </div>
+        {approvals.length === 0 ? <div className="empty-state"><h4>No pending approvals</h4><p>{message}</p></div> : (
+          <table className="data-table">
+            <thead><tr><th>Recipient</th><th>Initiated by</th><th>Status</th><th>Amount</th><th /></tr></thead>
+            <tbody>
+              {approvals.map((approval) => {
+                const name = typeof approval.recipient === "string" ? approval.recipient : approval.recipient.name;
+                return (
+                  <tr key={approval.id}>
+                    <td><span className="table-avatar">{(name ?? "?").slice(0, 1).toUpperCase()}</span>{name}</td>
+                    <td>{approval.initiator_member_id}</td>
+                    <td><span className={`table-status status-${approval.status.toLowerCase()}`}>{approval.status}</span></td>
+                    <td className="tabular">${(approval.amount_cents / 100).toFixed(2)}</td>
+                    <td><button className="btn btn-outline" onClick={() => approve(approval.id)}>Approve</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <p className="list-meta" role="status">{message}</p>
+      </section>
+    </>
+  );
 }

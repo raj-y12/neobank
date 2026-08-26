@@ -28,8 +28,27 @@ export function TeamClient() {
   }
 
   return <>
-    <form className="form-row" onSubmit={invite}><label>Employee email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="employee@business.com" required /></label><label>Role<select value={role} onChange={(event) => setRole(event.target.value as "MEMBER" | "ADMIN")}><option value="MEMBER">Member</option><option value="ADMIN">Admin</option></select></label><button className="btn btn-primary">Invite employee</button></form>
+    <h3>Add an employee</h3>
+    <form className="form-row" onSubmit={invite}>
+      <label>Employee email<input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="employee@business.com" required /></label>
+      <label>Role<select className="select" value={role} onChange={(event) => setRole(event.target.value as "MEMBER" | "ADMIN")}><option value="MEMBER">Member</option><option value="ADMIN">Admin</option></select></label>
+      <button className="btn btn-primary">Invite employee</button>
+    </form>
     <p className="list-meta" role="status">{message}</p>
-    <div className="list-stack">{employees.map((employee) => <div className="status-card" key={employee.id}><div><strong>{employee.email ?? employee.id}</strong><p className="list-meta">{employee.role} · {employee.status}</p></div><span className="chip chip-orange">{employee.status}</span></div>)}</div>
+
+    {employees.length > 0 && (
+      <table className="data-table">
+        <thead><tr><th>Employee</th><th>Role</th><th>Status</th></tr></thead>
+        <tbody>
+          {employees.map((employee) => (
+            <tr key={employee.id}>
+              <td><span className="table-avatar">{(employee.email ?? "?").slice(0, 1).toUpperCase()}</span>{employee.email ?? employee.id}</td>
+              <td>{employee.role}</td>
+              <td><span className={`table-status status-${employee.status.toLowerCase()}`}>{employee.status}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
   </>;
 }
