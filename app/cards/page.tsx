@@ -1,6 +1,7 @@
 import { listLithicCards } from "@/src/integrations/lithic/client";
 import { getAuthenticatedScope } from "@/src/lib/auth-scope";
 import { listBusinessCardAssignments } from "@/src/repositories/supabase-business-card-repository";
+import { filterVisibleCards } from "@/src/domain/card-access";
 import { CardTile } from "./CardTile";
 import { IssueCardButton } from "./IssueCardButton";
 
@@ -12,7 +13,8 @@ export default async function CardsPage() {
     listLithicCards(),
     listBusinessCardAssignments(scope.businessId),
   ]);
-  const assignmentByToken = new Map(assignments.map((assignment) => [assignment.cardToken, assignment]));
+  const visibleAssignments = filterVisibleCards(assignments, { role: scope.role, currentMemberId: scope.memberId });
+  const assignmentByToken = new Map(visibleAssignments.map((assignment) => [assignment.cardToken, assignment]));
   const cards = providerCards.filter((card) => assignmentByToken.has(card.token));
   return (
     <>

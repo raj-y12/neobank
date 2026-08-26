@@ -25,4 +25,9 @@ describe("navigation gate", () => {
     expect(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: false })).toBe(false);
     expect(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: true })).toBe(true);
   });
+
+  it("hides the app navigation on public auth paths", () => {
+    expect(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: true, pathname: "/login" })).toBe(false);
+    expect(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: true, pathname: "/onboarding" })).toBe(false);
+  });
 });

@@ -74,11 +74,11 @@ export async function getLithicCard(token: string) {
   return lithicFetch<LithicCard>(`/cards/${encodeURIComponent(token)}`);
 }
 
-export async function createLithicVirtualCard() {
+export async function createLithicVirtualCard(input: { spendLimit: number; spendLimitDuration: string }) {
   return lithicFetch<LithicCard>("/cards", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "VIRTUAL", state: "OPEN", memo: "Team card" }),
+    body: JSON.stringify({ type: "VIRTUAL", state: "OPEN", memo: "Team card", spend_limit: input.spendLimit, spend_limit_duration: input.spendLimitDuration }),
   });
 }
 

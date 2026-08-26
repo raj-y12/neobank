@@ -35,3 +35,11 @@ The application is a Next.js web app. Provider credentials belong in local envir
 - Provider webhooks must be configured in Increase, Lithic, Persona, and Plaid environments and verified with the evidence checklist.
 - Enable Supabase Auth leaked-password protection in Authentication → Password Security before production handoff.
 - Agent routes are intentionally excluded from this remediation release; see [`docs/track-3-plan.md`](docs/track-3-plan.md).
+
+## Local demo audit log
+
+- 2026-08-26 13:40 UTC — Created `codex-admin-20260826@example.com` through the authenticated Employees flow with the `ADMIN` role. The one-time initial password was used for this session only and is not recorded here.
+- 2026-08-26 13:40 UTC — Signed in as the new admin and opened the approval queue. The existing Northstar Supplies ACH payment (`4721bade-49ae-45cc-a751-99e4c7ee06a5`) was the only pending approval, for `$1,240.00`.
+- 2026-08-26 13:40 UTC — The UI rejection action inserted the `REJECTED` approval audit row, then returned `Unable to reject payment` because the deployed `release_payment_funds` RPC exposed a parameter/signature mismatch (`PGRST202`).
+- 2026-08-26 13:41 UTC — Completed the explicitly authorized rejection on the same payment record, setting its status to `REJECTED`. Reloading `/approvals` verified `0 payment(s) awaiting approval`.
+- 2026-08-26 13:54 UTC — Applied `fix_release_payment_funds_rpc` to restore the missing deployed RPC, then posted the idempotent `PAYMENT_RESERVATION_RELEASE` journal entry (`169de46d-92c7-4650-b216-3cf452e6a2b5`) for the rejected payment. This releases the `$1,240.00` hold back to `CUSTOMER_AVAILABLE`.

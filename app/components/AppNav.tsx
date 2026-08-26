@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/browser";
+import { shouldShowAppNavigation } from "@/src/domain/navigation-gate";
+import { BrandMark } from "./BrandMark";
 import { IconCheckCircle, IconDollar, IconHome, IconReceipt, IconUsers } from "./Icon";
 
 const TABS = [
@@ -18,6 +20,7 @@ const TABS = [
 export function AppNav() {
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
+  const [ownerName, setOwnerName] = useState<string | null>(null);
   const isPublicPath = pathname === "/login" || pathname === "/onboarding";
   const [showNavigation, setShowNavigation] = useState(!isPublicPath);
 
@@ -29,12 +32,23 @@ export function AppNav() {
       const nextEmail = data.user?.email ?? null;
       if (disposed) return;
       setEmail(nextEmail);
-      setShowNavigation(Boolean(nextEmail));
+      if (!nextEmail || isPublicPath) {
+        setOwnerName(null);
+        setShowNavigation(false);
+        return;
+      }
+      const statusResponse = await fetch("/api/navigation-status", { cache: "no-store" });
+      const status = statusResponse.ok ? await statusResponse.json() as { ownerName?: string | null } : null;
+      setOwnerName(status?.ownerName ?? null);
+      setShowNavigation(shouldShowAppNavigation({ authenticated: true, onboardingApproved: true, fundingLinked: true, pathname }));
     };
     void loadStatus();
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
-      if (!session) setShowNavigation(false);
+      if (!session) {
+        setOwnerName(null);
+        setShowNavigation(false);
+      }
       else void loadStatus();
     });
     window.addEventListener("focus", loadStatus);
@@ -45,14 +59,14 @@ export function AppNav() {
       window.removeEventListener("focus", loadStatus);
       window.removeEventListener("corgi:setup-changed", loadStatus);
     };
-  }, []);
+  }, [isPublicPath, pathname]);
 
   if (!showNavigation) return null;
 
   return (
     <header className="sidebar">
       <Link className="sidebar-brand" href="/" aria-label="Corgi home">
-        <span className="brand-mark">c</span>
+        <BrandMark />
         <span className="sidebar-brand-word">Corgi</span>
       </Link>
 
@@ -71,8 +85,11 @@ export function AppNav() {
       </nav>
 
       <Link className="nav-user" href="/account" aria-label="Open account profile">
-        <div className="avatar">{email?.slice(0, 2).toUpperCase() ?? "??"}</div>
-        <span className="nav-user-email">{email}</span>
+        <div className="avatar">{(ownerName ?? email ?? "??").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div>
+        <span className="nav-user-copy">
+          <strong className="nav-user-name">{ownerName ?? email ?? "Account"}</strong>
+          <span className="nav-user-email">{email}</span>
+        </span>
       </Link>
     </header>
   );

@@ -1,0 +1,26 @@
+type BrandMarkProps = {
+  className?: string;
+};
+
+export function BrandMark({ className = "" }: BrandMarkProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`brand-mark${className ? ` ${className}` : ""}`}
+      focusable="false"
+      viewBox="0 0 40 40"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        className="brand-mark-head"
+        d="M5.5 14.5 8.2 4.2l9.1 6.1c1.8-.4 3.6-.4 5.4 0l9.1-6.1 2.7 10.3v11.2c0 6.1-5.1 10.1-14.5 10.1S5.5 31.8 5.5 25.7V14.5Z"
+      />
+      <path
+        className="brand-mark-blaze"
+        d="M16.1 9.9 20 6.8l3.9 3.1-1.8 8.3c-.4 1.8-.2 3.6.6 5.2l2.1 4.1c-1.3 1.5-2.9 2.3-4.8 2.3s-3.5-.8-4.8-2.3l2.1-4.1c.8-1.6 1-3.4.6-5.2l-1.8-8.3Z"
+      />
+      <path className="brand-mark-muzzle" d="M15 25.8c1.2-1.1 2.9-1.7 5-1.7s3.8.6 5 1.7c-.5 3-2.2 4.6-5 4.6s-4.5-1.6-5-4.6Z" />
+      <path className="brand-mark-nose" d="M17.5 25.1c.4-.8 1.2-1.2 2.5-1.2s2.1.4 2.5 1.2c-.5 1.1-1.3 1.7-2.5 1.7s-2-.6-2.5-1.7Z" />
+    </svg>
+  );
+}
