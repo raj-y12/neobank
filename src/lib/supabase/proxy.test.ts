@@ -68,4 +68,12 @@ describe("updateSupabaseSession", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("leaves public API routes to their bearer-token guard", async () => {
+    authState.claims = null;
+    const response = await updateSupabaseSession(new NextRequest("https://bank.example/api/v1/account"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
 });

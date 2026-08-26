@@ -20,7 +20,7 @@ export async function updateSupabaseSession(request: NextRequest) {
   });
   const { data } = await supabase.auth.getClaims();
   const pathname = request.nextUrl.pathname;
-  const isPublic = pathname === "/login" || pathname === "/api/auth/signup" || pathname === "/api/mcp" || pathname.startsWith("/auth") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/jobs/") || pathname.startsWith("/_next") || pathname.includes(".");
+  const isPublic = pathname === "/login" || pathname === "/api/auth/signup" || pathname === "/api/mcp" || pathname.startsWith("/api/v1/") || pathname.startsWith("/auth") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/jobs/") || pathname.startsWith("/_next") || pathname.includes(".");
   if (!data?.claims && !isPublic) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
