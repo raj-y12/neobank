@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "providerReturnTransactionId, returnCardToken, and returnAmountCents are required" }, { status: 400 });
     }
     validateReturnLink({ intent: existingIntent, returnCardToken: body.returnCardToken, returnAmountCents });
-    const posted = await replayStoredReturn({ ...existingIntent, providerReturnTransactionId: body.providerReturnTransactionId });
+    const posted = await replayStoredReturn(existingIntent, body.providerReturnTransactionId);
     if (posted <= 0) throw new Error("No ready return event was posted");
     const intent = await reversalRepository.completeReturnLink({ intentId: id, providerReturnTransactionId: body.providerReturnTransactionId });
     return NextResponse.json({ intent });
@@ -34,17 +34,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 }
 
-async function replayStoredReturn(intent: { id: string; originalTransactionId: string; providerReturnTransactionId: string | null }) {
-  if (!intent.providerReturnTransactionId) return 0;
+async function replayStoredReturn(intent: { id: string; originalTransactionId: string; providerReturnTransactionId: string | null }, providerReturnTransactionId: string) {
 
   const transactions = createSupabaseCardTransactionRepository();
   const ledger = createSupabaseLedgerRepository();
   const providerEvents = createSupabaseProviderEventRepository();
-  const stored = await providerEvents.listForTransaction("lithic", intent.providerReturnTransactionId);
+  const stored = await providerEvents.listForTransaction("lithic", providerReturnTransactionId);
   if (stored.length === 0) return 0;
   const legacySemanticEventIds = new Set(stored.filter((row) => row.processingVersion < 2).flatMap((row) => (row.payload as LithicTransactionPayload).events?.flatMap((event) => event.token ? [event.token] : []) ?? []));
   const snapshots = stored.filter((row) => row.processingVersion >= 2).map((row) => ({ webhookId: row.providerEventId, receivedAt: row.receivedAt, payload: row.payload as LithicTransactionPayload }));
-  const baseline = await transactions.getLifecycleBaseline(intent.providerReturnTransactionId);
+  const baseline = await transactions.getLifecycleBaseline(providerReturnTransactionId);
   const plan = await processLithicLifecycle(snapshots, { now: new Date().toISOString(), initialState: baseline, excludedSemanticEventIds: legacySemanticEventIds }, {
     project: (event) => transactions.projectLifecycle(event),
     park: (event) => providerEvents.park({ provider: "lithic", providerEventId: event.semanticEventId, providerTransactionId: event.transactionId, eventType: event.type, payload: event }),
@@ -53,7 +52,7 @@ async function replayStoredReturn(intent: { id: string; originalTransactionId: s
   });
   const originalProviderTransactionId = await transactions.findProviderTransactionId(intent.originalTransactionId);
   if (!originalProviderTransactionId) throw new Error("Original Lithic transaction is missing");
-  await transactions.linkReversal(intent.providerReturnTransactionId, intent.originalTransactionId);
+  await transactions.linkReversal(providerReturnTransactionId, intent.originalTransactionId);
   let posted = 0;
   for (const returned of plan.events.filter((event) => event.type === "RETURN" && event.disposition === "READY" && event.settlementDeltaCents > 0)) {
     posted += await ledger.postCardReturnAtomically({ originalProviderTransactionId, returnEventId: returned.semanticEventId, returnTransactionId: returned.transactionId, amountCents: returned.settlementDeltaCents, learnedAt: returned.learnedAt });
