@@ -10,9 +10,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <TeamClient />
-      </section>
+      <TeamClient />
     </>
   );
 }
